@@ -1,0 +1,185 @@
+API Documentation for Watch Store
+
+Base URL: /api/
+
+1. Authentication APIs:
+   - POST /auth/login/ - Đăng nhập
+   - POST /auth/register/ - Đăng ký
+   - POST /auth/refresh/ - Làm mới token
+
+2. Product Category APIs:
+   - GET /categories/ - Lấy danh sách danh mục
+   - GET /categories/{id}/ - Lấy chi tiết danh mục
+   - POST /categories/ - Tạo danh mục mới
+   - PUT /categories/{id}/ - Cập nhật danh mục
+   - DELETE /categories/{id}/ - Xóa danh mục
+
+3. Brand APIs:
+   - GET /brands/ - Lấy danh sách thương hiệu
+   - GET /brands/{id}/ - Lấy chi tiết thương hiệu
+   - POST /brands/ - Tạo thương hiệu mới
+   - PUT /brands/{id}/ - Cập nhật thương hiệu
+   - DELETE /brands/{id}/ - Xóa thương hiệu
+
+4. Product APIs:
+   - GET /products/ - Lấy danh sách sản phẩm
+   - GET /products/{id}/ - Lấy chi tiết sản phẩm
+   - POST /products/ - Tạo sản phẩm mới
+   - PUT /products/{id}/ - Cập nhật sản phẩm
+   - DELETE /products/{id}/ - Xóa sản phẩm
+   - GET /products/{id}/reviews/ - Lấy đánh giá của sản phẩm
+   - GET /products/{id}/specifications/ - Lấy thông số kỹ thuật
+   - GET /products/{id}/variants/ - Lấy các biến thể
+   - GET /products/{id}/price-history/ - Lấy lịch sử giá
+
+5. Customer APIs:
+   - GET /customers/ - Lấy danh sách khách hàng
+   - GET /customers/{id}/ - Lấy chi tiết khách hàng
+   - POST /customers/ - Tạo khách hàng mới
+   - PUT /customers/{id}/ - Cập nhật khách hàng
+   - DELETE /customers/{id}/ - Xóa khách hàng
+   - GET /customers/{id}/orders/ - Lấy đơn hàng của khách hàng
+   - GET /customers/{id}/wishlist/ - Lấy danh sách yêu thích
+   - GET /customers/{id}/reviews/ - Lấy đánh giá của khách hàng
+
+6. Order APIs:
+   - GET /orders/ - Lấy danh sách đơn hàng
+   - GET /orders/{id}/ - Lấy chi tiết đơn hàng
+   - POST /orders/ - Tạo đơn hàng mới
+   - PUT /orders/{id}/ - Cập nhật đơn hàng
+   - DELETE /orders/{id}/ - Xóa đơn hàng
+   - GET /orders/{id}/details/ - Lấy chi tiết đơn hàng
+   - GET /orders/{id}/shipments/ - Lấy thông tin vận chuyển
+   - GET /orders/{id}/returns/ - Lấy thông tin đổi trả
+   - GET /orders/{id}/warranty-cards/ - Lấy thông tin bảo hành
+
+7. Store APIs:
+   - GET /stores/ - Lấy danh sách cửa hàng
+   - GET /stores/{id}/ - Lấy chi tiết cửa hàng
+   - POST /stores/ - Tạo cửa hàng mới
+   - PUT /stores/{id}/ - Cập nhật cửa hàng
+   - DELETE /stores/{id}/ - Xóa cửa hàng
+   - GET /stores/{id}/inventory/ - Lấy tồn kho
+   - GET /stores/{id}/employees/ - Lấy danh sách nhân viên
+   - GET /stores/{id}/revenue/ - Lấy doanh thu
+
+8. Employee APIs:
+   - GET /employees/ - Lấy danh sách nhân viên
+   - GET /employees/{id}/ - Lấy chi tiết nhân viên
+   - POST /employees/ - Tạo nhân viên mới
+   - PUT /employees/{id}/ - Cập nhật nhân viên
+   - DELETE /employees/{id}/ - Xóa nhân viên
+
+9. Inventory APIs:
+   - GET /inventory/ - Lấy danh sách tồn kho
+   - GET /inventory/{id}/ - Lấy chi tiết tồn kho
+   - POST /inventory/ - Tạo tồn kho mới
+   - PUT /inventory/{id}/ - Cập nhật tồn kho
+   - DELETE /inventory/{id}/ - Xóa tồn kho
+
+10. Stock Management APIs:
+    - GET /stock-in/ - Lấy danh sách nhập kho
+    - GET /stock-in/{id}/ - Lấy chi tiết nhập kho
+    - POST /stock-in/ - Tạo phiếu nhập kho
+    - PUT /stock-in/{id}/ - Cập nhật phiếu nhập kho
+    - DELETE /stock-in/{id}/ - Xóa phiếu nhập kho
+    - GET /stock-out/ - Lấy danh sách xuất kho
+    - GET /stock-out/{id}/ - Lấy chi tiết xuất kho
+    - POST /stock-out/ - Tạo phiếu xuất kho
+    - PUT /stock-out/{id}/ - Cập nhật phiếu xuất kho
+    - DELETE /stock-out/{id}/ - Xóa phiếu xuất kho
+
+11. Attribute APIs:
+    - GET /attributes/ - Lấy danh sách thuộc tính
+    - GET /attributes/{id}/ - Lấy chi tiết thuộc tính
+    - POST /attributes/ - Tạo thuộc tính mới
+    - PUT /attributes/{id}/ - Cập nhật thuộc tính
+    - DELETE /attributes/{id}/ - Xóa thuộc tính
+    - GET /attributes/{id}/values/ - Lấy giá trị thuộc tính
+
+12. Product Variant APIs:
+    - GET /product-variants/ - Lấy danh sách biến thể
+    - GET /product-variants/{id}/ - Lấy chi tiết biến thể
+    - POST /product-variants/ - Tạo biến thể mới
+    - PUT /product-variants/{id}/ - Cập nhật biến thể
+    - DELETE /product-variants/{id}/ - Xóa biến thể
+    - GET /product-variants/{id}/attributes/ - Lấy thuộc tính biến thể
+
+13. Shipment APIs:
+    - GET /shipments/ - Lấy danh sách vận chuyển
+    - GET /shipments/{id}/ - Lấy chi tiết vận chuyển
+    - POST /shipments/ - Tạo vận chuyển mới
+    - PUT /shipments/{id}/ - Cập nhật vận chuyển
+    - DELETE /shipments/{id}/ - Xóa vận chuyển
+
+14. Review APIs:
+    - GET /product-reviews/ - Lấy danh sách đánh giá
+    - GET /product-reviews/{id}/ - Lấy chi tiết đánh giá
+    - POST /product-reviews/ - Tạo đánh giá mới
+    - PUT /product-reviews/{id}/ - Cập nhật đánh giá
+    - DELETE /product-reviews/{id}/ - Xóa đánh giá
+
+15. Wishlist APIs:
+    - GET /product-wishlist/ - Lấy danh sách yêu thích
+    - GET /product-wishlist/{id}/ - Lấy chi tiết yêu thích
+    - POST /product-wishlist/ - Thêm vào yêu thích
+    - DELETE /product-wishlist/{id}/ - Xóa khỏi yêu thích
+
+16. Coupon APIs:
+    - GET /coupons/ - Lấy danh sách mã giảm giá
+    - GET /coupons/{id}/ - Lấy chi tiết mã giảm giá
+    - POST /coupons/ - Tạo mã giảm giá mới
+    - PUT /coupons/{id}/ - Cập nhật mã giảm giá
+    - DELETE /coupons/{id}/ - Xóa mã giảm giá
+    - POST /coupons/verify/ - Kiểm tra mã giảm giá
+
+17. Return APIs:
+    - GET /returns/ - Lấy danh sách đổi trả
+    - GET /returns/{id}/ - Lấy chi tiết đổi trả
+    - POST /returns/ - Tạo đổi trả mới
+    - PUT /returns/{id}/ - Cập nhật đổi trả
+    - DELETE /returns/{id}/ - Xóa đổi trả
+
+18. Warranty APIs:
+    - GET /warranty-cards/ - Lấy danh sách bảo hành
+    - GET /warranty-cards/{id}/ - Lấy chi tiết bảo hành
+    - POST /warranty-cards/ - Tạo bảo hành mới
+    - PUT /warranty-cards/{id}/ - Cập nhật bảo hành
+    - DELETE /warranty-cards/{id}/ - Xóa bảo hành
+
+19. Price History APIs:
+    - GET /price-history/ - Lấy lịch sử giá
+    - GET /price-history/{id}/ - Lấy chi tiết lịch sử giá
+    - POST /price-history/ - Tạo lịch sử giá mới
+
+20. Notification APIs:
+    - GET /notifications/ - Lấy danh sách thông báo
+    - GET /notifications/{id}/ - Lấy chi tiết thông báo
+    - POST /notifications/ - Tạo thông báo mới
+    - PUT /notifications/{id}/ - Cập nhật thông báo
+    - DELETE /notifications/{id}/ - Xóa thông báo
+    - PUT /notifications/{id}/read/ - Đánh dấu đã đọc
+
+21. Login History APIs:
+    - GET /login-history/ - Lấy lịch sử đăng nhập
+    - GET /login-history/{id}/ - Lấy chi tiết lịch sử đăng nhập
+
+Query Parameters:
+- page: Số trang (mặc định: 1)
+- page_size: Số lượng item trên mỗi trang (mặc định: 10)
+- ordering: Sắp xếp theo trường (VD: -created_at)
+- search: Tìm kiếm theo từ khóa
+- filters: Lọc theo các trường
+
+Response Format:
+{
+    "count": total_items,
+    "next": next_page_url,
+    "previous": previous_page_url,
+    "results": [
+        {
+            "id": item_id,
+            ...item_fields
+        }
+    ]
+} 

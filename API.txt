@@ -1,0 +1,507 @@
+# API Endpoints Documentation
+
+## Authentication APIs
+
+# Đăng ký tài khoản mới
+POST /api/auth/register/
+Content-Type: application/json
+{
+    "username": "testuser",
+    "email": "test@example.com",
+    "password": "Test@123",
+    "first_name": "Test",
+    "last_name": "User"
+}
+
+# Đăng nhập
+POST /api/auth/login/
+Content-Type: application/json
+{
+    "username": "testuser",
+    "password": "Test@123"
+}
+
+# Refresh token
+POST /api/auth/refresh/
+Content-Type: application/json
+{
+    "refresh": "your_refresh_token"
+}
+
+## Product Category APIs
+
+# Lấy danh sách danh mục
+GET /api/categories/
+Authorization: Bearer your_access_token
+
+# Tạo danh mục mới
+POST /api/categories/
+Content-Type: application/json
+{
+    "name": "Đồng hồ nam",
+    "description": "Các loại đồng hồ dành cho nam",
+    "parent_id": null,
+    "display_order": 1
+}
+
+# Lấy chi tiết danh mục
+GET /api/categories/{id}/
+
+# Cập nhật danh mục
+PUT /api/categories/{id}/
+Content-Type: application/json
+{
+    "name": "Đồng hồ nam cao cấp",
+    "description": "Các loại đồng hồ nam cao cấp",
+    "display_order": 2
+}
+
+# Xóa danh mục
+DELETE /api/categories/{id}/
+
+# Lọc danh mục theo parent_id
+GET /api/categories/?parent_id=1
+
+# Tìm kiếm danh mục
+GET /api/categories/?search=rolex
+
+# Sắp xếp danh mục
+GET /api/categories/?ordering=name
+GET /api/categories/?ordering=-display_order
+
+# Lấy danh sách danh mục con
+GET /api/categories/{id}/subcategories/
+
+## Brand APIs
+
+# Lấy danh sách thương hiệu
+GET /api/brands/
+Authorization: Bearer your_access_token
+
+# Tạo thương hiệu mới
+POST /api/brands/
+Content-Type: application/json
+{
+    "name": "Rolex",
+    "description": "Thương hiệu đồng hồ cao cấp",
+    "logo_url": "https://example.com/rolex-logo.png",
+    "display_order": 1
+}
+
+# Lấy chi tiết thương hiệu
+GET /api/brands/{id}/
+
+# Cập nhật thương hiệu
+PUT /api/brands/{id}/
+Content-Type: application/json
+{
+    "name": "Rolex Luxury",
+    "description": "Thương hiệu đồng hồ cao cấp hàng đầu"
+}
+
+# Xóa thương hiệu
+DELETE /api/brands/{id}/
+
+# Tìm kiếm thương hiệu
+GET /api/brands/?search=rolex
+
+# Sắp xếp thương hiệu
+GET /api/brands/?ordering=name
+GET /api/brands/?ordering=-display_order
+
+## Product APIs
+
+# Lấy danh sách sản phẩm
+GET /api/products/
+Authorization: Bearer your_access_token
+
+# Tạo sản phẩm mới
+POST /api/products/
+Content-Type: application/json
+{
+    "name": "Rolex Submariner",
+    "description": "Đồng hồ Rolex Submariner chính hãng",
+    "category_id": 1,
+    "brand_id": 1,
+    "base_price": 50000000,
+    "images": [
+        {
+            "url": "https://example.com/rolex-submariner-1.jpg",
+            "is_main": true,
+            "display_order": 1
+        }
+    ]
+}
+
+# Lấy chi tiết sản phẩm
+GET /api/products/{id}/
+
+# Cập nhật sản phẩm
+PUT /api/products/{id}/
+Content-Type: application/json
+{
+    "name": "Rolex Submariner 2024",
+    "base_price": 55000000
+}
+
+# Xóa sản phẩm
+DELETE /api/products/{id}/
+
+# Lọc sản phẩm
+GET /api/products/?category_id=1&brand_id=2&min_price=1000000&max_price=5000000
+
+# Tìm kiếm sản phẩm
+GET /api/products/?search=rolex
+
+# Sắp xếp sản phẩm
+GET /api/products/?ordering=-base_price
+GET /api/products/?ordering=created_at
+
+# Thêm vào giỏ hàng
+POST /api/products/{id}/add_to_cart/
+Content-Type: application/json
+{
+    "quantity": 1
+}
+
+## Customer APIs
+
+# Lấy danh sách khách hàng
+GET /api/customers/
+Authorization: Bearer your_access_token
+
+# Tạo khách hàng mới
+POST /api/customers/
+Content-Type: application/json
+{
+    "first_name": "Nguyễn",
+    "last_name": "Văn A",
+    "email": "nguyenvana@example.com",
+    "phone": "0123456789",
+    "address": "Hà Nội",
+    "birth_date": "1990-01-01",
+    "gender": "male"
+}
+
+# Lấy chi tiết khách hàng
+GET /api/customers/{id}/
+
+# Cập nhật thông tin khách hàng
+PUT /api/customers/{id}/
+Content-Type: application/json
+{
+    "phone": "0987654321",
+    "address": "TP.HCM"
+}
+
+# Xóa khách hàng
+DELETE /api/customers/{id}/
+
+# Tìm kiếm khách hàng
+GET /api/customers/?search=nguyen
+
+# Sắp xếp khách hàng
+GET /api/customers/?ordering=-created_at
+
+## Order APIs
+
+# Lấy danh sách đơn hàng
+GET /api/orders/
+Authorization: Bearer your_access_token
+
+# Tạo đơn hàng mới
+POST /api/orders/
+Content-Type: application/json
+{
+    "store_id": 1,
+    "customer_id": 1,
+    "order_details": [
+        {
+            "product_id": 1,
+            "quantity": 1,
+            "unit_price": 50000000
+        }
+    ],
+    "shipping_address": "Hà Nội",
+    "shipping_fee": 50000,
+    "payment_method": "cash"
+}
+
+# Lấy chi tiết đơn hàng
+GET /api/orders/{id}/
+
+# Cập nhật trạng thái đơn hàng
+PUT /api/orders/{id}/
+Content-Type: application/json
+{
+    "status": "processing"
+}
+
+# Xóa đơn hàng
+DELETE /api/orders/{id}/
+
+# Lọc đơn hàng
+GET /api/orders/?status=pending&store_id=1&customer_id=2
+GET /api/orders/?start_date=2024-03-01&end_date=2024-03-20
+
+# Tìm kiếm đơn hàng
+GET /api/orders/?search=0123456789
+
+# Sắp xếp đơn hàng
+GET /api/orders/?ordering=-order_date
+GET /api/orders/?ordering=-total_amount
+
+# Hủy đơn hàng
+POST /api/orders/{id}/cancel/
+
+## Employee APIs
+
+# Lấy danh sách nhân viên
+GET /api/employees/
+Authorization: Bearer your_access_token
+
+# Tạo nhân viên mới
+POST /api/employees/
+Content-Type: application/json
+{
+    "first_name": "Trần",
+    "last_name": "Thị B",
+    "email": "tranthib@example.com",
+    "phone": "0123456789",
+    "role": "staff",
+    "employee_code": "EMP001",
+    "position": "Nhân viên bán hàng",
+    "department": "Sales",
+    "salary": 8000000
+}
+
+# Lấy chi tiết nhân viên
+GET /api/employees/{id}/
+
+# Cập nhật thông tin nhân viên
+PUT /api/employees/{id}/
+Content-Type: application/json
+{
+    "position": "Trưởng nhóm bán hàng",
+    "salary": 10000000
+}
+
+# Xóa nhân viên
+DELETE /api/employees/{id}/
+
+# Lọc nhân viên
+GET /api/employees/?store_id=1&role=manager
+
+# Tìm kiếm nhân viên
+GET /api/employees/?search=nguyen
+
+# Sắp xếp nhân viên
+GET /api/employees/?ordering=-created_at
+
+## Store APIs
+
+# Lấy danh sách cửa hàng
+GET /api/stores/
+Authorization: Bearer your_access_token
+
+# Tạo cửa hàng mới
+POST /api/stores/
+Content-Type: application/json
+{
+    "name": "Rolex Store Hà Nội",
+    "address": "123 Nguyễn Huệ, Hà Nội",
+    "phone": "0241234567",
+    "store_code": "STORE001",
+    "store_type": "retail",
+    "opening_date": "2024-01-01"
+}
+
+# Lấy chi tiết cửa hàng
+GET /api/stores/{id}/
+
+# Cập nhật thông tin cửa hàng
+PUT /api/stores/{id}/
+Content-Type: application/json
+{
+    "address": "456 Lê Lợi, Hà Nội",
+    "phone": "0247654321"
+}
+
+# Xóa cửa hàng
+DELETE /api/stores/{id}/
+
+# Tìm kiếm cửa hàng
+GET /api/stores/?search=hanoi
+
+# Sắp xếp cửa hàng
+GET /api/stores/?ordering=name
+
+## Inventory APIs
+
+# Lấy danh sách tồn kho
+GET /api/inventory/
+Authorization: Bearer your_access_token
+
+# Tạo bản ghi tồn kho mới
+POST /api/inventory/
+Content-Type: application/json
+{
+    "store_id": 1,
+    "product_id": 1,
+    "quantity_in_stock": 10,
+    "minimum_stock": 5,
+    "maximum_stock": 20
+}
+
+# Lấy chi tiết tồn kho
+GET /api/inventory/{id}/
+
+# Cập nhật tồn kho
+PUT /api/inventory/{id}/
+Content-Type: application/json
+{
+    "quantity_in_stock": 15,
+    "minimum_stock": 3
+}
+
+# Xóa bản ghi tồn kho
+DELETE /api/inventory/{id}/
+
+# Lọc tồn kho
+GET /api/inventory/?store_id=1&product_id=2
+
+# Tìm kiếm tồn kho
+GET /api/inventory/?search=rolex
+
+# Sắp xếp tồn kho
+GET /api/inventory/?ordering=-quantity_in_stock
+
+# Điều chỉnh tồn kho
+POST /api/inventory/{id}/adjust_stock/
+Content-Type: application/json
+{
+    "quantity": 10,
+    "reason": "Kiểm kê định kỳ"
+}
+
+## StockIn APIs
+
+# Lấy danh sách phiếu nhập kho
+GET /api/stock-in/
+Authorization: Bearer your_access_token
+
+# Tạo phiếu nhập kho mới
+POST /api/stock-in/
+Content-Type: application/json
+{
+    "store_id": 1,
+    "product_id": 1,
+    "quantity": 5,
+    "cost_price": 45000000,
+    "stock_in_date": "2024-03-20",
+    "supplier_name": "Rolex Vietnam"
+}
+
+# Lấy chi tiết phiếu nhập kho
+GET /api/stock-in/{id}/
+
+# Cập nhật phiếu nhập kho
+PUT /api/stock-in/{id}/
+Content-Type: application/json
+{
+    "quantity": 8,
+    "cost_price": 46000000
+}
+
+# Xóa phiếu nhập kho
+DELETE /api/stock-in/{id}/
+
+# Lọc phiếu nhập kho
+GET /api/stock-in/?store_id=1&product_id=2
+
+# Tìm kiếm phiếu nhập kho
+GET /api/stock-in/?search=rolex
+
+# Sắp xếp phiếu nhập kho
+GET /api/stock-in/?ordering=-stock_in_date
+
+## StockOut APIs
+
+# Lấy danh sách phiếu xuất kho
+GET /api/stock-out/
+Authorization: Bearer your_access_token
+
+# Tạo phiếu xuất kho mới
+POST /api/stock-out/
+Content-Type: application/json
+{
+    "store_id": 1,
+    "product_id": 1,
+    "quantity": 2,
+    "sale_price": 50000000,
+    "stock_out_date": "2024-03-20",
+    "employee_id": 1
+}
+
+# Lấy chi tiết phiếu xuất kho
+GET /api/stock-out/{id}/
+
+# Cập nhật phiếu xuất kho
+PUT /api/stock-out/{id}/
+Content-Type: application/json
+{
+    "quantity": 3,
+    "sale_price": 51000000
+}
+
+# Xóa phiếu xuất kho
+DELETE /api/stock-out/{id}/
+
+# Lọc phiếu xuất kho
+GET /api/stock-out/?store_id=1&product_id=2&employee_id=3
+
+# Tìm kiếm phiếu xuất kho
+GET /api/stock-out/?search=rolex
+
+# Sắp xếp phiếu xuất kho
+GET /api/stock-out/?ordering=-stock_out_date
+
+## Revenue APIs
+
+# Lấy danh sách doanh thu
+GET /api/revenue/
+Authorization: Bearer your_access_token
+
+# Tạo bản ghi doanh thu mới
+POST /api/revenue/
+Content-Type: application/json
+{
+    "store_id": 1,
+    "revenue_amount": 150000000,
+    "revenue_date": "2024-03-20"
+}
+
+# Lấy chi tiết doanh thu
+GET /api/revenue/{id}/
+
+# Cập nhật doanh thu
+PUT /api/revenue/{id}/
+Content-Type: application/json
+{
+    "revenue_amount": 160000000
+}
+
+# Xóa bản ghi doanh thu
+DELETE /api/revenue/{id}/
+
+# Lọc doanh thu
+GET /api/revenue/?store_id=1
+
+# Sắp xếp doanh thu
+GET /api/revenue/?ordering=-revenue_amount
+
+# Thống kê doanh thu theo ngày
+GET /api/revenue/daily_stats/?store_id=1&start_date=2024-03-01&end_date=2024-03-20
+
+# Thống kê doanh thu theo tháng
+GET /api/revenue/monthly_stats/?store_id=1&year=2024

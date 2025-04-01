@@ -1,0 +1,65 @@
+- Sản phẩm:
+	Bảng Danh mục sản phẩm (ProductCategories)
+		+ ID danh mục (loại) sản phẩm: CategoryID 
+		+ Tên danh mục (loại) sản phẩm: CategoryName 
+		+ Ghi chú danh mục (loại) sản phẩm: CategoryDescription 
+		+ ID danh mục cha: ParentCategoryID 
+	Bảng Hãng (Brands)
+		+ ID hãng: BrandID 
+		+ Tên hãng: BrandName 
+		+ Mô tả hãng: BrandDescription 
+	Bảng Sản phẩm (Products)
+		+ ID sản phẩm: ProductID 
+		+ Tên sản phẩm: ProductName 
+		+ Mô tả sản phẩm: ProductDescription 
+		+ ID danh mục sản phẩm: CategoryID 
+		+ ID hãng: BrandID 
+		+ Giá gốc: BasePrice 
+	Bảng Thuộc tính (Attributes)
+		+ ID thuộc tính: AttributeID 
+		+ Tên thuộc tính: AttributeName
+		+ Mô tả thuộc tính: AttributeDescription 
+	Bảng Thuộc tính của danh mục (CategoryAttributes)
+		+ ID danh mục sản phẩm: CategoryID 
+		+ ID thuộc tính: AttributeID 
+		+ Yêu cầu: IsRequired 
+		+ Ảnh hưởng đến giá: AffectsPrice 
+		+ Thứ tự hiển thị: DisplayOrder 
+	Bảng Giá trị thuộc tính (AttributeValues)
+		+ ID giá trị thuộc tính: AttributeValueID 
+		+ ID thuộc tính: AttributeID 
+		+ Giá trị thuộc tính: Value 
+	Bảng Biến thể sản phẩm (ProductVariants)
+		+ ID biến thể: VariantID 
+		+ ID sản phẩm: ProductID 
+		+ Mã SKU: SKUCode 
+		+ Điều chỉnh giá: PriceAdjustment 
+		+ Số lượng tồn kho: Stock 
+		+ Trạng thái kích hoạt: IsActive 
+	Bảng Thuộc tính của biến thể sản phẩm (ProductVariantAttributes)
+		+ ID biến thể: VariantID 
+		+ ID giá trị thuộc tính: AttributeValueID 
+
+
+
+Từ cơ sở dữ liệu (chuoi_ban_dong_ho.sql) này, hãy phát triển hệ thống API bằng Python, Django với các yêu cầu sau:
+- Tạo thư mục mới tên "BE_WatchStore" và thực hiện dự án ở trong thư mục đó.
+- Sử dụng Django và Django REST Framework (DRF).
+- Dùng PostgreSQL(name: watchesstore, user: postgres,password: ngocviet@123, host: localhost, port: 5432).
+- Tạo models.py theo trang khách hàng (trang chủ mà khách hàng thực hiện mua bán) và trang quản trị viên (trang admin mà nhân viên, quản lý thực hiện các thao tác quản lý) dựa trên file .sql.
+- Viết serializers.py để chuyển đổi dữ liệu models thành JSON.
+- Viết CURD với cấu trúc tối ưu, rõ ràng cho trang khách hàng và admin..
+- Thêm JWT authentication bằng djangorestframework-simplejwt.
+- Định tuyến API trong urls.py với routers của DRF.
+- Hỗ trợ tìm kiếm, lọc, phân trang trong API.
+- Viết API Docs với Swagger hoặc DRF Spectacular.
+- Viết requirements.txt
+- Viết README.md với hướng dẫn chạy chương trình từng bước 1.
+- Kiểm tra dữ liệu hợp lệ, xử lý lỗi hợp lý cho từng bảng.
+
+Hãy vừa làm vừa rà soạt lại, đảm bảo khi xong chỉ cần chạy dự án
+
+///////////////////////////////////////////////////////////////////////
+
+Có vẻ như bạn cần cài đặt Microsoft Visual C++ Build Tools để cài đặt psycopg2-binary. Bạn có thể tải nó từ đây: https://visualstudio.microsoft.com/visual-cpp-build-tools/
+Sau khi cài đặt Build Tools, hãy thử cài đặt lại psycopg2-binary. Trong khi chờ đợi, các package khác đã được cài đặt thành công và bạn có thể tiếp tục phát triển dự án. Lỗi import dotenv sẽ được giải quyết sau khi bạn khởi động lại IDE.
