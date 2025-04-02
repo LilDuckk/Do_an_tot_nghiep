@@ -1,185 +1,637 @@
-API Documentation for Watch Store
+# API Endpoints Documentation
 
-Base URL: /api/
+## Authentication APIs
 
-1. Authentication APIs:
-   - POST /auth/login/ - Đăng nhập
-   - POST /auth/register/ - Đăng ký
-   - POST /auth/refresh/ - Làm mới token
-
-2. Product Category APIs:
-   - GET /categories/ - Lấy danh sách danh mục
-   - GET /categories/{id}/ - Lấy chi tiết danh mục
-   - POST /categories/ - Tạo danh mục mới
-   - PUT /categories/{id}/ - Cập nhật danh mục
-   - DELETE /categories/{id}/ - Xóa danh mục
-
-3. Brand APIs:
-   - GET /brands/ - Lấy danh sách thương hiệu
-   - GET /brands/{id}/ - Lấy chi tiết thương hiệu
-   - POST /brands/ - Tạo thương hiệu mới
-   - PUT /brands/{id}/ - Cập nhật thương hiệu
-   - DELETE /brands/{id}/ - Xóa thương hiệu
-
-4. Product APIs:
-   - GET /products/ - Lấy danh sách sản phẩm
-   - GET /products/{id}/ - Lấy chi tiết sản phẩm
-   - POST /products/ - Tạo sản phẩm mới
-   - PUT /products/{id}/ - Cập nhật sản phẩm
-   - DELETE /products/{id}/ - Xóa sản phẩm
-   - GET /products/{id}/reviews/ - Lấy đánh giá của sản phẩm
-   - GET /products/{id}/specifications/ - Lấy thông số kỹ thuật
-   - GET /products/{id}/variants/ - Lấy các biến thể
-   - GET /products/{id}/price-history/ - Lấy lịch sử giá
-
-5. Customer APIs:
-   - GET /customers/ - Lấy danh sách khách hàng
-   - GET /customers/{id}/ - Lấy chi tiết khách hàng
-   - POST /customers/ - Tạo khách hàng mới
-   - PUT /customers/{id}/ - Cập nhật khách hàng
-   - DELETE /customers/{id}/ - Xóa khách hàng
-   - GET /customers/{id}/orders/ - Lấy đơn hàng của khách hàng
-   - GET /customers/{id}/wishlist/ - Lấy danh sách yêu thích
-   - GET /customers/{id}/reviews/ - Lấy đánh giá của khách hàng
-
-6. Order APIs:
-   - GET /orders/ - Lấy danh sách đơn hàng
-   - GET /orders/{id}/ - Lấy chi tiết đơn hàng
-   - POST /orders/ - Tạo đơn hàng mới
-   - PUT /orders/{id}/ - Cập nhật đơn hàng
-   - DELETE /orders/{id}/ - Xóa đơn hàng
-   - GET /orders/{id}/details/ - Lấy chi tiết đơn hàng
-   - GET /orders/{id}/shipments/ - Lấy thông tin vận chuyển
-   - GET /orders/{id}/returns/ - Lấy thông tin đổi trả
-   - GET /orders/{id}/warranty-cards/ - Lấy thông tin bảo hành
-
-7. Store APIs:
-   - GET /stores/ - Lấy danh sách cửa hàng
-   - GET /stores/{id}/ - Lấy chi tiết cửa hàng
-   - POST /stores/ - Tạo cửa hàng mới
-   - PUT /stores/{id}/ - Cập nhật cửa hàng
-   - DELETE /stores/{id}/ - Xóa cửa hàng
-   - GET /stores/{id}/inventory/ - Lấy tồn kho
-   - GET /stores/{id}/employees/ - Lấy danh sách nhân viên
-   - GET /stores/{id}/revenue/ - Lấy doanh thu
-
-8. Employee APIs:
-   - GET /employees/ - Lấy danh sách nhân viên
-   - GET /employees/{id}/ - Lấy chi tiết nhân viên
-   - POST /employees/ - Tạo nhân viên mới
-   - PUT /employees/{id}/ - Cập nhật nhân viên
-   - DELETE /employees/{id}/ - Xóa nhân viên
-
-9. Inventory APIs:
-   - GET /inventory/ - Lấy danh sách tồn kho
-   - GET /inventory/{id}/ - Lấy chi tiết tồn kho
-   - POST /inventory/ - Tạo tồn kho mới
-   - PUT /inventory/{id}/ - Cập nhật tồn kho
-   - DELETE /inventory/{id}/ - Xóa tồn kho
-
-10. Stock Management APIs:
-    - GET /stock-in/ - Lấy danh sách nhập kho
-    - GET /stock-in/{id}/ - Lấy chi tiết nhập kho
-    - POST /stock-in/ - Tạo phiếu nhập kho
-    - PUT /stock-in/{id}/ - Cập nhật phiếu nhập kho
-    - DELETE /stock-in/{id}/ - Xóa phiếu nhập kho
-    - GET /stock-out/ - Lấy danh sách xuất kho
-    - GET /stock-out/{id}/ - Lấy chi tiết xuất kho
-    - POST /stock-out/ - Tạo phiếu xuất kho
-    - PUT /stock-out/{id}/ - Cập nhật phiếu xuất kho
-    - DELETE /stock-out/{id}/ - Xóa phiếu xuất kho
-
-11. Attribute APIs:
-    - GET /attributes/ - Lấy danh sách thuộc tính
-    - GET /attributes/{id}/ - Lấy chi tiết thuộc tính
-    - POST /attributes/ - Tạo thuộc tính mới
-    - PUT /attributes/{id}/ - Cập nhật thuộc tính
-    - DELETE /attributes/{id}/ - Xóa thuộc tính
-    - GET /attributes/{id}/values/ - Lấy giá trị thuộc tính
-
-12. Product Variant APIs:
-    - GET /product-variants/ - Lấy danh sách biến thể
-    - GET /product-variants/{id}/ - Lấy chi tiết biến thể
-    - POST /product-variants/ - Tạo biến thể mới
-    - PUT /product-variants/{id}/ - Cập nhật biến thể
-    - DELETE /product-variants/{id}/ - Xóa biến thể
-    - GET /product-variants/{id}/attributes/ - Lấy thuộc tính biến thể
-
-13. Shipment APIs:
-    - GET /shipments/ - Lấy danh sách vận chuyển
-    - GET /shipments/{id}/ - Lấy chi tiết vận chuyển
-    - POST /shipments/ - Tạo vận chuyển mới
-    - PUT /shipments/{id}/ - Cập nhật vận chuyển
-    - DELETE /shipments/{id}/ - Xóa vận chuyển
-
-14. Review APIs:
-    - GET /product-reviews/ - Lấy danh sách đánh giá
-    - GET /product-reviews/{id}/ - Lấy chi tiết đánh giá
-    - POST /product-reviews/ - Tạo đánh giá mới
-    - PUT /product-reviews/{id}/ - Cập nhật đánh giá
-    - DELETE /product-reviews/{id}/ - Xóa đánh giá
-
-15. Wishlist APIs:
-    - GET /product-wishlist/ - Lấy danh sách yêu thích
-    - GET /product-wishlist/{id}/ - Lấy chi tiết yêu thích
-    - POST /product-wishlist/ - Thêm vào yêu thích
-    - DELETE /product-wishlist/{id}/ - Xóa khỏi yêu thích
-
-16. Coupon APIs:
-    - GET /coupons/ - Lấy danh sách mã giảm giá
-    - GET /coupons/{id}/ - Lấy chi tiết mã giảm giá
-    - POST /coupons/ - Tạo mã giảm giá mới
-    - PUT /coupons/{id}/ - Cập nhật mã giảm giá
-    - DELETE /coupons/{id}/ - Xóa mã giảm giá
-    - POST /coupons/verify/ - Kiểm tra mã giảm giá
-
-17. Return APIs:
-    - GET /returns/ - Lấy danh sách đổi trả
-    - GET /returns/{id}/ - Lấy chi tiết đổi trả
-    - POST /returns/ - Tạo đổi trả mới
-    - PUT /returns/{id}/ - Cập nhật đổi trả
-    - DELETE /returns/{id}/ - Xóa đổi trả
-
-18. Warranty APIs:
-    - GET /warranty-cards/ - Lấy danh sách bảo hành
-    - GET /warranty-cards/{id}/ - Lấy chi tiết bảo hành
-    - POST /warranty-cards/ - Tạo bảo hành mới
-    - PUT /warranty-cards/{id}/ - Cập nhật bảo hành
-    - DELETE /warranty-cards/{id}/ - Xóa bảo hành
-
-19. Price History APIs:
-    - GET /price-history/ - Lấy lịch sử giá
-    - GET /price-history/{id}/ - Lấy chi tiết lịch sử giá
-    - POST /price-history/ - Tạo lịch sử giá mới
-
-20. Notification APIs:
-    - GET /notifications/ - Lấy danh sách thông báo
-    - GET /notifications/{id}/ - Lấy chi tiết thông báo
-    - POST /notifications/ - Tạo thông báo mới
-    - PUT /notifications/{id}/ - Cập nhật thông báo
-    - DELETE /notifications/{id}/ - Xóa thông báo
-    - PUT /notifications/{id}/read/ - Đánh dấu đã đọc
-
-21. Login History APIs:
-    - GET /login-history/ - Lấy lịch sử đăng nhập
-    - GET /login-history/{id}/ - Lấy chi tiết lịch sử đăng nhập
-
-Query Parameters:
-- page: Số trang (mặc định: 1)
-- page_size: Số lượng item trên mỗi trang (mặc định: 10)
-- ordering: Sắp xếp theo trường (VD: -created_at)
-- search: Tìm kiếm theo từ khóa
-- filters: Lọc theo các trường
-
-Response Format:
+# Đăng ký tài khoản mới
+POST {{base_url}}/auth/register/
 {
-    "count": total_items,
-    "next": next_page_url,
-    "previous": previous_page_url,
-    "results": [
+    "username": "testuser",
+    "email": "test@example.com",
+    "password": "Test@123",
+    "password2": "Test@123",
+    "first_name": "Test",
+    "last_name": "User"
+}
+
+# Đăng nhập
+POST {{base_url}}/auth/login/
+{
+    "username": "testuser",
+    "password": "Test@123"
+}
+
+# Refresh token
+POST {{base_url}}/auth/refresh/
+{
+    "refresh": "your_refresh_token"
+}
+
+## Product Category APIs
+
+# Lấy danh sách danh mục
+GET {{base_url}}/categories/
+
+# Tạo danh mục mới
+POST {{base_url}}/categories/
+{
+    "name": "Đồng hồ nam",
+    "description": "Các loại đồng hồ dành cho nam",
+    "parent_id": null,
+    "display_order": 1
+}
+
+# Lấy chi tiết danh mục
+GET {{base_url}}/categories/{id}/
+
+# Cập nhật danh mục
+PUT {{base_url}}/categories/{id}/
+{
+    "name": "Đồng hồ nam cao cấp",
+    "description": "Các loại đồng hồ nam cao cấp",
+    "display_order": 2
+}
+
+# Xóa danh mục
+DELETE {{base_url}}/categories/{id}/
+
+# Lọc danh mục theo parent_id
+GET {{base_url}}/categories/?parent_id=1
+
+# Tìm kiếm danh mục
+GET {{base_url}}/categories/?search=rolex
+
+# Sắp xếp danh mục
+GET {{base_url}}/categories/?ordering=name
+GET {{base_url}}/categories/?ordering=-display_order
+
+# Lấy danh sách danh mục con
+GET {{base_url}}/categories/{id}/subcategories/
+
+## Brand APIs
+
+# Lấy danh sách thương hiệu
+GET {{base_url}}/brands/
+
+# Tạo thương hiệu mới
+POST {{base_url}}/brands/
+{
+    "name": "Rolex",
+    "description": "Thương hiệu đồng hồ cao cấp",
+    "logo_url": "https://example.com/rolex-logo.png",
+    "display_order": 1
+}
+
+# Lấy chi tiết thương hiệu
+GET {{base_url}}/brands/{id}/
+
+# Cập nhật thương hiệu
+PUT {{base_url}}/brands/{id}/
+{
+    "name": "Rolex Luxury",
+    "description": "Thương hiệu đồng hồ cao cấp hàng đầu"
+}
+
+# Xóa thương hiệu
+DELETE {{base_url}}/brands/{id}/
+
+# Tìm kiếm thương hiệu
+GET {{base_url}}/brands/?search=rolex
+
+# Sắp xếp thương hiệu
+GET {{base_url}}/brands/?ordering=name
+GET {{base_url}}/brands/?ordering=-display_order
+
+## Product APIs
+
+# Lấy danh sách sản phẩm
+GET {{base_url}}/products/
+
+# Tạo sản phẩm mới
+POST {{base_url}}/products/
+{
+    "name": "Rolex Submariner",
+    "description": "Đồng hồ Rolex Submariner chính hãng",
+    "category_id": 1,
+    "brand_id": 1,
+    "base_price": 50000000,
+    "images": [
         {
-            "id": item_id,
-            ...item_fields
+            "url": "https://example.com/rolex-submariner-1.jpg",
+            "is_main": true,
+            "display_order": 1
         }
     ]
-} 
+}
+
+# Lấy chi tiết sản phẩm
+GET {{base_url}}/products/{id}/
+
+# Cập nhật sản phẩm
+PUT {{base_url}}/products/{id}/
+{
+    "name": "Rolex Submariner 2024",
+    "base_price": 55000000
+}
+
+# Xóa sản phẩm
+DELETE {{base_url}}/products/{id}/
+
+# Lọc sản phẩm
+GET {{base_url}}/products/?category_id=1&brand_id=2&min_price=1000000&max_price=5000000
+
+# Tìm kiếm sản phẩm
+GET {{base_url}}/products/?search=rolex
+
+# Sắp xếp sản phẩm
+GET {{base_url}}/products/?ordering=-base_price
+GET {{base_url}}/products/?ordering=created_at
+
+## Customer APIs
+
+# Lấy danh sách khách hàng
+GET {{base_url}}/customers/
+
+# Tạo khách hàng mới
+POST {{base_url}}/customers/
+{
+    "first_name": "Nguyễn",
+    "last_name": "Văn A",
+    "email": "nguyenvana@example.com",
+    "phone": "0123456789",
+    "address": "Hà Nội",
+    "birth_date": "1990-01-01",
+    "gender": "male"
+}
+
+# Lấy chi tiết khách hàng
+GET {{base_url}}/customers/{id}/
+
+# Cập nhật thông tin khách hàng
+PUT {{base_url}}/customers/{id}/
+{
+    "phone": "0987654321",
+    "address": "TP.HCM"
+}
+
+# Xóa khách hàng
+DELETE {{base_url}}/customers/{id}/
+
+# Tìm kiếm khách hàng
+GET {{base_url}}/customers/?search=nguyen
+
+# Sắp xếp khách hàng
+GET {{base_url}}/customers/?ordering=-created_at
+
+## Order APIs
+
+# Lấy danh sách đơn hàng
+GET {{base_url}}/orders/
+
+# Tạo đơn hàng mới
+POST {{base_url}}/orders/
+{
+    "store_id": 1,
+    "customer_id": 1,
+    "order_details": [
+        {
+            "product_id": 1,
+            "quantity": 1,
+            "unit_price": 50000000
+        }
+    ],
+    "shipping_address": "Hà Nội",
+    "shipping_fee": 50000,
+    "payment_method": "cash"
+}
+
+# Lấy chi tiết đơn hàng
+GET {{base_url}}/orders/{id}/
+
+# Cập nhật trạng thái đơn hàng
+PUT {{base_url}}/orders/{id}/
+{
+    "status": "processing"
+}
+
+# Xóa đơn hàng
+DELETE {{base_url}}/orders/{id}/
+
+# Lọc đơn hàng
+GET {{base_url}}/orders/?status=pending&store_id=1&customer_id=2
+GET {{base_url}}/orders/?start_date=2024-03-01&end_date=2024-03-20
+
+# Tìm kiếm đơn hàng
+GET {{base_url}}/orders/?search=0123456789
+
+# Sắp xếp đơn hàng
+GET {{base_url}}/orders/?ordering=-order_date
+GET {{base_url}}/orders/?ordering=-total_amount
+
+# Hủy đơn hàng
+POST {{base_url}}/orders/{id}/cancel/
+
+## Employee APIs
+
+# Lấy danh sách nhân viên
+GET {{base_url}}/employees/
+
+# Tạo nhân viên mới
+POST {{base_url}}/employees/
+{
+    "first_name": "Trần",
+    "last_name": "Thị B",
+    "email": "tranthib@example.com",
+    "phone": "0123456789",
+    "role": "staff",
+    "employee_code": "EMP001",
+    "position": "Nhân viên bán hàng",
+    "department": "Sales",
+    "salary": 8000000
+}
+
+# Lấy chi tiết nhân viên
+GET {{base_url}}/employees/{id}/
+
+# Cập nhật thông tin nhân viên
+PUT {{base_url}}/employees/{id}/
+{
+    "position": "Trưởng nhóm bán hàng",
+    "salary": 10000000
+}
+
+# Xóa nhân viên
+DELETE {{base_url}}/employees/{id}/
+
+# Lọc nhân viên
+GET {{base_url}}/employees/?store_id=1&role=manager
+
+# Tìm kiếm nhân viên
+GET {{base_url}}/employees/?search=nguyen
+
+# Sắp xếp nhân viên
+GET {{base_url}}/employees/?ordering=-created_at
+
+## Store APIs
+
+# Lấy danh sách cửa hàng
+GET {{base_url}}/stores/
+
+# Tạo cửa hàng mới
+POST {{base_url}}/stores/
+{
+    "name": "Rolex Store Hà Nội",
+    "address": "123 Nguyễn Huệ, Hà Nội",
+    "phone": "0241234567",
+    "store_code": "STORE001",
+    "store_type": "retail",
+    "opening_date": "2024-01-01"
+}
+
+# Lấy chi tiết cửa hàng
+GET {{base_url}}/stores/{id}/
+
+# Cập nhật thông tin cửa hàng
+PUT {{base_url}}/stores/{id}/
+{
+    "address": "456 Lê Lợi, Hà Nội",
+    "phone": "0247654321"
+}
+
+# Xóa cửa hàng
+DELETE {{base_url}}/stores/{id}/
+
+# Tìm kiếm cửa hàng
+GET {{base_url}}/stores/?search=hanoi
+
+# Sắp xếp cửa hàng
+GET {{base_url}}/stores/?ordering=name
+
+## Inventory APIs
+
+# Lấy danh sách tồn kho
+GET {{base_url}}/inventory/
+
+# Tạo bản ghi tồn kho mới
+POST {{base_url}}/inventory/
+{
+    "store_id": 1,
+    "product_id": 1,
+    "quantity_in_stock": 10,
+    "minimum_stock": 5,
+    "maximum_stock": 20
+}
+
+# Lấy chi tiết tồn kho
+GET {{base_url}}/inventory/{id}/
+
+# Cập nhật tồn kho
+PUT {{base_url}}/inventory/{id}/
+{
+    "quantity_in_stock": 15,
+    "minimum_stock": 3
+}
+
+# Xóa bản ghi tồn kho
+DELETE {{base_url}}/inventory/{id}/
+
+# Lọc tồn kho
+GET {{base_url}}/inventory/?store_id=1&product_id=2
+
+# Tìm kiếm tồn kho
+GET {{base_url}}/inventory/?search=rolex
+
+# Sắp xếp tồn kho
+GET {{base_url}}/inventory/?ordering=-quantity_in_stock
+
+# Điều chỉnh tồn kho
+POST {{base_url}}/inventory/{id}/adjust_stock/
+{
+    "quantity": 10,
+    "reason": "Kiểm kê định kỳ"
+}
+
+## StockIn APIs
+
+# Lấy danh sách phiếu nhập kho
+GET {{base_url}}/stock-in/
+
+# Tạo phiếu nhập kho mới
+POST {{base_url}}/stock-in/
+{
+    "store_id": 1,
+    "product_id": 1,
+    "quantity": 5,
+    "cost_price": 45000000,
+    "stock_in_date": "2024-03-20",
+    "supplier_name": "Rolex Vietnam"
+}
+
+# Lấy chi tiết phiếu nhập kho
+GET {{base_url}}/stock-in/{id}/
+
+# Cập nhật phiếu nhập kho
+PUT {{base_url}}/stock-in/{id}/
+{
+    "quantity": 8,
+    "cost_price": 46000000
+}
+
+# Xóa phiếu nhập kho
+DELETE {{base_url}}/stock-in/{id}/
+
+# Lọc phiếu nhập kho
+GET {{base_url}}/stock-in/?store_id=1&product_id=2
+
+# Tìm kiếm phiếu nhập kho
+GET {{base_url}}/stock-in/?search=rolex
+
+# Sắp xếp phiếu nhập kho
+GET {{base_url}}/stock-in/?ordering=-stock_in_date
+
+## StockOut APIs
+
+# Lấy danh sách phiếu xuất kho
+GET {{base_url}}/stock-out/
+
+# Tạo phiếu xuất kho mới
+POST {{base_url}}/stock-out/
+{
+    "store_id": 1,
+    "product_id": 1,
+    "quantity": 2,
+    "sale_price": 50000000,
+    "stock_out_date": "2024-03-20",
+    "employee_id": 1
+}
+
+# Lấy chi tiết phiếu xuất kho
+GET {{base_url}}/stock-out/{id}/
+
+# Cập nhật phiếu xuất kho
+PUT {{base_url}}/stock-out/{id}/
+{
+    "quantity": 3,
+    "sale_price": 51000000
+}
+
+# Xóa phiếu xuất kho
+DELETE {{base_url}}/stock-out/{id}/
+
+# Lọc phiếu xuất kho
+GET {{base_url}}/stock-out/?store_id=1&product_id=2&employee_id=3
+
+# Tìm kiếm phiếu xuất kho
+GET {{base_url}}/stock-out/?search=rolex
+
+# Sắp xếp phiếu xuất kho
+GET {{base_url}}/stock-out/?ordering=-stock_out_date
+
+## Revenue APIs
+
+# Lấy danh sách doanh thu
+GET {{base_url}}/revenue/
+
+# Tạo bản ghi doanh thu mới
+POST {{base_url}}/revenue/
+{
+    "store_id": 1,
+    "revenue_amount": 150000000,
+    "revenue_date": "2024-03-20"
+}
+
+# Lấy chi tiết doanh thu
+GET {{base_url}}/revenue/{id}/
+
+# Cập nhật doanh thu
+PUT {{base_url}}/revenue/{id}/
+{
+    "revenue_amount": 160000000
+}
+
+# Xóa bản ghi doanh thu
+DELETE {{base_url}}/revenue/{id}/
+
+# Lọc doanh thu
+GET {{base_url}}/revenue/?store_id=1
+
+# Sắp xếp doanh thu
+GET {{base_url}}/revenue/?ordering=-revenue_amount
+
+# Thống kê doanh thu theo ngày
+GET {{base_url}}/revenue/daily-stats/?store_id=1&start_date=2024-03-01&end_date=2024-03-20
+
+# Thống kê doanh thu theo tháng
+GET {{base_url}}/revenue/monthly-stats/?store_id=1&year=2024
+
+## Attribute APIs
+
+# Lấy danh sách thuộc tính
+GET {{base_url}}/attributes/
+
+# Tạo thuộc tính mới
+POST {{base_url}}/attributes/
+{
+    "name": "Màu sắc",
+    "description": "Màu sắc của đồng hồ"
+}
+
+# Lấy chi tiết thuộc tính
+GET {{base_url}}/attributes/{id}/
+
+# Cập nhật thuộc tính
+PUT {{base_url}}/attributes/{id}/
+{
+    "name": "Màu sắc sản phẩm",
+    "description": "Màu sắc của sản phẩm"
+}
+
+# Xóa thuộc tính
+DELETE {{base_url}}/attributes/{id}/
+
+## Product Variant APIs
+
+# Lấy danh sách biến thể sản phẩm
+GET {{base_url}}/product-variants/
+
+# Tạo biến thể sản phẩm mới
+POST {{base_url}}/product-variants/
+{
+    "product_id": 1,
+    "sku_code": "TEST-SKU-001",
+    "price_adjustment": 100000,
+    "stock": 10
+}
+
+# Lấy chi tiết biến thể sản phẩm
+GET {{base_url}}/product-variants/{id}/
+
+# Cập nhật biến thể sản phẩm
+PUT {{base_url}}/product-variants/{id}/
+{
+    "price_adjustment": 150000,
+    "stock": 15
+}
+
+# Xóa biến thể sản phẩm
+DELETE {{base_url}}/product-variants/{id}/
+
+## Shipment APIs
+
+# Lấy danh sách vận chuyển
+GET {{base_url}}/shipments/
+
+# Tạo vận chuyển mới
+POST {{base_url}}/shipments/
+{
+    "order_id": 1,
+    "shipping_method": "standard",
+    "tracking_number": "TRACK001",
+    "status": "pending",
+    "estimated_delivery_date": "2024-03-20"
+}
+
+# Lấy chi tiết vận chuyển
+GET {{base_url}}/shipments/{id}/
+
+# Cập nhật vận chuyển
+PUT {{base_url}}/shipments/{id}/
+{
+    "status": "shipping",
+    "tracking_number": "TRACK002"
+}
+
+# Xóa vận chuyển
+DELETE {{base_url}}/shipments/{id}/
+
+## Coupon APIs
+
+# Lấy danh sách mã giảm giá
+GET {{base_url}}/coupons/
+
+# Tạo mã giảm giá mới
+POST {{base_url}}/coupons/
+{
+    "code": "TEST123",
+    "discount_type": "percentage",
+    "discount_value": 10,
+    "start_date": "2024-03-20",
+    "end_date": "2024-04-20",
+    "usage_limit": 100
+}
+
+# Lấy chi tiết mã giảm giá
+GET {{base_url}}/coupons/{id}/
+
+# Cập nhật mã giảm giá
+PUT {{base_url}}/coupons/{id}/
+{
+    "discount_value": 15,
+    "usage_limit": 200
+}
+
+# Xóa mã giảm giá
+DELETE {{base_url}}/coupons/{id}/
+
+# Xác thực mã giảm giá
+POST {{base_url}}/coupons/verify/
+{
+    "code": "TEST123"
+}
+
+## Product Review APIs
+
+# Lấy danh sách đánh giá sản phẩm
+GET {{base_url}}/product-reviews/
+
+# Tạo đánh giá sản phẩm mới
+POST {{base_url}}/product-reviews/
+{
+    "product_id": 1,
+    "customer_id": 1,
+    "rating": 5,
+    "comment": "Sản phẩm rất tốt!"
+}
+
+# Lấy chi tiết đánh giá sản phẩm
+GET {{base_url}}/product-reviews/{id}/
+
+# Cập nhật đánh giá sản phẩm
+PUT {{base_url}}/product-reviews/{id}/
+{
+    "rating": 4,
+    "comment": "Sản phẩm tốt!"
+}
+
+# Xóa đánh giá sản phẩm
+DELETE {{base_url}}/product-reviews/{id}/
+
+## Notification APIs
+
+# Lấy danh sách thông báo
+GET {{base_url}}/notifications/
+
+# Tạo thông báo mới
+POST {{base_url}}/notifications/
+{
+    "title": "Thông báo mới",
+    "content": "Nội dung thông báo",
+    "type": "info",
+    "created_by_id": 1,
+    "updated_by_id": 1
+}
+
+# Lấy chi tiết thông báo
+GET {{base_url}}/notifications/{id}/
+
+# Cập nhật thông báo
+PUT {{base_url}}/notifications/{id}/
+{
+    "title": "Thông báo đã cập nhật",
+    "content": "Nội dung đã cập nhật"
+}
+
+# Xóa thông báo
+DELETE {{base_url}}/notifications/{id}/
+
+# Đánh dấu thông báo đã đọc
+PUT {{base_url}}/notifications/{id}/read/ 

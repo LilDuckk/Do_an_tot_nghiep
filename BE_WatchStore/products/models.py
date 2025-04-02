@@ -84,7 +84,7 @@ class ProductImage(models.Model):
 class Customer(models.Model):
     first_name = models.CharField(max_length=100, verbose_name='Tên')
     last_name = models.CharField(max_length=100, verbose_name='Họ')
-    email = models.EmailField(unique=True, verbose_name='Email')
+    email = models.EmailField(unique=True, null=True, blank=True, verbose_name='Email')
     phone = models.CharField(max_length=15, verbose_name='Số điện thoại')
     address = models.TextField(blank=True, null=True, verbose_name='Địa chỉ')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='Ngày tạo')

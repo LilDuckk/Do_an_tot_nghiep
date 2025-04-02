@@ -1,0 +1,2024 @@
+{
+    "info": {
+        "name": "Watch Store API",
+        "description": "API documentation for Watch Store",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Authentication",
+            "item": [
+                {
+                    "name": "Register",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{base_url}}/auth/register/",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"username\": \"testuser\",\n    \"email\": \"test@example.com\",\n    \"password\": \"Test@123\",\n    \"password2\": \"Test@123\",\n    \"first_name\": \"Test\",\n    \"last_name\": \"User\"\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "Login",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{base_url}}/auth/login/",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"username\": \"testuser\",\n    \"password\": \"Test@123\"\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "Refresh Token",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{base_url}}/auth/refresh/",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"refresh\": \"your_refresh_token\"\n}"
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Product Categories",
+            "item": [
+                {
+                    "name": "Get Categories",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/categories/"
+                    }
+                },
+                {
+                    "name": "Create Category",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{base_url}}/categories/",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"Đồng hồ nam\",\n    \"description\": \"Các loại đồng hồ dành cho nam\",\n    \"parent_id\": null,\n    \"display_order\": 1\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "Get Category Detail",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/categories/{{category_id}}/"
+                    }
+                },
+                {
+                    "name": "Update Category",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{base_url}}/categories/{{category_id}}/",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"Đồng hồ nam cao cấp\",\n    \"description\": \"Các loại đồng hồ nam cao cấp\",\n    \"display_order\": 2\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "Delete Category",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/categories/{{category_id}}/"
+                    }
+                },
+                {
+                    "name": "Filter Categories by Parent",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/categories/?parent_id=1"
+                    }
+                },
+                {
+                    "name": "Search Categories",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/categories/?search=rolex"
+                    }
+                },
+                {
+                    "name": "Sort Categories",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/categories/?ordering=name"
+                    }
+                },
+                {
+                    "name": "Get Subcategories",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/categories/{{category_id}}/subcategories/"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Brands",
+            "item": [
+                {
+                    "name": "Get Brands",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/brands/"
+                    }
+                },
+                {
+                    "name": "Create Brand",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{base_url}}/brands/",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"Rolex\",\n    \"description\": \"Thương hiệu đồng hồ cao cấp\",\n    \"logo_url\": \"https://example.com/rolex-logo.png\",\n    \"display_order\": 1\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "Get Brand Detail",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/brands/{{brand_id}}/"
+                    }
+                },
+                {
+                    "name": "Update Brand",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{base_url}}/brands/{{brand_id}}/",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"Rolex Luxury\",\n    \"description\": \"Thương hiệu đồng hồ cao cấp hàng đầu\"\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "Delete Brand",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/brands/{{brand_id}}/"
+                    }
+                },
+                {
+                    "name": "Search Brands",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/brands/?search=rolex"
+                    }
+                },
+                {
+                    "name": "Sort Brands",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/brands/?ordering=name"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Products",
+            "item": [
+                {
+                    "name": "Get Products",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/products/"
+                    }
+                },
+                {
+                    "name": "Create Product",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{base_url}}/products/",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"Rolex Submariner\",\n    \"description\": \"Đồng hồ Rolex Submariner chính hãng\",\n    \"category_id\": 1,\n    \"brand_id\": 1,\n    \"base_price\": 50000000,\n    \"images\": [\n        {\n            \"url\": \"https://example.com/rolex-submariner-1.jpg\",\n            \"is_main\": true,\n            \"display_order\": 1\n        }\n    ]\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "Get Product Detail",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/products/{{product_id}}/"
+                    }
+                },
+                {
+                    "name": "Update Product",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{base_url}}/products/{{product_id}}/",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"Rolex Submariner 2024\",\n    \"base_price\": 55000000,\n    \"category_id\": 1,\n    \"brand_id\": 1\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "Delete Product",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/products/{{product_id}}/"
+                    }
+                },
+                {
+                    "name": "Filter Products",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/products/?category_id=1&brand_id=2&min_price=1000000&max_price=5000000"
+                    }
+                },
+                {
+                    "name": "Search Products",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/products/?search=rolex"
+                    }
+                },
+                {
+                    "name": "Sort Products",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/products/?ordering=-base_price"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Customers",
+            "item": [
+                {
+                    "name": "Get Customers",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/customers/"
+                    }
+                },
+                {
+                    "name": "Create Customer",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{base_url}}/customers/",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"first_name\": \"Nguyễn\",\n    \"last_name\": \"Văn A\",\n    \"email\": \"nguyenvana@example.com\",\n    \"phone\": \"0123456789\",\n    \"address\": \"Hà Nội\",\n    \"birth_date\": \"1990-01-01\",\n    \"gender\": \"male\"\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "Get Customer Detail",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/customers/{{customer_id}}/"
+                    }
+                },
+                {
+                    "name": "Update Customer",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"first_name\": \"Nguyễn\",\n    \"last_name\": \"Văn A\",\n    \"email\": \"nguyenvana@example.com\",\n    \"phone\": \"0123456789\",\n    \"address\": \"123 Đường ABC, Quận 1, TP.HCM\",\n    \"birth_date\": \"1990-01-01\",\n    \"gender\": \"male\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/customers/{{customer_id}}/",
+                            "host": ["{{base_url}}"],
+                            "path": ["customers", "{{customer_id}}", ""]
+                        },
+                        "description": "Cập nhật thông tin khách hàng"
+                    }
+                },
+                {
+                    "name": "Delete Customer",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/customers/{{customer_id}}/"
+                    }
+                },
+                {
+                    "name": "Search Customers",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/customers/?search=nguyen"
+                    }
+                },
+                {
+                    "name": "Sort Customers",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/customers/?ordering=-created_at"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Orders",
+            "item": [
+                {
+                    "name": "Get Orders",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/orders/"
+                    }
+                },
+                {
+                    "name": "Create Order",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{base_url}}/orders/",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"store_id\": 1,\n    \"customer_id\": 1,\n    \"order_details\": [\n        {\n            \"product_id\": 1,\n            \"quantity\": 1,\n            \"unit_price\": 50000000\n        }\n    ],\n    \"shipping_address\": \"Hà Nội\",\n    \"shipping_fee\": 50000,\n    \"payment_method\": \"cash\"\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "Get Order Detail",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/orders/{{order_id}}/"
+                    }
+                },
+                {
+                    "name": "Update Order Status",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{base_url}}/orders/{{order_id}}/",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"status\": \"processing\"\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "Delete Order",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/orders/{{order_id}}/"
+                    }
+                },
+                {
+                    "name": "Filter Orders",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/orders/?status=pending&store_id=1&customer_id=2"
+                    }
+                },
+                {
+                    "name": "Search Orders",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/orders/?search=0123456789"
+                    }
+                },
+                {
+                    "name": "Sort Orders",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/orders/?ordering=-order_date"
+                    }
+                },
+                {
+                    "name": "Cancel Order",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/orders/{{order_id}}/cancel/"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Employees",
+            "item": [
+                {
+                    "name": "Get Employees",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/employees/"
+                    }
+                },
+                {
+                    "name": "Create Employee",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{base_url}}/employees/",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"first_name\": \"Trần\",\n    \"last_name\": \"Thị B\",\n    \"email\": \"tranthib@example.com\",\n    \"phone\": \"0123456789\",\n    \"role\": \"staff\",\n    \"employee_code\": \"EMP001\",\n    \"position\": \"Nhân viên bán hàng\",\n    \"department\": \"Sales\",\n    \"salary\": 8000000\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "Get Employee Detail",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/employees/{{employee_id}}/"
+                    }
+                },
+                {
+                    "name": "Update Employee",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{base_url}}/employees/{{employee_id}}/",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"position\": \"Trưởng nhóm bán hàng\",\n    \"salary\": 10000000\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "Delete Employee",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/employees/{{employee_id}}/"
+                    }
+                },
+                {
+                    "name": "Filter Employees",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/employees/?store_id=1&role=manager"
+                    }
+                },
+                {
+                    "name": "Search Employees",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/employees/?search=nguyen"
+                    }
+                },
+                {
+                    "name": "Sort Employees",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/employees/?ordering=-created_at"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Stores",
+            "item": [
+                {
+                    "name": "Get Stores",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/stores/"
+                    }
+                },
+                {
+                    "name": "Create Store",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{base_url}}/stores/",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"Rolex Store Hà Nội\",\n    \"address\": \"123 Nguyễn Huệ, Hà Nội\",\n    \"phone\": \"0241234567\",\n    \"store_code\": \"STORE001\",\n    \"store_type\": \"retail\",\n    \"opening_date\": \"2024-01-01\"\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "Get Store Detail",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/stores/{{store_id}}/"
+                    }
+                },
+                {
+                    "name": "Update Store",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{base_url}}/stores/{{store_id}}/",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"address\": \"456 Lê Lợi, Hà Nội\",\n    \"phone\": \"0247654321\"\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "Delete Store",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/stores/{{store_id}}/"
+                    }
+                },
+                {
+                    "name": "Search Stores",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/stores/?search=hanoi"
+                    }
+                },
+                {
+                    "name": "Sort Stores",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/stores/?ordering=name"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Inventory",
+            "item": [
+                {
+                    "name": "Get Inventory",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/inventory/"
+                    }
+                },
+                {
+                    "name": "Create Inventory",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{base_url}}/inventory/",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"store_id\": 1,\n    \"product_id\": 1,\n    \"quantity_in_stock\": 10,\n    \"minimum_stock\": 5,\n    \"maximum_stock\": 20\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "Get Inventory Detail",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/inventory/{{inventory_id}}/"
+                    }
+                },
+                {
+                    "name": "Update Inventory",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{base_url}}/inventory/{{inventory_id}}/",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"quantity_in_stock\": 15,\n    \"minimum_stock\": 3\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "Delete Inventory",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/inventory/{{inventory_id}}/"
+                    }
+                },
+                {
+                    "name": "Filter Inventory",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/inventory/?store_id=1&product_id=2"
+                    }
+                },
+                {
+                    "name": "Search Inventory",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/inventory/?search=rolex"
+                    }
+                },
+                {
+                    "name": "Sort Inventory",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/inventory/?ordering=-quantity_in_stock"
+                    }
+                },
+                {
+                    "name": "Adjust Stock",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{base_url}}/inventory/{{inventory_id}}/adjust_stock/",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"quantity\": 10,\n    \"reason\": \"Kiểm kê định kỳ\"\n}"
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Stock In",
+            "item": [
+                {
+                    "name": "Get Stock In",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/stock-in/"
+                    }
+                },
+                {
+                    "name": "Create Stock In",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{base_url}}/stock-in/",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"store_id\": 1,\n    \"product_id\": 1,\n    \"quantity\": 5,\n    \"cost_price\": 45000000,\n    \"stock_in_date\": \"2024-03-20\",\n    \"supplier_name\": \"Rolex Vietnam\"\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "Get Stock In Detail",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/stock-in/{{stock_in_id}}/"
+                    }
+                },
+                {
+                    "name": "Update Stock In",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{base_url}}/stock-in/{{stock_in_id}}/",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"quantity\": 8,\n    \"cost_price\": 46000000\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "Delete Stock In",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/stock-in/{{stock_in_id}}/"
+                    }
+                },
+                {
+                    "name": "Filter Stock In",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/stock-in/?store_id=1&product_id=2"
+                    }
+                },
+                {
+                    "name": "Search Stock In",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/stock-in/?search=rolex"
+                    }
+                },
+                {
+                    "name": "Sort Stock In",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/stock-in/?ordering=-stock_in_date"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Stock Out",
+            "item": [
+                {
+                    "name": "Get Stock Out",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/stock-out/"
+                    }
+                },
+                {
+                    "name": "Create Stock Out",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{base_url}}/stock-out/",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"store_id\": 1,\n    \"product_id\": 1,\n    \"quantity\": 2,\n    \"sale_price\": 50000000,\n    \"stock_out_date\": \"2024-03-20\",\n    \"employee_id\": 1\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "Get Stock Out Detail",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/stock-out/{{stock_out_id}}/"
+                    }
+                },
+                {
+                    "name": "Update Stock Out",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{base_url}}/stock-out/{{stock_out_id}}/",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"quantity\": 3,\n    \"sale_price\": 51000000\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "Delete Stock Out",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/stock-out/{{stock_out_id}}/"
+                    }
+                },
+                {
+                    "name": "Filter Stock Out",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/stock-out/?store_id=1&product_id=2&employee_id=3"
+                    }
+                },
+                {
+                    "name": "Search Stock Out",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/stock-out/?search=rolex"
+                    }
+                },
+                {
+                    "name": "Sort Stock Out",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/stock-out/?ordering=-stock_out_date"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Revenue",
+            "item": [
+                {
+                    "name": "Get Revenue",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/revenue/"
+                    }
+                },
+                {
+                    "name": "Create Revenue",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{base_url}}/revenue/",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"store_id\": 1,\n    \"revenue_amount\": 150000000,\n    \"revenue_date\": \"2024-03-20\"\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "Get Revenue Detail",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/revenue/{{revenue_id}}/"
+                    }
+                },
+                {
+                    "name": "Update Revenue",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{base_url}}/revenue/{{revenue_id}}/",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"revenue_amount\": 160000000\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "Delete Revenue",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/revenue/{{revenue_id}}/"
+                    }
+                },
+                {
+                    "name": "Filter Revenue",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/revenue/?store_id=1"
+                    }
+                },
+                {
+                    "name": "Sort Revenue",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/revenue/?ordering=-revenue_amount"
+                    }
+                },
+                {
+                    "name": "Get Daily Revenue Stats",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/revenue/daily-stats/?store_id=1&start_date=2024-03-01&end_date=2024-03-20"
+                    }
+                },
+                {
+                    "name": "Get Monthly Revenue Stats",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/revenue/monthly-stats/?store_id=1&year=2024"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Attributes",
+            "item": [
+                {
+                    "name": "Get Attributes",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/attributes/"
+                    }
+                },
+                {
+                    "name": "Create Attribute",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{base_url}}/attributes/",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"Màu sắc\",\n    \"description\": \"Màu sắc của đồng hồ\"\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "Get Attribute Detail",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/attributes/{{attribute_id}}/"
+                    }
+                },
+                {
+                    "name": "Update Attribute",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{base_url}}/attributes/{{attribute_id}}/",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"Màu sắc sản phẩm\",\n    \"description\": \"Màu sắc của sản phẩm\"\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "Delete Attribute",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/attributes/{{attribute_id}}/"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Product Variants",
+            "item": [
+                {
+                    "name": "Get Product Variants",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/product-variants/"
+                    }
+                },
+                {
+                    "name": "Create Product Variant",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{base_url}}/product-variants/",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"product_id\": 1,\n    \"sku_code\": \"TEST-SKU-001\",\n    \"price_adjustment\": 100000,\n    \"stock\": 10\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "Get Product Variant Detail",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/product-variants/{{variant_id}}/"
+                    }
+                },
+                {
+                    "name": "Update Product Variant",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{base_url}}/product-variants/{{variant_id}}/",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"price_adjustment\": 150000,\n    \"stock\": 15\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "Delete Product Variant",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/product-variants/{{variant_id}}/"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Shipments",
+            "item": [
+                {
+                    "name": "Get Shipments",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/shipments/"
+                    }
+                },
+                {
+                    "name": "Create Shipment",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{base_url}}/shipments/",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"order_id\": 1,\n    \"shipping_method\": \"standard\",\n    \"tracking_number\": \"TRACK001\",\n    \"status\": \"pending\",\n    \"estimated_delivery_date\": \"2024-03-20\"\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "Get Shipment Detail",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/shipments/{{shipment_id}}/"
+                    }
+                },
+                {
+                    "name": "Update Shipment",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{base_url}}/shipments/{{shipment_id}}/",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"status\": \"shipping\",\n    \"tracking_number\": \"TRACK002\"\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "Delete Shipment",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/shipments/{{shipment_id}}/"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Coupons",
+            "item": [
+                {
+                    "name": "Get Coupons",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/coupons/"
+                    }
+                },
+                {
+                    "name": "Create Coupon",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{base_url}}/coupons/",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"code\": \"TEST123\",\n    \"discount_type\": \"percentage\",\n    \"discount_value\": 10,\n    \"start_date\": \"2024-03-20\",\n    \"end_date\": \"2024-04-20\",\n    \"usage_limit\": 100\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "Get Coupon Detail",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/coupons/{{coupon_id}}/"
+                    }
+                },
+                {
+                    "name": "Update Coupon",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{base_url}}/coupons/{{coupon_id}}/",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"discount_value\": 15,\n    \"usage_limit\": 200\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "Delete Coupon",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/coupons/{{coupon_id}}/"
+                    }
+                },
+                {
+                    "name": "Verify Coupon",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{base_url}}/coupons/verify/",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"code\": \"TEST123\"\n}"
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Product Reviews",
+            "item": [
+                {
+                    "name": "Get Product Reviews",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/product-reviews/"
+                    }
+                },
+                {
+                    "name": "Create Product Review",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{base_url}}/product-reviews/",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"product_id\": 1,\n    \"customer_id\": 1,\n    \"rating\": 5,\n    \"comment\": \"Sản phẩm rất tốt!\"\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "Get Product Review Detail",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/product-reviews/{{review_id}}/"
+                    }
+                },
+                {
+                    "name": "Update Product Review",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{base_url}}/product-reviews/{{review_id}}/",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"rating\": 4,\n    \"comment\": \"Sản phẩm tốt!\"\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "Delete Product Review",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/product-reviews/{{review_id}}/"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Notifications",
+            "item": [
+                {
+                    "name": "Get Notifications",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/notifications/"
+                    }
+                },
+                {
+                    "name": "Create Notification",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{base_url}}/notifications/",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"title\": \"Thông báo mới\",\n    \"content\": \"Nội dung thông báo\",\n    \"type\": \"info\",\n    \"created_by_id\": 1,\n    \"updated_by_id\": 1\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "Get Notification Detail",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/notifications/{{notification_id}}/"
+                    }
+                },
+                {
+                    "name": "Update Notification",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{base_url}}/notifications/{{notification_id}}/",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"title\": \"Thông báo đã cập nhật\",\n    \"content\": \"Nội dung đã cập nhật\"\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "Delete Notification",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/notifications/{{notification_id}}/"
+                    }
+                },
+                {
+                    "name": "Mark Notification as Read",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/notifications/{{notification_id}}/read/"
+                    }
+                }
+            ]
+        }
+    ],
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "http://127.0.0.1:8000/api"
+        }
+    ]
+} 

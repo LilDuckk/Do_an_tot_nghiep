@@ -34,6 +34,7 @@ router.register(r'returns', views.ReturnViewSet, basename='return')
 router.register(r'warranty-cards', views.WarrantyCardViewSet, basename='warranty-card')
 
 # Quản lý sản phẩm
+router.register(r'product-images', views.ProductImageViewSet, basename='product-image')
 router.register(r'product-specifications', views.ProductSpecificationViewSet, basename='product-specification')
 router.register(r'product-reviews', views.ProductReviewViewSet, basename='product-review')
 router.register(r'product-wishlist', views.ProductWishlistViewSet, basename='product-wishlist')

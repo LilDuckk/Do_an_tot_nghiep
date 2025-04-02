@@ -14,18 +14,13 @@ from django.contrib.auth.password_validation import validate_password
 User = get_user_model()
 
 # Trang khách hàng
-class ProductImageSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ProductImage
-        fields = ['id', 'image_url', 'is_main', 'display_order']
-        read_only_fields = ['created_at']
-
 class ProductCategorySerializer(serializers.ModelSerializer):
     children = serializers.SerializerMethodField()
+    parent_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
 
     class Meta:
         model = ProductCategory
-        fields = ['id', 'name', 'description', 'parent', 'image_url', 
+        fields = ['id', 'name', 'description', 'parent_id', 'image_url', 
                  'is_active', 'display_order', 'children']
         read_only_fields = ['created_at', 'updated_at']
 
@@ -34,11 +29,42 @@ class ProductCategorySerializer(serializers.ModelSerializer):
             return ProductCategorySerializer(obj.children.all(), many=True).data
         return []
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if instance.parent:
+            data['parent'] = {
+                'id': instance.parent.id,
+                'name': instance.parent.name,
+                'description': instance.parent.description
+            }
+        return data
+
 class BrandSerializer(serializers.ModelSerializer):
     class Meta:
         model = Brand
         fields = ['id', 'name', 'description', 'logo_url', 'is_active', 'display_order']
         read_only_fields = ['created_at', 'updated_at']
+
+class ProductImageSerializer(serializers.ModelSerializer):
+    product = serializers.PrimaryKeyRelatedField(queryset=Product.objects.all())
+
+    class Meta:
+        model = ProductImage
+        fields = ['id', 'product', 'image_url', 'is_main', 'display_order']
+        read_only_fields = ['created_at']
+
+    def validate_image_url(self, value):
+        if not value:
+            raise serializers.ValidationError("URL hình ảnh là bắt buộc")
+        return value
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data['product'] = {
+            'id': instance.product.id,
+            'name': instance.product.name
+        }
+        return data
 
 class ProductSerializer(serializers.ModelSerializer):
     category = ProductCategorySerializer(read_only=True)
@@ -65,9 +91,17 @@ class CustomerSerializer(serializers.ModelSerializer):
                  'address', 'customer_type', 'birth_date', 'gender']
         read_only_fields = ['created_at', 'updated_at', 'total_purchases', 
                            'total_spent', 'last_purchase_date']
+        extra_kwargs = {
+            'email': {'required': False, 'allow_null': True, 'allow_blank': False},
+            'phone': {'required': True, 'allow_blank': True},
+            'address': {'required': False, 'allow_null': True, 'allow_blank': False},
+            'birth_date': {'required': False, 'allow_null': True},
+            'gender': {'required': False, 'allow_blank': True},
+            'customer_type': {'required': False, 'allow_blank': True}
+        }
 
     def validate_email(self, value):
-        if Customer.objects.filter(email=value).exists():
+        if value and Customer.objects.filter(email=value).exists():
             raise serializers.ValidationError("Email đã tồn tại")
         return value
 
@@ -138,16 +172,17 @@ class OrderSerializer(serializers.ModelSerializer):
         read_only_fields = ['total_amount', 'final_amount']
 
     def validate(self, data):
-        if not data.get('order_details'):
-            raise serializers.ValidationError("Đơn hàng phải có ít nhất một sản phẩm")
-        if not data.get('customer_id'):
-            raise serializers.ValidationError("Khách hàng là bắt buộc")
-        if not data.get('store_id'):
-            raise serializers.ValidationError("Cửa hàng là bắt buộc")
-        if not data.get('shipping_address'):
-            raise serializers.ValidationError("Địa chỉ giao hàng là bắt buộc")
-        if not data.get('payment_method'):
-            raise serializers.ValidationError("Phương thức thanh toán là bắt buộc")
+        if self.context['request'].method == 'POST':
+            if not data.get('order_details'):
+                raise serializers.ValidationError("Đơn hàng phải có ít nhất một sản phẩm")
+            if not data.get('customer_id'):
+                raise serializers.ValidationError("Khách hàng là bắt buộc")
+            if not data.get('store_id'):
+                raise serializers.ValidationError("Cửa hàng là bắt buộc")
+            if not data.get('shipping_address'):
+                raise serializers.ValidationError("Địa chỉ giao hàng là bắt buộc")
+            if not data.get('payment_method'):
+                raise serializers.ValidationError("Phương thức thanh toán là bắt buộc")
         return data
 
     def create(self, validated_data):
@@ -363,13 +398,19 @@ class ShipmentSerializer(serializers.ModelSerializer):
         read_only_fields = ['created_at', 'updated_at']
 
 class ProductSpecificationSerializer(serializers.ModelSerializer):
-    product = ProductSerializer(read_only=True)
-    product_id = serializers.IntegerField(write_only=True)
+    product = serializers.PrimaryKeyRelatedField(queryset=Product.objects.all())
 
     class Meta:
         model = ProductSpecification
-        fields = ['id', 'product', 'product_id', 'name', 'value', 'display_order']
-        read_only_fields = ['created_at', 'updated_at']
+        fields = ['id', 'product', 'name', 'value']
+        read_only_fields = ['created_at']
+
+    def validate(self, data):
+        if not data.get('name'):
+            raise serializers.ValidationError("Tên thông số kỹ thuật là bắt buộc")
+        if not data.get('value'):
+            raise serializers.ValidationError("Giá trị thông số kỹ thuật là bắt buộc")
+        return data
 
 class ProductReviewSerializer(serializers.ModelSerializer):
     product = ProductSerializer(read_only=True)
@@ -384,15 +425,20 @@ class ProductReviewSerializer(serializers.ModelSerializer):
         read_only_fields = ['review_date']
 
 class ProductWishlistSerializer(serializers.ModelSerializer):
-    product = ProductSerializer(read_only=True)
-    product_id = serializers.IntegerField(write_only=True)
-    customer = CustomerSerializer(read_only=True)
-    customer_id = serializers.IntegerField(write_only=True)
+    customer = serializers.PrimaryKeyRelatedField(queryset=Customer.objects.all())
+    product = serializers.PrimaryKeyRelatedField(queryset=Product.objects.all())
 
     class Meta:
         model = ProductWishlist
-        fields = ['id', 'product', 'product_id', 'customer', 'customer_id', 'added_date']
+        fields = ['id', 'customer', 'product', 'added_date']
         read_only_fields = ['added_date']
+
+    def validate(self, data):
+        if not data.get('customer'):
+            raise serializers.ValidationError("Khách hàng là bắt buộc")
+        if not data.get('product'):
+            raise serializers.ValidationError("Sản phẩm là bắt buộc")
+        return data
 
 class CouponSerializer(serializers.ModelSerializer):
     class Meta:
@@ -402,30 +448,45 @@ class CouponSerializer(serializers.ModelSerializer):
         read_only_fields = ['created_at', 'updated_at']
 
 class ReturnSerializer(serializers.ModelSerializer):
-    order = OrderSerializer(read_only=True)
-    order_id = serializers.IntegerField(write_only=True)
-    product = ProductSerializer(read_only=True)
-    product_id = serializers.IntegerField(write_only=True)
+    order = serializers.PrimaryKeyRelatedField(queryset=Order.objects.all())
+    product = serializers.PrimaryKeyRelatedField(queryset=Product.objects.all())
 
     class Meta:
         model = Return
-        fields = ['id', 'order', 'order_id', 'product', 'product_id',
-                 'quantity', 'reason', 'status']
-        read_only_fields = ['created_at', 'updated_at']
+        fields = ['id', 'order', 'product', 'quantity', 'reason', 'status']
+        read_only_fields = ['created_at']
+
+    def validate(self, data):
+        if not data.get('order'):
+            raise serializers.ValidationError("Đơn hàng là bắt buộc")
+        if not data.get('product'):
+            raise serializers.ValidationError("Sản phẩm là bắt buộc")
+        if not data.get('reason'):
+            raise serializers.ValidationError("Lý do trả hàng là bắt buộc")
+        return data
 
 class WarrantyCardSerializer(serializers.ModelSerializer):
-    order = OrderSerializer(read_only=True)
-    order_id = serializers.IntegerField(write_only=True)
-    product = ProductSerializer(read_only=True)
-    product_id = serializers.IntegerField(write_only=True)
-    customer = CustomerSerializer(read_only=True)
-    customer_id = serializers.IntegerField(write_only=True)
+    order = serializers.PrimaryKeyRelatedField(queryset=Order.objects.all())
+    product = serializers.PrimaryKeyRelatedField(queryset=Product.objects.all())
+    customer = serializers.PrimaryKeyRelatedField(queryset=Customer.objects.all())
 
     class Meta:
         model = WarrantyCard
-        fields = ['id', 'order', 'order_id', 'product', 'product_id',
-                 'customer', 'customer_id', 'issue_date', 'expiry_date', 'status']
-        read_only_fields = ['created_at', 'updated_at']
+        fields = ['id', 'order', 'product', 'customer', 'issue_date', 'expiry_date', 'status']
+        read_only_fields = ['created_at']
+
+    def validate(self, data):
+        if not data.get('order'):
+            raise serializers.ValidationError("Đơn hàng là bắt buộc")
+        if not data.get('product'):
+            raise serializers.ValidationError("Sản phẩm là bắt buộc")
+        if not data.get('customer'):
+            raise serializers.ValidationError("Khách hàng là bắt buộc")
+        if not data.get('issue_date'):
+            raise serializers.ValidationError("Ngày phát hành là bắt buộc")
+        if not data.get('expiry_date'):
+            raise serializers.ValidationError("Ngày hết hạn là bắt buộc")
+        return data
 
 class PriceHistorySerializer(serializers.ModelSerializer):
     product = ProductSerializer(read_only=True)
@@ -438,6 +499,25 @@ class PriceHistorySerializer(serializers.ModelSerializer):
         fields = ['id', 'product', 'product_id', 'old_price', 'new_price',
                  'changed_by', 'changed_by_id', 'changed_at', 'reason']
         read_only_fields = ['changed_at']
+
+    def validate_old_price(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("Giá cũ phải lớn hơn 0")
+        return value
+
+    def validate_new_price(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("Giá mới phải lớn hơn 0")
+        return value
+
+    def validate(self, data):
+        if not data.get('product_id'):
+            raise serializers.ValidationError("Sản phẩm là bắt buộc")
+        if not data.get('changed_by_id'):
+            raise serializers.ValidationError("Người thay đổi là bắt buộc")
+        if not data.get('reason'):
+            raise serializers.ValidationError("Lý do thay đổi là bắt buộc")
+        return data
 
 class NotificationSerializer(serializers.ModelSerializer):
     created_by = UserSerializer(read_only=True)
@@ -460,4 +540,21 @@ class LoginHistorySerializer(serializers.ModelSerializer):
         model = LoginHistory
         fields = ['id', 'user', 'user_id', 'login_time', 'ip_address',
                  'device_info', 'status']
-        read_only_fields = ['login_time'] 
+        read_only_fields = ['login_time']
+
+    def validate_ip_address(self, value):
+        if not value:
+            raise serializers.ValidationError("Địa chỉ IP là bắt buộc")
+        return value
+
+    def validate_device_info(self, value):
+        if not value:
+            raise serializers.ValidationError("Thông tin thiết bị là bắt buộc")
+        return value
+
+    def validate(self, data):
+        if not data.get('user_id'):
+            raise serializers.ValidationError("Người dùng là bắt buộc")
+        if not data.get('status'):
+            raise serializers.ValidationError("Trạng thái là bắt buộc")
+        return data 

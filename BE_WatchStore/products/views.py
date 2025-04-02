@@ -409,16 +409,20 @@ class ShipmentViewSet(viewsets.ModelViewSet):
         return queryset
 
 class ProductSpecificationViewSet(viewsets.ModelViewSet):
-    queryset = ProductSpecification.objects.all()
+    queryset = ProductSpecification.objects.filter(is_deleted=False)
     serializer_class = ProductSpecificationSerializer
     permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['product_id']
+    search_fields = ['name', 'value']
+    ordering_fields = ['name', 'created_at']
+    ordering = ['name']
 
-    def get_queryset(self):
-        queryset = ProductSpecification.objects.all()
-        product_id = self.request.query_params.get('product_id', None)
-        if product_id:
-            queryset = queryset.filter(product_id=product_id)
-        return queryset
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
+
+    def perform_update(self, serializer):
+        serializer.save(updated_by=self.request.user)
 
 class ProductReviewViewSet(viewsets.ModelViewSet):
     queryset = ProductReview.objects.all()
@@ -433,16 +437,20 @@ class ProductReviewViewSet(viewsets.ModelViewSet):
         return queryset
 
 class ProductWishlistViewSet(viewsets.ModelViewSet):
-    queryset = ProductWishlist.objects.all()
+    queryset = ProductWishlist.objects.filter(is_deleted=False)
     serializer_class = ProductWishlistSerializer
     permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['customer_id', 'product_id']
+    search_fields = ['product__name']
+    ordering_fields = ['added_date']
+    ordering = ['-added_date']
 
-    def get_queryset(self):
-        queryset = ProductWishlist.objects.all()
-        customer_id = self.request.query_params.get('customer_id', None)
-        if customer_id:
-            queryset = queryset.filter(customer_id=customer_id)
-        return queryset
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
+
+    def perform_update(self, serializer):
+        serializer.save(updated_by=self.request.user)
 
 class CouponViewSet(viewsets.ModelViewSet):
     queryset = Coupon.objects.all()
@@ -471,34 +479,15 @@ class CouponViewSet(viewsets.ModelViewSet):
         except Coupon.DoesNotExist:
             return Response({'error': 'Invalid or expired coupon', 'is_valid': False}, status=status.HTTP_404_NOT_FOUND)
 
-class ReturnViewSet(viewsets.ModelViewSet):
-    queryset = Return.objects.all()
-    serializer_class = ReturnSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_queryset(self):
-        queryset = Return.objects.all()
-        order_id = self.request.query_params.get('order_id', None)
-        if order_id:
-            queryset = queryset.filter(order_id=order_id)
-        return queryset
-
-class WarrantyCardViewSet(viewsets.ModelViewSet):
-    queryset = WarrantyCard.objects.all()
-    serializer_class = WarrantyCardSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_queryset(self):
-        queryset = WarrantyCard.objects.all()
-        order_id = self.request.query_params.get('order_id', None)
-        if order_id:
-            queryset = queryset.filter(order_id=order_id)
-        return queryset
-
 class PriceHistoryViewSet(viewsets.ModelViewSet):
     queryset = PriceHistory.objects.all()
     serializer_class = PriceHistorySerializer
     permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['product_id']
+    search_fields = ['reason']
+    ordering_fields = ['changed_at']
+    ordering = ['-changed_at']
 
     def get_queryset(self):
         queryset = PriceHistory.objects.all()
@@ -531,6 +520,11 @@ class LoginHistoryViewSet(viewsets.ModelViewSet):
     queryset = LoginHistory.objects.all()
     serializer_class = LoginHistorySerializer
     permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['user_id', 'status']
+    search_fields = ['ip_address', 'device_info']
+    ordering_fields = ['login_time']
+    ordering = ['-login_time']
 
     def get_queryset(self):
         queryset = LoginHistory.objects.all()
@@ -538,3 +532,51 @@ class LoginHistoryViewSet(viewsets.ModelViewSet):
         if user_id:
             queryset = queryset.filter(user_id=user_id)
         return queryset
+
+class ProductImageViewSet(viewsets.ModelViewSet):
+    queryset = ProductImage.objects.filter(is_deleted=False)
+    serializer_class = ProductImageSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['product_id', 'is_main']
+    search_fields = ['image_url']
+    ordering_fields = ['display_order', 'created_at']
+    ordering = ['display_order']
+
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
+
+    def perform_update(self, serializer):
+        serializer.save(updated_by=self.request.user)
+
+class ReturnViewSet(viewsets.ModelViewSet):
+    queryset = Return.objects.filter(is_deleted=False)
+    serializer_class = ReturnSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['order_id', 'status']
+    search_fields = ['reason']
+    ordering_fields = ['created_at']
+    ordering = ['-created_at']
+
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
+
+    def perform_update(self, serializer):
+        serializer.save(updated_by=self.request.user)
+
+class WarrantyCardViewSet(viewsets.ModelViewSet):
+    queryset = WarrantyCard.objects.filter(is_deleted=False)
+    serializer_class = WarrantyCardSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['product_id', 'customer_id', 'status']
+    search_fields = ['serial_number']
+    ordering_fields = ['created_at']
+    ordering = ['-created_at']
+
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
+
+    def perform_update(self, serializer):
+        serializer.save(updated_by=self.request.user)
