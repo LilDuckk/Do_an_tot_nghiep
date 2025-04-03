@@ -1,0 +1,328 @@
+PHÂN TÍCH MỐI QUAN HỆ GIỮA CÁC BẢNG VÀ TRIỂN KHAI WEBSITE QUẢN LÝ CỬA HÀNG ĐỒNG HỒ
+
+1. PHÂN TÍCH MỐI QUAN HỆ GIỮA CÁC BẢNG
+
+1.1. Quan hệ giữa các bảng sản phẩm:
+- ProductCategories (Danh mục sản phẩm)
+  + Có quan hệ tự tham chiếu qua ParentCategoryID (danh mục cha-con)
+  + Liên kết 1-n với Products (một danh mục có thể có nhiều sản phẩm)
+  + Liên kết n-n với Attributes thông qua CategoryAttributes
+
+- Brands (Hãng sản xuất)
+  + Liên kết 1-n với Products (một hãng có thể có nhiều sản phẩm)
+
+- Products (Sản phẩm)
+  + Liên kết n-1 với ProductCategories (thuộc về một danh mục)
+  + Liên kết n-1 với Brands (thuộc về một hãng)
+  + Liên kết 1-n với ProductVariants (một sản phẩm có thể có nhiều biến thể)
+
+- Attributes (Thuộc tính)
+  + Liên kết n-n với ProductCategories thông qua CategoryAttributes
+  + Liên kết 1-n với AttributeValues (một thuộc tính có thể có nhiều giá trị)
+
+- CategoryAttributes (Thuộc tính của danh mục)
+  + Liên kết n-1 với ProductCategories
+  + Liên kết n-1 với Attributes
+
+- AttributeValues (Giá trị thuộc tính)
+  + Liên kết n-1 với Attributes
+  + Liên kết n-n với ProductVariants thông qua ProductVariantAttributes
+
+- ProductVariants (Biến thể sản phẩm)
+  + Liên kết n-1 với Products
+  + Liên kết n-n với AttributeValues thông qua ProductVariantAttributes
+
+2. VÍ DỤ SỬ DỤNG CÁC BẢNG TRONG THỰC TẾ
+
+2.1. Quản lý danh mục sản phẩm:
+- Tạo danh mục cha "Đồng hồ nam" với ID = 1
+- Tạo danh mục con "Đồng hồ cơ" với ParentCategoryID = 1
+- Tạo danh hục con "Đồng hồ quartz" với ParentCategoryID = 1
+
+2.2. Quản lý hãng sản phẩm:
+- Thêm hãng "Rolex" với BrandID = 1
+- Thêm hãng "Omega" với BrandID = 2
+
+2.3. Quản lý thuộc tính sản phẩm:
+- Thêm thuộc tính "Chất liệu vỏ" với AttributeID = 1
+- Thêm thuộc tính "Màu mặt số" với AttributeID = 2
+- Thêm thuộc tính "Kích thước" với AttributeID = 3
+
+2.4. Quản lý sản phẩm và biến thể:
+- Thêm sản phẩm "Rolex Submariner" thuộc danh mục "Đồng hồ cơ", hãng "Rolex"
+- Tạo biến thể với:
+  + Chất liệu vỏ: Thép không gỉ
+  + Màu mặt số: Đen
+  + Kích thước: 41mm
+  + Giá: 250,000,000 VNĐ
+  + Số lượng tồn kho: 5
+
+3. TRIỂN KHAI WEBSITE QUẢN LÝ
+
+3.1. Trang khách hàng:
+- Trang chủ:
+  + Hiển thị danh sách sản phẩm nổi bật
+  + Phân loại sản phẩm theo danh mục
+  + Tìm kiếm sản phẩm
+  + Lọc sản phẩm theo hãng, giá, thuộc tính
+
+- Trang chi tiết sản phẩm:
+  + Hiển thị thông tin chi tiết sản phẩm
+  + Hiển thị các biến thể sản phẩm
+  + Chọn biến thể và thêm vào giỏ hàng
+  + Hiển thị số lượng tồn kho
+
+3.2. Trang quản trị:
+- Quản lý danh mục:
+  + Thêm/sửa/xóa danh mục
+  + Sắp xếp thứ tự hiển thị
+  + Quản lý danh mục cha-con
+
+- Quản lý hãng:
+  + Thêm/sửa/xóa hãng
+  + Upload logo hãng
+  + Quản lý thông tin hãng
+
+- Quản lý sản phẩm:
+  + Thêm/sửa/xóa sản phẩm
+  + Quản lý biến thể sản phẩm
+  + Cập nhật giá và số lượng tồn kho
+  + Upload ảnh sản phẩm
+
+- Quản lý thuộc tính:
+  + Thêm/sửa/xóa thuộc tính
+  + Gán thuộc tính cho danh mục
+  + Quản lý giá trị thuộc tính
+
+4. CÁC TÍNH NĂNG BỔ SUNG
+
+4.1. Bảo mật:
+- Xác thực người dùng bằng JWT
+- Phân quyền admin/user
+- Mã hóa mật khẩu
+- Bảo vệ API endpoints
+
+4.2. Tối ưu hiệu suất:
+- Cache dữ liệu
+- Phân trang API
+- Nén dữ liệu
+- Tối ưu truy vấn database
+
+4.3. Tính năng nâng cao:
+- Thống kê bán hàng
+- Báo cáo tồn kho
+- Quản lý đơn hàng
+- Quản lý người dùng
+- Quản lý đánh giá sản phẩm
+
+5. VÍ DỤ CHI TIẾT QUY TRÌNH TẠO SẢN PHẨM
+
+5.1. Tạo danh mục sản phẩm:
+```sql
+-- Tạo danh mục cha "Đồng hồ nam"
+INSERT INTO ProductCategories (CategoryID, CategoryName, CategoryDescription, ParentCategoryID)
+VALUES (1, 'Đồng hồ nam', 'Danh mục đồng hồ dành cho nam', NULL);
+
+-- Tạo danh mục con "Đồng hồ cơ"
+INSERT INTO ProductCategories (CategoryID, CategoryName, CategoryDescription, ParentCategoryID)
+VALUES (2, 'Đồng hồ cơ', 'Đồng hồ cơ nam', 1);
+```
+
+5.2. Tạo hãng sản xuất:
+```sql
+-- Tạo hãng Rolex
+INSERT INTO Brands (BrandID, BrandName, BrandDescription)
+VALUES (1, 'Rolex', 'Hãng đồng hồ xa xỉ của Thụy Sĩ');
+```
+
+5.3. Tạo thuộc tính sản phẩm:
+```sql
+-- Tạo các thuộc tính cơ bản
+INSERT INTO Attributes (AttributeID, AttributeName, AttributeDescription)
+VALUES 
+(1, 'Chất liệu vỏ', 'Chất liệu làm vỏ đồng hồ'),
+(2, 'Màu mặt số', 'Màu sắc của mặt số đồng hồ'),
+(3, 'Kích thước', 'Kích thước vỏ đồng hồ'),
+(4, 'Chống nước', 'Khả năng chống nước của đồng hồ'),
+(5, 'Màu dây', 'Màu sắc của dây đeo');
+
+-- Gán thuộc tính cho danh mục "Đồng hồ cơ"
+INSERT INTO CategoryAttributes (CategoryID, AttributeID, IsRequired, AffectsPrice, DisplayOrder)
+VALUES 
+(2, 1, true, true, 1),  -- Chất liệu vỏ: bắt buộc, ảnh hưởng giá
+(2, 2, true, false, 2), -- Màu mặt số: bắt buộc
+(2, 3, true, false, 3), -- Kích thước: bắt buộc
+(2, 4, true, true, 4),  -- Chống nước: bắt buộc, ảnh hưởng giá
+(2, 5, true, false, 5); -- Màu dây: bắt buộc
+```
+
+5.4. Tạo giá trị thuộc tính:
+```sql
+-- Giá trị cho thuộc tính "Chất liệu vỏ"
+INSERT INTO AttributeValues (AttributeValueID, AttributeID, Value)
+VALUES 
+(1, 1, 'Thép không gỉ'),
+(2, 1, 'Vàng 18k'),
+(3, 1, 'Titanium');
+
+-- Giá trị cho thuộc tính "Màu mặt số"
+INSERT INTO AttributeValues (AttributeValueID, AttributeID, Value)
+VALUES 
+(4, 2, 'Đen'),
+(5, 2, 'Trắng'),
+(6, 2, 'Xanh dương');
+
+-- Giá trị cho thuộc tính "Kích thước"
+INSERT INTO AttributeValues (AttributeValueID, AttributeID, Value)
+VALUES 
+(7, 3, '36mm'),
+(8, 3, '39mm'),
+(9, 3, '41mm');
+
+-- Giá trị cho thuộc tính "Chống nước"
+INSERT INTO AttributeValues (AttributeValueID, AttributeID, Value)
+VALUES 
+(10, 4, '30m'),
+(11, 4, '50m'),
+(12, 4, '100m'),
+(13, 4, '300m');
+
+-- Giá trị cho thuộc tính "Màu dây"
+INSERT INTO AttributeValues (AttributeValueID, AttributeID, Value)
+VALUES 
+(14, 5, 'Thép không gỉ'),
+(15, 5, 'Da đen'),
+(16, 5, 'Da nâu');
+```
+
+5.5. Tạo sản phẩm:
+```sql
+-- Tạo sản phẩm Rolex Submariner
+INSERT INTO Products (ProductID, ProductName, ProductDescription, CategoryID, BrandID, BasePrice)
+VALUES (1, 'Rolex Submariner', 'Đồng hồ lặn biển cao cấp', 2, 1, 250000000);
+```
+
+5.6. Tạo biến thể sản phẩm:
+```sql
+-- Tạo biến thể Rolex Submariner với các thuộc tính
+INSERT INTO ProductVariants (VariantID, ProductID, SKUCode, PriceAdjustment, Stock, IsActive)
+VALUES (1, 1, 'ROLEX-SUB-001', 0, 5, true);
+
+-- Gán các giá trị thuộc tính cho biến thể
+INSERT INTO ProductVariantAttributes (VariantID, AttributeValueID)
+VALUES 
+(1, 1),  -- Chất liệu vỏ: Thép không gỉ
+(1, 4),  -- Màu mặt số: Đen
+(1, 9),  -- Kích thước: 41mm
+(1, 13), -- Chống nước: 300m
+(1, 14); -- Màu dây: Thép không gỉ
+```
+
+5.7. Kết quả:
+- Sản phẩm: Rolex Submariner
+- Danh mục: Đồng hồ cơ
+- Hãng: Rolex
+- Biến thể:
+  + Chất liệu vỏ: Thép không gỉ
+  + Màu mặt số: Đen
+  + Kích thước: 41mm
+  + Chống nước: 300m
+  + Màu dây: Thép không gỉ
+  + Giá: 250,000,000 VNĐ
+  + Số lượng tồn kho: 5
+  + Mã SKU: ROLEX-SUB-001
+
+5.8. Lưu ý khi triển khai:
+- Cần kiểm tra tính hợp lệ của dữ liệu trước khi thêm vào database
+- Đảm bảo các khóa ngoại được tham chiếu đúng
+- Cập nhật số lượng tồn kho khi có đơn hàng
+- Xử lý các trường hợp lỗi như: trùng SKU, giá trị thuộc tính không hợp lệ
+- Có thể tạo thêm các biến thể khác của sản phẩm với các thuộc tính khác nhau 
+
+6. VÍ DỤ TẠO NHIỀU BIẾN THỂ SẢN PHẨM CÙNG LOẠI
+
+6.1. Tạo danh mục và hãng:
+```sql
+-- Tạo danh mục "Đồng hồ thời trang"
+INSERT INTO ProductCategories (CategoryID, CategoryName, CategoryDescription, ParentCategoryID)
+VALUES (3, 'Đồng hồ thời trang', 'Đồng hồ thời trang giá rẻ', 1);
+
+-- Tạo hãng Casio
+INSERT INTO Brands (BrandID, BrandName, BrandDescription)
+VALUES (2, 'Casio', 'Hãng đồng hồ Nhật Bản');
+```
+
+6.2. Tạo thuộc tính và giá trị:
+```sql
+-- Tạo thuộc tính "Màu sắc"
+INSERT INTO Attributes (AttributeID, AttributeName, AttributeDescription)
+VALUES (6, 'Màu sắc', 'Màu sắc của đồng hồ');
+
+-- Gán thuộc tính cho danh mục "Đồng hồ thời trang"
+INSERT INTO CategoryAttributes (CategoryID, AttributeID, IsRequired, AffectsPrice, DisplayOrder)
+VALUES (3, 6, true, true, 1);
+
+-- Tạo các giá trị màu sắc
+INSERT INTO AttributeValues (AttributeValueID, AttributeID, Value)
+VALUES 
+(17, 6, 'Đỏ'),
+(18, 6, 'Đen'),
+(19, 6, 'Vàng');
+```
+
+6.3. Tạo sản phẩm:
+```sql
+-- Tạo sản phẩm Casio Classic
+INSERT INTO Products (ProductID, ProductName, ProductDescription, CategoryID, BrandID, BasePrice)
+VALUES (2, 'Casio Classic', 'Đồng hồ thời trang Casio', 3, 2, 250000);
+```
+
+6.4. Tạo các biến thể sản phẩm:
+```sql
+-- Tạo biến thể màu đỏ
+INSERT INTO ProductVariants (VariantID, ProductID, SKUCode, PriceAdjustment, Stock, IsActive)
+VALUES (2, 2, 'CASIO-CLASSIC-RED', 0, 10, true);
+
+-- Tạo biến thể màu đen
+INSERT INTO ProductVariants (VariantID, ProductID, SKUCode, PriceAdjustment, Stock, IsActive)
+VALUES (3, 2, 'CASIO-CLASSIC-BLACK', 0, 15, true);
+
+-- Tạo biến thể màu vàng
+INSERT INTO ProductVariants (VariantID, ProductID, SKUCode, PriceAdjustment, Stock, IsActive)
+VALUES (4, 2, 'CASIO-CLASSIC-GOLD', 250000, 8, true);
+
+-- Gán giá trị màu sắc cho các biến thể
+INSERT INTO ProductVariantAttributes (VariantID, AttributeValueID)
+VALUES 
+(2, 17),  -- Màu đỏ
+(3, 18),  -- Màu đen
+(4, 19);  -- Màu vàng
+```
+
+6.5. Kết quả:
+- Sản phẩm: Casio Classic
+- Danh mục: Đồng hồ thời trang
+- Hãng: Casio
+- Biến thể 1:
+  + Màu sắc: Đỏ
+  + Giá: 250,000 VNĐ
+  + Số lượng tồn kho: 10
+  + Mã SKU: CASIO-CLASSIC-RED
+
+- Biến thể 2:
+  + Màu sắc: Đen
+  + Giá: 250,000 VNĐ
+  + Số lượng tồn kho: 15
+  + Mã SKU: CASIO-CLASSIC-BLACK
+
+- Biến thể 3:
+  + Màu sắc: Vàng
+  + Giá: 500,000 VNĐ (giá gốc 250,000 + điều chỉnh 250,000)
+  + Số lượng tồn kho: 8
+  + Mã SKU: CASIO-CLASSIC-GOLD
+
+6.6. Lưu ý:
+- Trong ví dụ này, chúng ta sử dụng PriceAdjustment để tăng giá cho biến thể màu vàng
+- Mỗi biến thể có một mã SKU riêng để dễ dàng quản lý
+- Số lượng tồn kho được quản lý riêng cho từng biến thể
+- Có thể thêm các thuộc tính khác như kích thước, chất liệu nếu cần 

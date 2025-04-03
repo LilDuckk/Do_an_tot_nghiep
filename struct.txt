@@ -1,0 +1,17 @@
+fe_watchstore/
+├── node_modules/
+├── public/
+├── src/
+│   ├── admin/         # Components cho trang admin
+│   ├── auth/          # Components xác thực
+│   ├── home/          # Components cho trang chủ
+│   ├── layouts/       # Các layout chung
+│   ├── assets/        # Assets (css, images)
+│   ├── shared/        # Components và utilities dùng chung
+│   ├── App.js         # Component gốc
+│   ├── index.js       # Entry point
+│   └── theme.js       # Cấu hình theme
+├── .gitignore
+├── package.json
+├── package-lock.json
+└── README.md
