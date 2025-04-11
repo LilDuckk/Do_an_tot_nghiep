@@ -27,6 +27,35 @@ db.sqlite3
 db.sqlite3-journal
 media/
 static/
+staticfiles/
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.npm
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+
+# React
+/build
+/dist
+/.pnp
+.pnp.js
+.eslintcache
+*.pem
+.DS_Store
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+coverage/
+.nyc_output/
 
 # Environments
 .env
@@ -43,30 +72,41 @@ venv.bak/
 *.swp
 *.swo
 *~
+.project
+.classpath
+.settings/
+*.sublime-workspace
+*.sublime-project
 
 # Backup files
 *.bak
 *.tmp
 *.temp
+*.backup
+*.swp
+*~
 
 # Database
 *.sqlite3
 *.db
+*.sqlite
+*.sqlite-journal
 
 # Logs
 logs/
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
 # Local development settings
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
-
-# Dependencies
-node_modules/
-package-lock.json
-yarn.lock
+.env.staging.local
 
 # Coverage reports
 htmlcov/
@@ -81,16 +121,11 @@ coverage.xml
 *.py,cover
 .hypothesis/
 .pytest_cache/
+.nyc_output/
 
 # Translations
 *.mo
 *.pot
-
-# Django stuff:
-*.pyc
-db.sqlite3
-media/
-staticfiles/
 
 # Celery
 celerybeat-schedule
@@ -100,9 +135,73 @@ celerybeat.pid
 .DS_Store
 .AppleDouble
 .LSOverride
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
 
 # Windows
 Thumbs.db
 ehthumbs.db
 Desktop.ini
-$RECYCLE.BIN/ 
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# Docker
+.docker/
+docker-compose.override.yml
+
+# Testing
+/test-results/
+/coverage/
+/cypress/videos/
+/cypress/screenshots/
+
+# Build
+/build/
+/dist/
+/out/
+/.next/
+/.nuxt/
+/.output/
+
+# Cache
+.cache/
+.npm/
+.eslintcache
+.stylelintcache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Misc
+*.log
+*.pid
+*.seed
+*.pid.lock
+*.tsbuildinfo
+.npmrc
+.yarnrc
+.prettierrc
+.eslintrc
+.stylelintrc
+.editorconfig
+.gitattributes
+.gitkeep 

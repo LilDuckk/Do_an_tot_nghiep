@@ -4,10 +4,11 @@ Dự án backend cho cửa hàng đồng hồ sử dụng Django REST Framework 
 
 ## Yêu cầu hệ thống
 
-- Python 3.10.2
+- Python 3.10.2 trở lên
 - PostgreSQL 14+
-- Redis (cho Celery và caching)
+- Redis 7+ (cho Celery và caching)
 - pip (Python package manager)
+- Node.js 14+ (cho frontend)
 
 ## 1. Cài đặt môi trường
 
@@ -20,7 +21,14 @@ CREATE DATABASE watchesstore;
 
 ### 1.2. Cài đặt Redis
 1. Tải và cài đặt Redis từ [trang chủ](https://redis.io/download/)
-2. Khởi động Redis server
+2. Khởi động Redis server:
+```bash
+# Windows
+redis-server
+
+# Linux/Mac
+sudo service redis-server start
+```
 
 ### 1.3. Cài đặt Python và môi trường ảo
 ```bash
@@ -48,6 +56,10 @@ DB_PASSWORD=your-password
 DB_HOST=localhost
 DB_PORT=5432
 REDIS_URL=redis://localhost:6379/0
+AWS_ACCESS_KEY_ID=your-aws-access-key
+AWS_SECRET_ACCESS_KEY=your-aws-secret-key
+AWS_STORAGE_BUCKET_NAME=your-bucket-name
+AWS_S3_REGION_NAME=your-region
 ```
 
 ## 2. Chạy dự án
@@ -112,58 +124,39 @@ curl -X POST http://localhost:8000/api/auth/login/ \
 - Swagger UI: http://localhost:8000/swagger/
 - ReDoc: http://localhost:8000/redoc/
 
-### 3.3. Ví dụ sử dụng API
+### 3.3. Các tính năng API
 
 #### Quản lý sản phẩm
-```bash
-# Lấy danh sách sản phẩm
-curl -X GET http://localhost:8000/api/products/ \
--H "Authorization: Bearer your_access_token"
-
-# Tạo sản phẩm mới
-curl -X POST http://localhost:8000/api/products/ \
--H "Authorization: Bearer your_access_token" \
--H "Content-Type: application/json" \
--d '{
-    "name": "Rolex Submariner",
-    "description": "Đồng hồ Rolex Submariner chính hãng",
-    "category_id": 1,
-    "brand_id": 1,
-    "base_price": 50000000
-}'
-```
+- CRUD sản phẩm
+- Upload hình ảnh
+- Tìm kiếm và lọc
+- Phân trang
+- Quản lý tồn kho
 
 #### Quản lý đơn hàng
-```bash
-# Tạo đơn hàng mới
-curl -X POST http://localhost:8000/api/orders/ \
--H "Authorization: Bearer your_access_token" \
--H "Content-Type: application/json" \
--d '{
-    "store_id": 1,
-    "customer_id": 1,
-    "order_details": [
-        {
-            "product_id": 1,
-            "quantity": 1,
-            "unit_price": 50000000
-        }
-    ],
-    "shipping_address": "Hà Nội",
-    "shipping_fee": 50000,
-    "payment_method": "cash"
-}'
-```
+- Tạo và quản lý đơn hàng
+- Xử lý thanh toán
+- Theo dõi trạng thái
+- Quản lý vận chuyển
 
-### 3.4. Các tính năng API
-- Authentication với JWT
-- Phân quyền người dùng (Admin, Staff, Customer)
-- Upload và quản lý hình ảnh
-- Tìm kiếm và lọc dữ liệu
-- Phân trang
-- Caching với Redis
-- Background tasks với Celery
-- API documentation với Swagger/ReDoc
+#### Quản lý khách hàng
+- Đăng ký/Đăng nhập
+- Quản lý thông tin
+- Lịch sử mua hàng
+- Đánh giá sản phẩm
+
+#### Báo cáo và thống kê
+- Doanh thu
+- Sản phẩm bán chạy
+- Khách hàng tiềm năng
+- Tồn kho
+
+### 3.4. Tính năng bảo mật
+- JWT Authentication
+- Role-based Access Control
+- Rate Limiting
+- CORS Protection
+- CSRF Protection
 
 ## 4. Cấu trúc dự án
 
@@ -188,11 +181,47 @@ BE_WatchStore/
 │   ├── views.py
 │   ├── urls.py
 │   └── permissions.py
-└── static/                # Static files
-    └── media/            # Uploaded files
+├── orders/                # Order management
+├── customers/            # Customer management
+├── reports/             # Reporting and analytics
+└── static/              # Static files
+    └── media/          # Uploaded files
 ```
 
-## 5. Lưu ý
+## 5. Testing
+
+```bash
+# Chạy tests
+pytest
+
+# Chạy tests với coverage
+pytest --cov=.
+
+# Chạy linting
+flake8
+black .
+isort .
+```
+
+## 6. Deployment
+
+### 6.1. Yêu cầu
+- PostgreSQL database
+- Redis server
+- AWS S3 (cho file storage)
+- Gunicorn (cho production server)
+- Nginx (cho reverse proxy)
+
+### 6.2. Các bước triển khai
+1. Cấu hình production settings
+2. Set up database
+3. Set up static files
+4. Set up media files
+5. Set up SSL
+6. Set up monitoring
+7. Set up backup
+
+## 7. Lưu ý
 
 - Đảm bảo PostgreSQL và Redis đã được cài đặt và đang chạy
 - Kiểm tra kết nối database trước khi chạy migrations
@@ -200,4 +229,8 @@ BE_WatchStore/
 - Thay đổi SECRET_KEY trong môi trường production
 - Sử dụng HTTPS trong môi trường production
 - Backup database định kỳ
-- Monitor logs và performance 
+- Monitor logs và performance
+- Sử dụng environment variables cho các thông tin nhạy cảm
+- Cập nhật dependencies thường xuyên
+- Chạy tests trước khi deploy
+- Sử dụng Docker cho development và production 

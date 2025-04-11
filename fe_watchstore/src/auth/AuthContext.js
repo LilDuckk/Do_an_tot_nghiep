@@ -1,34 +1,37 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const login = async (email, password) => {
-    setLoading(true);
+  useEffect(() => {
+    // Kiểm tra token khi component mount
+    const token = localStorage.getItem('accessToken');
+    const userRole = localStorage.getItem('userRole');
+    if (token && userRole) {
+      setUser({ token, role: userRole });
+    }
+    setLoading(false);
+  }, []);
+
+  const login = async (token, role) => {
     try {
-      // Giả lập API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      if (email.includes('admin') && password === 'admin123') {
-        setUser({ email, role: 'admin' });
-        return true;
-      } else if (password === 'user123') {
-        setUser({ email, role: 'user' });
-        return true;
-      }
-      return false;
+      localStorage.setItem('accessToken', token);
+      localStorage.setItem('userRole', role);
+      setUser({ token, role });
+      return true;
     } catch (error) {
       console.error('Login error:', error);
       return false;
-    } finally {
-      setLoading(false);
     }
   };
 
   const logout = () => {
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('refreshToken');
     setUser(null);
   };
 
@@ -37,8 +40,8 @@ export const AuthProvider = ({ children }) => {
     loading,
     login,
     logout,
-    isAuthenticated: !!user,
-    isAdmin: user?.role === 'admin',
+    isAuthenticated: !!user?.token,
+    isAdmin: user?.role === 'admin' || user?.role === 'superadmin',
   };
 
   return (

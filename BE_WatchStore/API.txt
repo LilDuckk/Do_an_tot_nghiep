@@ -1,4 +1,10 @@
 # API Endpoints Documentation
+#TestScripts
+    let responseData = pm.response.json();
+    pm.globals.set("access_token", responseData.access);
+#BearerToken
+    {{access_token}}
+
 
 ## Authentication APIs
 

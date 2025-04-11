@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Container,
   Typography,
@@ -10,69 +10,138 @@ import {
   TableHead,
   TableRow,
   Button,
-  IconButton,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
+  Grid,
+  Box,
+  Chip,
+  IconButton,
   TextField,
   MenuItem,
 } from '@mui/material';
-import VisibilityIcon from '@mui/icons-material/Visibility';
-import EditIcon from '@mui/icons-material/Edit';
+import { Visibility as VisibilityIcon } from '@mui/icons-material';
 
 const OrderManage = () => {
+  const [orders, setOrders] = useState([]);
   const [open, setOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [formData, setFormData] = useState({
+    status: '',
+    note: '',
+  });
 
-  // Mock data - sẽ được thay thế bằng API call
-  const orders = [
-    {
-      id: 1,
-      customerName: 'Nguyễn Văn A',
-      total: '4,000,000đ',
-      status: 'Đang xử lý',
-      date: '2024-03-03',
-    },
-    {
-      id: 2,
-      customerName: 'Trần Thị B',
-      total: '2,500,000đ',
-      status: 'Đã giao',
-      date: '2024-03-02',
-    },
-  ];
+  useEffect(() => {
+    fetchOrders();
+  }, []);
 
-  const handleOpen = (order = null) => {
+  const fetchOrders = async () => {
+    try {
+      const response = await fetch('http://localhost:8080/api/orders', {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('adminToken')}`,
+        },
+      });
+      const data = await response.json();
+      setOrders(data);
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+    }
+  };
+
+  const handleOpen = (order) => {
     setSelectedOrder(order);
+    setFormData({
+      status: order.status,
+      note: order.note || '',
+    });
     setOpen(true);
   };
 
   const handleClose = () => {
-    setSelectedOrder(null);
     setOpen(false);
+    setSelectedOrder(null);
   };
 
-  const handleSave = () => {
-    // Xử lý lưu trạng thái đơn hàng
-    handleClose();
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await fetch(
+        `http://localhost:8080/api/orders/${selectedOrder.id}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${localStorage.getItem('adminToken')}`,
+          },
+          body: JSON.stringify(formData),
+        }
+      );
+
+      if (response.ok) {
+        fetchOrders();
+        handleClose();
+      }
+    } catch (error) {
+      console.error('Error updating order:', error);
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'PENDING':
+        return 'warning';
+      case 'PROCESSING':
+        return 'info';
+      case 'COMPLETED':
+        return 'success';
+      case 'CANCELLED':
+        return 'error';
+      default:
+        return 'default';
+    }
+  };
+
+  const getStatusText = (status) => {
+    switch (status) {
+      case 'PENDING':
+        return 'Chờ xử lý';
+      case 'PROCESSING':
+        return 'Đang xử lý';
+      case 'COMPLETED':
+        return 'Hoàn thành';
+      case 'CANCELLED':
+        return 'Đã hủy';
+      default:
+        return status;
+    }
   };
 
   return (
     <Container>
-      <Typography variant="h4" component="h1" gutterBottom>
-        Quản lý đơn hàng
-      </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
+        <Typography variant="h4" component="h1">
+          Quản lý đơn hàng
+        </Typography>
+      </Box>
 
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>ID</TableCell>
+              <TableCell>Mã đơn hàng</TableCell>
               <TableCell>Khách hàng</TableCell>
+              <TableCell>Ngày đặt</TableCell>
               <TableCell>Tổng tiền</TableCell>
               <TableCell>Trạng thái</TableCell>
-              <TableCell>Ngày đặt</TableCell>
               <TableCell>Thao tác</TableCell>
             </TableRow>
           </TableHead>
@@ -81,15 +150,21 @@ const OrderManage = () => {
               <TableRow key={order.id}>
                 <TableCell>{order.id}</TableCell>
                 <TableCell>{order.customerName}</TableCell>
-                <TableCell>{order.total}</TableCell>
-                <TableCell>{order.status}</TableCell>
-                <TableCell>{order.date}</TableCell>
                 <TableCell>
-                  <IconButton onClick={() => handleOpen(order)}>
+                  {new Date(order.createdAt).toLocaleDateString('vi-VN')}
+                </TableCell>
+                <TableCell>
+                  {order.totalAmount.toLocaleString('vi-VN')}đ
+                </TableCell>
+                <TableCell>
+                  <Chip
+                    label={getStatusText(order.status)}
+                    color={getStatusColor(order.status)}
+                  />
+                </TableCell>
+                <TableCell>
+                  <IconButton onClick={() => handleOpen(order)} color="primary">
                     <VisibilityIcon />
-                  </IconButton>
-                  <IconButton onClick={() => handleOpen(order)}>
-                    <EditIcon />
                   </IconButton>
                 </TableCell>
               </TableRow>
@@ -99,51 +174,98 @@ const OrderManage = () => {
       </TableContainer>
 
       <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-        <DialogTitle>
-          {selectedOrder ? 'Chi tiết đơn hàng' : 'Thêm đơn hàng mới'}
-        </DialogTitle>
+        <DialogTitle>Chi tiết đơn hàng</DialogTitle>
         <DialogContent>
-          <TextField
-            autoFocus
-            margin="dense"
-            label="Khách hàng"
-            fullWidth
-            defaultValue={selectedOrder?.customerName}
-          />
-          <TextField
-            margin="dense"
-            label="Tổng tiền"
-            fullWidth
-            defaultValue={selectedOrder?.total}
-          />
-          <TextField
-            select
-            margin="dense"
-            label="Trạng thái"
-            fullWidth
-            defaultValue={selectedOrder?.status}
-          >
-            <MenuItem value="Đang xử lý">Đang xử lý</MenuItem>
-            <MenuItem value="Đã xác nhận">Đã xác nhận</MenuItem>
-            <MenuItem value="Đang giao">Đang giao</MenuItem>
-            <MenuItem value="Đã giao">Đã giao</MenuItem>
-            <MenuItem value="Đã hủy">Đã hủy</MenuItem>
-          </TextField>
-          <TextField
-            margin="dense"
-            label="Ngày đặt"
-            type="date"
-            fullWidth
-            defaultValue={selectedOrder?.date}
-            InputLabelProps={{
-              shrink: true,
-            }}
-          />
+          {selectedOrder && (
+            <Grid container spacing={2} sx={{ mt: 1 }}>
+              <Grid item xs={12}>
+                <Typography variant="h6">Thông tin đơn hàng</Typography>
+                <Typography>Mã đơn hàng: {selectedOrder.id}</Typography>
+                <Typography>
+                  Ngày đặt:{' '}
+                  {new Date(selectedOrder.createdAt).toLocaleDateString('vi-VN')}
+                </Typography>
+                <Typography>
+                  Tổng tiền:{' '}
+                  {selectedOrder.totalAmount.toLocaleString('vi-VN')}đ
+                </Typography>
+              </Grid>
+
+              <Grid item xs={12}>
+                <Typography variant="h6">Thông tin khách hàng</Typography>
+                <Typography>Tên: {selectedOrder.customerName}</Typography>
+                <Typography>Email: {selectedOrder.customerEmail}</Typography>
+                <Typography>Số điện thoại: {selectedOrder.customerPhone}</Typography>
+                <Typography>Địa chỉ: {selectedOrder.shippingAddress}</Typography>
+              </Grid>
+
+              <Grid item xs={12}>
+                <Typography variant="h6">Sản phẩm</Typography>
+                <TableContainer>
+                  <Table>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Sản phẩm</TableCell>
+                        <TableCell align="right">Số lượng</TableCell>
+                        <TableCell align="right">Đơn giá</TableCell>
+                        <TableCell align="right">Thành tiền</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {selectedOrder.items.map((item) => (
+                        <TableRow key={item.id}>
+                          <TableCell>{item.productName}</TableCell>
+                          <TableCell align="right">{item.quantity}</TableCell>
+                          <TableCell align="right">
+                            {item.price.toLocaleString('vi-VN')}đ
+                          </TableCell>
+                          <TableCell align="right">
+                            {(item.price * item.quantity).toLocaleString(
+                              'vi-VN'
+                            )}
+                            đ
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Grid>
+
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  select
+                  label="Trạng thái"
+                  name="status"
+                  value={formData.status}
+                  onChange={handleChange}
+                >
+                  <MenuItem value="PENDING">Chờ xử lý</MenuItem>
+                  <MenuItem value="PROCESSING">Đang xử lý</MenuItem>
+                  <MenuItem value="COMPLETED">Hoàn thành</MenuItem>
+                  <MenuItem value="CANCELLED">Hủy đơn</MenuItem>
+                </TextField>
+              </Grid>
+
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={4}
+                  label="Ghi chú"
+                  name="note"
+                  value={formData.note}
+                  onChange={handleChange}
+                />
+              </Grid>
+            </Grid>
+          )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleClose}>Hủy</Button>
-          <Button onClick={handleSave} variant="contained" color="primary">
-            Lưu
+          <Button onClick={handleClose}>Đóng</Button>
+          <Button onClick={handleSubmit} variant="contained" color="primary">
+            Cập nhật
           </Button>
         </DialogActions>
       </Dialog>

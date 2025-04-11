@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Container, 
   Paper, 
@@ -10,6 +10,7 @@ import {
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
+import axios from 'axios';
 
 const styles = {
   container: {
@@ -40,12 +41,19 @@ const styles = {
 
 const AdminLogin = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, isAuthenticated } = useAuth();
   const [formData, setFormData] = useState({
-    email: '',
+    username: '',
     password: '',
   });
   const [error, setError] = useState('');
+
+  // Chuyển hướng nếu đã đăng nhập
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/admin/dashboard', { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleChange = (e) => {
     setFormData({
@@ -58,21 +66,83 @@ const AdminLogin = () => {
     e.preventDefault();
     setError('');
 
-    // Kiểm tra email có phải admin không
-    if (!formData.email.includes('admin')) {
-      setError('Bạn không có quyền truy cập trang admin');
-      return;
-    }
-
     try {
-      const success = await login(formData.email, formData.password);
-      if (success) {
-        navigate('/admin/products');
-      } else {
-        setError('Email hoặc mật khẩu không đúng');
+      const apiUrl = process.env.REACT_APP_API_URL || 'http://127.0.0.1:8000/api';
+      console.log('API URL:', apiUrl);
+
+      // Cấu hình axios
+      const axiosConfig = {
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        withCredentials: false // Tắt credentials vì không cần thiết cho JWT
+      };
+
+      // Đảm bảo URL khớp với Postman
+      const baseUrl = apiUrl.endsWith('/api') ? apiUrl : `${apiUrl}/api`;
+      const loginUrl = `${baseUrl}/auth/login/`;
+      console.log('Login URL:', loginUrl);
+
+      const response = await axios.post(
+        loginUrl,
+        {
+          username: formData.username,
+          password: formData.password
+        },
+        axiosConfig
+      );
+
+      console.log('Login response:', response.data);
+
+      if (response.data.access) {
+        // Kiểm tra role của user
+        const userResponse = await axios.get(
+          `${baseUrl}/auth/me/`,
+          {
+            headers: {
+              'Authorization': `Bearer ${response.data.access}`,
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            }
+          }
+        );
+
+        console.log('User response:', userResponse.data);
+
+        const userRole = userResponse.data.role;
+        
+        if (userRole !== 'admin' && userRole !== 'superadmin') {
+          setError('Bạn không có quyền truy cập trang quản trị');
+          return;
+        }
+
+        // Lưu thông tin vào localStorage
+        localStorage.setItem('accessToken', response.data.access);
+        localStorage.setItem('refreshToken', response.data.refresh);
+        localStorage.setItem('userRole', userRole);
+        
+        // Đăng nhập và chuyển hướng
+        await login(response.data.access);
+        console.log('Đăng nhập thành công, chuyển hướng đến dashboard');
+        navigate('/admin/dashboard', { replace: true });
       }
     } catch (err) {
-      setError('Có lỗi xảy ra khi đăng nhập');
+      console.error('Login error:', err);
+      if (err.response) {
+        console.error('Error response:', err.response);
+        if (err.response.status === 401) {
+          setError('Tên đăng nhập hoặc mật khẩu không đúng');
+        } else {
+          setError(err.response.data?.detail || err.response.data?.message || 'Có lỗi xảy ra khi đăng nhập');
+        }
+      } else if (err.request) {
+        console.error('Error request:', err.request);
+        setError('Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng.');
+      } else {
+        console.error('Error:', err.message);
+        setError('Có lỗi xảy ra trong quá trình đăng nhập');
+      }
     }
   };
 
@@ -97,10 +167,9 @@ const AdminLogin = () => {
 
           <form onSubmit={handleSubmit} style={styles.form}>
             <TextField
-              label="Email"
-              type="email"
-              name="email"
-              value={formData.email}
+              label="Tên đăng nhập"
+              name="username"
+              value={formData.username}
               onChange={handleChange}
               required
               fullWidth

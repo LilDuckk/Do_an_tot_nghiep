@@ -6,7 +6,7 @@ const OrderManage = lazy(() => import('./pages/OrderManage'));
 
 const adminRoutes = [
   {
-    path: '/admin',
+    path: '/admin/dashboard',
     element: <AdminDashboard />,
   },
   {

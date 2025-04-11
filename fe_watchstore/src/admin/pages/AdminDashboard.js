@@ -1,125 +1,395 @@
-import React from 'react';
-import { Container, Typography, Grid, Paper, Box } from '@mui/material';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-
-const styles = {
-  adminContainer: {
-    minHeight: '100vh',
-    backgroundColor: '#f5f5f5',
-    padding: '20px',
-  },
-  adminContent: {
-    marginTop: '20px',
-    '& h1': {
-      marginBottom: '30px',
-      color: '#333',
-    },
-  },
-  adminStats: {
-    marginBottom: '30px',
-  },
-  adminCard: {
-    padding: '20px',
-    height: '100%',
-    transition: 'all 0.3s ease',
-    '&:hover': {
-      transform: 'translateY(-5px)',
-      boxShadow: '0 5px 15px rgba(0, 0, 0, 0.1)',
-    },
-    '& h2': {
-      color: '#666',
-      fontSize: '1.1rem',
-      marginBottom: '10px',
-    },
-    '& h4': {
-      color: '#1976d2',
-      fontSize: '1.8rem',
-      margin: 0,
-    },
-  },
-  chartContainer: {
-    '& .recharts-wrapper': {
-      margin: '0 auto',
-    },
-    '& .recharts-default-tooltip': {
-      backgroundColor: 'rgba(255, 255, 255, 0.9)',
-      border: '1px solid #ccc',
-      borderRadius: '4px',
-      padding: '10px',
-    },
-  },
-};
+import React, { useState, useEffect } from 'react';
+import {
+  Container,
+  Typography,
+  Grid,
+  Paper,
+  Box,
+  Card,
+  CardContent,
+  CardActions,
+  Button,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Chip,
+  Divider,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemAvatar,
+  Avatar,
+} from '@mui/material';
+import {
+  ShoppingCart as OrderIcon,
+  Inventory as ProductIcon,
+  Store as StoreIcon,
+  People as UserIcon,
+  LocalOffer as CouponIcon,
+  TrendingUp as RevenueIcon,
+  Warning as AlertIcon,
+} from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 
 const AdminDashboard = () => {
-  // Mock data - sẽ được thay thế bằng API call
-  const salesData = [
-    { name: 'T1', sales: 4000 },
-    { name: 'T2', sales: 3000 },
-    { name: 'T3', sales: 2000 },
-    { name: 'T4', sales: 2780 },
-    { name: 'T5', sales: 1890 },
-    { name: 'T6', sales: 2390 },
-    { name: 'T7', sales: 3490 },
-  ];
+  const navigate = useNavigate();
+  const [dashboardData, setDashboardData] = useState({
+    totalRevenue: 0,
+    totalOrders: 0,
+    totalProducts: 0,
+    totalUsers: 0,
+    totalStores: 0,
+    totalCoupons: 0,
+    recentOrders: [],
+    lowStockProducts: [],
+    recentUsers: [],
+    alerts: [],
+  });
 
-  const stats = [
-    { title: 'Doanh thu', value: '15,000,000đ' },
-    { title: 'Đơn hàng mới', value: '25' },
-    { title: 'Khách hàng mới', value: '10' },
-    { title: 'Sản phẩm bán chạy', value: '5' },
-  ];
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      const response = await fetch('http://localhost:8080/api/admin/dashboard', {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('adminToken')}`,
+        },
+      });
+      const data = await response.json();
+      setDashboardData(data);
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+    }
+  };
+
+  const formatCurrency = (value) => {
+    return value.toLocaleString('vi-VN') + 'đ';
+  };
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('vi-VN');
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'PENDING':
+        return 'warning';
+      case 'PROCESSING':
+        return 'info';
+      case 'COMPLETED':
+        return 'success';
+      case 'CANCELLED':
+        return 'error';
+      default:
+        return 'default';
+    }
+  };
+
+  const getStatusText = (status) => {
+    switch (status) {
+      case 'PENDING':
+        return 'Chờ xử lý';
+      case 'PROCESSING':
+        return 'Đang xử lý';
+      case 'COMPLETED':
+        return 'Hoàn thành';
+      case 'CANCELLED':
+        return 'Đã hủy';
+      default:
+        return status;
+    }
+  };
+
+  const handleViewOrders = () => {
+    navigate('/admin/orders');
+  };
+
+  const handleViewProducts = () => {
+    navigate('/admin/products');
+  };
+
+  const handleViewUsers = () => {
+    navigate('/admin/users');
+  };
+
+  const handleViewStores = () => {
+    navigate('/admin/stores');
+  };
+
+  const handleViewCoupons = () => {
+    navigate('/admin/coupons');
+  };
+
+  const handleViewRevenue = () => {
+    navigate('/admin/revenue');
+  };
 
   return (
-    <Box sx={styles.adminContainer}>
-      <Container sx={styles.adminContent}>
-        <Typography variant="h4" component="h1">
-          Bảng điều khiển
-        </Typography>
+    <Container>
+      <Typography variant="h4" component="h1" gutterBottom>
+        Tổng quan
+      </Typography>
 
-        {/* Stats Cards */}
-        <Grid container spacing={3} sx={styles.adminStats}>
-          {stats.map((stat, index) => (
-            <Grid item xs={12} sm={6} md={3} key={index}>
-              <Paper sx={styles.adminCard}>
-                <Typography variant="h6" component="h2">
-                  {stat.title}
-                </Typography>
-                <Typography variant="h4">
-                  {stat.value}
-                </Typography>
-              </Paper>
-            </Grid>
-          ))}
+      <Grid container spacing={3}>
+        {/* Thống kê tổng quan */}
+        <Grid item xs={12} sm={6} md={4} lg={2}>
+          <Card sx={{ height: '100%' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                <RevenueIcon color="primary" sx={{ mr: 1 }} />
+                <Typography variant="h6">Doanh thu</Typography>
+              </Box>
+              <Typography variant="h4" color="primary">
+                {formatCurrency(dashboardData.totalRevenue)}
+              </Typography>
+            </CardContent>
+            <CardActions>
+              <Button size="small" onClick={handleViewRevenue}>
+                Xem chi tiết
+              </Button>
+            </CardActions>
+          </Card>
         </Grid>
 
-        {/* Sales Chart */}
-        <Paper sx={styles.adminCard}>
-          <Typography variant="h6" component="h2" gutterBottom>
-            Doanh số bán hàng
-          </Typography>
-          <Box sx={{ height: 300 }} className={styles.chartContainer}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={salesData}
-                margin={{
-                  top: 5,
-                  right: 30,
-                  left: 20,
-                  bottom: 5,
-                }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="sales" fill="#8884d8" />
-              </BarChart>
-            </ResponsiveContainer>
-          </Box>
-        </Paper>
-      </Container>
-    </Box>
+        <Grid item xs={12} sm={6} md={4} lg={2}>
+          <Card sx={{ height: '100%' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                <OrderIcon color="primary" sx={{ mr: 1 }} />
+                <Typography variant="h6">Đơn hàng</Typography>
+              </Box>
+              <Typography variant="h4" color="primary">
+                {dashboardData.totalOrders}
+              </Typography>
+            </CardContent>
+            <CardActions>
+              <Button size="small" onClick={handleViewOrders}>
+                Xem chi tiết
+              </Button>
+            </CardActions>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={4} lg={2}>
+          <Card sx={{ height: '100%' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                <ProductIcon color="primary" sx={{ mr: 1 }} />
+                <Typography variant="h6">Sản phẩm</Typography>
+              </Box>
+              <Typography variant="h4" color="primary">
+                {dashboardData.totalProducts}
+              </Typography>
+            </CardContent>
+            <CardActions>
+              <Button size="small" onClick={handleViewProducts}>
+                Xem chi tiết
+              </Button>
+            </CardActions>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={4} lg={2}>
+          <Card sx={{ height: '100%' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                <UserIcon color="primary" sx={{ mr: 1 }} />
+                <Typography variant="h6">Người dùng</Typography>
+              </Box>
+              <Typography variant="h4" color="primary">
+                {dashboardData.totalUsers}
+              </Typography>
+            </CardContent>
+            <CardActions>
+              <Button size="small" onClick={handleViewUsers}>
+                Xem chi tiết
+              </Button>
+            </CardActions>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={4} lg={2}>
+          <Card sx={{ height: '100%' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                <StoreIcon color="primary" sx={{ mr: 1 }} />
+                <Typography variant="h6">Cửa hàng</Typography>
+              </Box>
+              <Typography variant="h4" color="primary">
+                {dashboardData.totalStores}
+              </Typography>
+            </CardContent>
+            <CardActions>
+              <Button size="small" onClick={handleViewStores}>
+                Xem chi tiết
+              </Button>
+            </CardActions>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={4} lg={2}>
+          <Card sx={{ height: '100%' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                <CouponIcon color="primary" sx={{ mr: 1 }} />
+                <Typography variant="h6">Mã giảm giá</Typography>
+              </Box>
+              <Typography variant="h4" color="primary">
+                {dashboardData.totalCoupons}
+              </Typography>
+            </CardContent>
+            <CardActions>
+              <Button size="small" onClick={handleViewCoupons}>
+                Xem chi tiết
+              </Button>
+            </CardActions>
+          </Card>
+        </Grid>
+
+        {/* Đơn hàng gần đây */}
+        <Grid item xs={12} md={6}>
+          <Paper sx={{ p: 2, height: '100%' }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+              <Typography variant="h6">Đơn hàng gần đây</Typography>
+              <Button size="small" onClick={handleViewOrders}>
+                Xem tất cả
+              </Button>
+            </Box>
+            <TableContainer>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Mã đơn</TableCell>
+                    <TableCell>Khách hàng</TableCell>
+                    <TableCell>Tổng tiền</TableCell>
+                    <TableCell>Trạng thái</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {dashboardData.recentOrders.map((order) => (
+                    <TableRow key={order.id}>
+                      <TableCell>{order.id}</TableCell>
+                      <TableCell>{order.customerName}</TableCell>
+                      <TableCell>{formatCurrency(order.totalAmount)}</TableCell>
+                      <TableCell>
+                        <Chip
+                          label={getStatusText(order.status)}
+                          color={getStatusColor(order.status)}
+                          size="small"
+                        />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Paper>
+        </Grid>
+
+        {/* Sản phẩm sắp hết hàng */}
+        <Grid item xs={12} md={6}>
+          <Paper sx={{ p: 2, height: '100%' }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+              <Typography variant="h6">Sản phẩm sắp hết hàng</Typography>
+              <Button size="small" onClick={handleViewProducts}>
+                Xem tất cả
+              </Button>
+            </Box>
+            <TableContainer>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Sản phẩm</TableCell>
+                    <TableCell align="right">Tồn kho</TableCell>
+                    <TableCell align="right">Giá</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {dashboardData.lowStockProducts.map((product) => (
+                    <TableRow key={product.id}>
+                      <TableCell>{product.name}</TableCell>
+                      <TableCell align="right">
+                        <Chip
+                          label={product.stock}
+                          color={product.stock <= 5 ? 'error' : 'warning'}
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell align="right">
+                        {formatCurrency(product.price)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Paper>
+        </Grid>
+
+        {/* Người dùng mới */}
+        <Grid item xs={12} md={6}>
+          <Paper sx={{ p: 2, height: '100%' }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+              <Typography variant="h6">Người dùng mới</Typography>
+              <Button size="small" onClick={handleViewUsers}>
+                Xem tất cả
+              </Button>
+            </Box>
+            <List>
+              {dashboardData.recentUsers.map((user) => (
+                <React.Fragment key={user.id}>
+                  <ListItem>
+                    <ListItemAvatar>
+                      <Avatar>{user.name.charAt(0)}</Avatar>
+                    </ListItemAvatar>
+                    <ListItemText
+                      primary={user.name}
+                      secondary={`Đăng ký: ${formatDate(user.createdAt)}`}
+                    />
+                  </ListItem>
+                  <Divider variant="inset" component="li" />
+                </React.Fragment>
+              ))}
+            </List>
+          </Paper>
+        </Grid>
+
+        {/* Cảnh báo */}
+        <Grid item xs={12} md={6}>
+          <Paper sx={{ p: 2, height: '100%' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+              <AlertIcon color="warning" sx={{ mr: 1 }} />
+              <Typography variant="h6">Cảnh báo</Typography>
+            </Box>
+            <List>
+              {dashboardData.alerts.map((alert, index) => (
+                <React.Fragment key={index}>
+                  <ListItem>
+                    <ListItemText
+                      primary={alert.title}
+                      secondary={alert.message}
+                    />
+                  </ListItem>
+                  {index < dashboardData.alerts.length - 1 && (
+                    <Divider component="li" />
+                  )}
+                </React.Fragment>
+              ))}
+              {dashboardData.alerts.length === 0 && (
+                <ListItem>
+                  <ListItemText primary="Không có cảnh báo nào" />
+                </ListItem>
+              )}
+            </List>
+          </Paper>
+        </Grid>
+      </Grid>
+    </Container>
   );
 };
 
