@@ -418,6 +418,13 @@ class ProductSpecificationViewSet(viewsets.ModelViewSet):
     ordering_fields = ['name', 'created_at']
     ordering = ['name']
 
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        product_id = self.request.query_params.get('product_id', None)
+        if product_id:
+            queryset = queryset.filter(product_id=product_id)
+        return queryset
+
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
 
@@ -543,6 +550,13 @@ class ProductImageViewSet(viewsets.ModelViewSet):
     ordering_fields = ['display_order', 'created_at']
     ordering = ['display_order']
 
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        product_id = self.request.query_params.get('product_id', None)
+        if product_id:
+            queryset = queryset.filter(product_id=product_id)
+        return queryset
+
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
 
@@ -554,10 +568,20 @@ class ReturnViewSet(viewsets.ModelViewSet):
     serializer_class = ReturnSerializer
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['order_id', 'status']
+    filterset_fields = ['order_id', 'product_id', 'status']
     search_fields = ['reason']
     ordering_fields = ['created_at']
     ordering = ['-created_at']
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        order_id = self.request.query_params.get('order_id', None)
+        product_id = self.request.query_params.get('product_id', None)
+        if order_id:
+            queryset = queryset.filter(order_id=order_id)
+        if product_id:
+            queryset = queryset.filter(product_id=product_id)
+        return queryset
 
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)

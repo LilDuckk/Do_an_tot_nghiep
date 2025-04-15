@@ -8,31 +8,36 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     // Kiểm tra token khi component mount
+    console.log('AuthContext - Checking initial token');
     const token = localStorage.getItem('accessToken');
-    const userRole = localStorage.getItem('userRole');
-    if (token && userRole) {
-      setUser({ token, role: userRole });
+    console.log('AuthContext - Initial token:', token ? 'exists' : 'not found');
+    if (token) {
+      setUser({ token });
+      console.log('AuthContext - User set with token');
     }
     setLoading(false);
+    console.log('AuthContext - Initial loading completed');
   }, []);
 
-  const login = async (token, role) => {
+  const login = async (token) => {
     try {
+      console.log('AuthContext - Login attempt with token:', token ? 'provided' : 'missing');
       localStorage.setItem('accessToken', token);
-      localStorage.setItem('userRole', role);
-      setUser({ token, role });
+      setUser({ token });
+      console.log('AuthContext - Login successful, user state updated');
       return true;
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('AuthContext - Login error:', error);
       return false;
     }
   };
 
   const logout = () => {
+    console.log('AuthContext - Logout called');
     localStorage.removeItem('accessToken');
-    localStorage.removeItem('userRole');
     localStorage.removeItem('refreshToken');
     setUser(null);
+    console.log('AuthContext - User state cleared');
   };
 
   const value = {
@@ -41,8 +46,13 @@ export const AuthProvider = ({ children }) => {
     login,
     logout,
     isAuthenticated: !!user?.token,
-    isAdmin: user?.role === 'admin' || user?.role === 'superadmin',
   };
+
+  console.log('AuthContext - Current state:', {
+    isAuthenticated: !!user?.token,
+    hasUser: !!user,
+    isLoading: loading
+  });
 
   return (
     <AuthContext.Provider value={value}>

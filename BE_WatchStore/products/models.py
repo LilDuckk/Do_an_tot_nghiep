@@ -389,11 +389,17 @@ class ProductWishlist(models.Model):
     is_deleted = models.BooleanField(default=False, verbose_name='Đã xóa')
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='created_wishlist', verbose_name='Người tạo')
     updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='updated_wishlist', verbose_name='Người cập nhật')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Ngày tạo')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='Ngày cập nhật')
 
     class Meta:
         verbose_name = 'Danh sách yêu thích'
         verbose_name_plural = 'Danh sách yêu thích'
+        ordering = ['-added_date']
         unique_together = ['customer', 'product']
+
+    def __str__(self):
+        return f"{self.customer} - {self.product}"
 
 class Coupon(models.Model):
     code = models.CharField(max_length=50, unique=True, verbose_name='Mã giảm giá')
@@ -450,19 +456,20 @@ class WarrantyCard(models.Model):
     updated_at = models.DateTimeField(auto_now=True, verbose_name='Ngày cập nhật')
 
     class Meta:
-        verbose_name = 'Phiếu bảo hành'
-        verbose_name_plural = 'Phiếu bảo hành'
+        verbose_name = 'Thẻ bảo hành'
+        verbose_name_plural = 'Thẻ bảo hành'
+        ordering = ['-created_at']
 
     def __str__(self):
-        return f"Phiếu bảo hành #{self.id} - {self.product}"
+        return f"{self.customer} - {self.product} - {self.issue_date}"
 
 class PriceHistory(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='price_history', verbose_name='Sản phẩm')
     old_price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Giá cũ')
     new_price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Giá mới')
     changed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='price_changes', verbose_name='Người thay đổi')
-    changed_at = models.DateTimeField(auto_now_add=True, verbose_name='Ngày thay đổi')
-    reason = models.TextField(blank=True, null=True, verbose_name='Lý do')
+    reason = models.CharField(max_length=255, verbose_name='Lý do')
+    changed_at = models.DateTimeField(auto_now_add=True, verbose_name='Thời gian thay đổi')
 
     class Meta:
         verbose_name = 'Lịch sử giá'
@@ -470,7 +477,7 @@ class PriceHistory(models.Model):
         ordering = ['-changed_at']
 
     def __str__(self):
-        return f"{self.product.name} - {self.old_price} -> {self.new_price}"
+        return f"{self.product.name} - {self.changed_at}"
 
 class Notification(models.Model):
     title = models.CharField(max_length=255, verbose_name='Tiêu đề')
@@ -494,15 +501,15 @@ class Notification(models.Model):
 
 class LoginHistory(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='login_history', verbose_name='Người dùng')
-    login_time = models.DateTimeField(auto_now_add=True, verbose_name='Thời gian đăng nhập')
     ip_address = models.GenericIPAddressField(verbose_name='Địa chỉ IP')
-    device_info = models.TextField(verbose_name='Thông tin thiết bị')
-    status = models.CharField(max_length=20, verbose_name='Trạng thái')
+    device_info = models.CharField(max_length=255, verbose_name='Thông tin thiết bị')
+    status = models.CharField(max_length=50, verbose_name='Trạng thái')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Ngày tạo')
 
     class Meta:
         verbose_name = 'Lịch sử đăng nhập'
         verbose_name_plural = 'Lịch sử đăng nhập'
-        ordering = ['-login_time']
+        ordering = ['-created_at']
 
     def __str__(self):
-        return f"{self.user.username} - {self.login_time}"
+        return f"{self.user.username} - {self.created_at}"

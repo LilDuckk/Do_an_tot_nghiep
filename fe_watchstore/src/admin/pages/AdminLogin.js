@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   Container, 
   Paper, 
@@ -6,7 +6,8 @@ import {
   TextField, 
   Button, 
   Box,
-  Alert
+  Alert,
+  CircularProgress
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
@@ -41,19 +42,13 @@ const styles = {
 
 const AdminLogin = () => {
   const navigate = useNavigate();
-  const { login, isAuthenticated } = useAuth();
+  const { login } = useAuth();
   const [formData, setFormData] = useState({
     username: '',
     password: '',
   });
   const [error, setError] = useState('');
-
-  // Chuyển hướng nếu đã đăng nhập
-  useEffect(() => {
-    if (isAuthenticated) {
-      navigate('/admin/dashboard', { replace: true });
-    }
-  }, [isAuthenticated, navigate]);
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     setFormData({
@@ -64,25 +59,16 @@ const AdminLogin = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log('AdminLogin - Login attempt started');
     setError('');
+    setLoading(true);
 
     try {
       const apiUrl = process.env.REACT_APP_API_URL || 'http://127.0.0.1:8000/api';
-      console.log('API URL:', apiUrl);
-
-      // Cấu hình axios
-      const axiosConfig = {
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        withCredentials: false // Tắt credentials vì không cần thiết cho JWT
-      };
-
-      // Đảm bảo URL khớp với Postman
       const baseUrl = apiUrl.endsWith('/api') ? apiUrl : `${apiUrl}/api`;
       const loginUrl = `${baseUrl}/auth/login/`;
-      console.log('Login URL:', loginUrl);
+      
+      console.log('AdminLogin - Sending request to:', loginUrl);
 
       const response = await axios.post(
         loginUrl,
@@ -90,59 +76,50 @@ const AdminLogin = () => {
           username: formData.username,
           password: formData.password
         },
-        axiosConfig
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          }
+        }
       );
 
-      console.log('Login response:', response.data);
+      console.log('AdminLogin - Response received:', {
+        status: response.status,
+        hasAccessToken: !!response.data?.access,
+        hasRefreshToken: !!response.data?.refresh
+      });
 
-      if (response.data.access) {
-        // Kiểm tra role của user
-        const userResponse = await axios.get(
-          `${baseUrl}/auth/me/`,
-          {
-            headers: {
-              'Authorization': `Bearer ${response.data.access}`,
-              'Content-Type': 'application/json',
-              'Accept': 'application/json'
-            }
-          }
-        );
-
-        console.log('User response:', userResponse.data);
-
-        const userRole = userResponse.data.role;
-        
-        if (userRole !== 'admin' && userRole !== 'superadmin') {
-          setError('Bạn không có quyền truy cập trang quản trị');
-          return;
-        }
-
-        // Lưu thông tin vào localStorage
-        localStorage.setItem('accessToken', response.data.access);
-        localStorage.setItem('refreshToken', response.data.refresh);
-        localStorage.setItem('userRole', userRole);
-        
-        // Đăng nhập và chuyển hướng
+      if (response.data && response.data.access) {
+        console.log('AdminLogin - Login successful, updating auth state');
+        // Lưu token vào localStorage và cập nhật trạng thái đăng nhập
         await login(response.data.access);
-        console.log('Đăng nhập thành công, chuyển hướng đến dashboard');
+        localStorage.setItem('refreshToken', response.data.refresh);
+        
+        console.log('AdminLogin - Auth state updated, navigating to dashboard');
+        // Chuyển hướng về trang dashboard
         navigate('/admin/dashboard', { replace: true });
-      }
-    } catch (err) {
-      console.error('Login error:', err);
-      if (err.response) {
-        console.error('Error response:', err.response);
-        if (err.response.status === 401) {
-          setError('Tên đăng nhập hoặc mật khẩu không đúng');
-        } else {
-          setError(err.response.data?.detail || err.response.data?.message || 'Có lỗi xảy ra khi đăng nhập');
-        }
-      } else if (err.request) {
-        console.error('Error request:', err.request);
-        setError('Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng.');
       } else {
-        console.error('Error:', err.message);
+        console.log('AdminLogin - Login failed: No access token in response');
+        setError('Đăng nhập thất bại: Không nhận được token');
+      }
+    } catch (error) {
+      console.error('AdminLogin - Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
+
+      if (error.response) {
+        setError(error.response.data?.error || error.response.data?.detail || 'Đăng nhập thất bại');
+      } else if (error.request) {
+        setError('Không thể kết nối đến máy chủ');
+      } else {
         setError('Có lỗi xảy ra trong quá trình đăng nhập');
       }
+    } finally {
+      console.log('AdminLogin - Login attempt completed');
+      setLoading(false);
     }
   };
 
@@ -173,6 +150,7 @@ const AdminLogin = () => {
               onChange={handleChange}
               required
               fullWidth
+              disabled={loading}
             />
             <TextField
               label="Mật khẩu"
@@ -182,6 +160,7 @@ const AdminLogin = () => {
               onChange={handleChange}
               required
               fullWidth
+              disabled={loading}
             />
             <Button
               type="submit"
@@ -189,8 +168,9 @@ const AdminLogin = () => {
               color="primary"
               fullWidth
               sx={styles.submitButton}
+              disabled={loading}
             >
-              Đăng nhập
+              {loading ? <CircularProgress size={24} /> : 'Đăng nhập'}
             </Button>
           </form>
         </Paper>

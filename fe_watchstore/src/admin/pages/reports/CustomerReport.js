@@ -44,7 +44,6 @@ import {
   Refresh as RefreshIcon,
   People as PeopleIcon,
   AttachMoney as AttachMoneyIcon,
-  ShoppingCart as ShoppingCartIcon,
   Loyalty as LoyaltyIcon,
 } from '@mui/icons-material';
 
@@ -137,10 +136,6 @@ const CustomerReport = () => {
       style: 'currency',
       currency: 'VND',
     }).format(amount);
-  };
-
-  const formatDate = (date) => {
-    return format(new Date(date), 'dd/MM/yyyy');
   };
 
   if (loading) {

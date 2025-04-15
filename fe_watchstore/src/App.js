@@ -56,20 +56,17 @@ const App = () => {
       <AuthProvider>
         <Router>
           <Routes>
-            {/* Auth routes */}
-            <Route path="/register" element={<Register />} />
-            <Route path="/admin/login" element={<AdminLogin />} />
-
             {/* Client routes */}
             <Route path="/" element={<ClientLayout />}>
               <Route index element={<HomePage />} />
               <Route path="product/:id" element={<ProductDetail />} />
               <Route path="cart" element={<Cart />} />
+              <Route path="register" element={<Register />} />
             </Route>
 
             {/* Admin routes */}
             <Route path="/admin" element={<AdminLayout />}>
-              <Route index element={<Navigate to="/admin/dashboard" replace />} />
+              <Route path="login" element={<AdminLogin />} />
               <Route path="dashboard" element={<AdminDashboard />} />
               <Route path="products" element={<ProductManage />} />
               <Route path="categories" element={<CategoryManage />} />
@@ -84,7 +81,6 @@ const App = () => {
               <Route path="reviews" element={<ReviewManage />} />
               
               {/* Report routes */}
-              <Route path="reports" element={<Navigate to="/admin/reports/products" replace />} />
               <Route path="reports/products" element={<ProductReport />} />
               <Route path="reports/customers" element={<CustomerReport />} />
               <Route path="reports/orders" element={<OrderReport />} />
@@ -92,12 +88,14 @@ const App = () => {
               <Route path="reports/revenue" element={<RevenueReport />} />
               
               {/* Settings routes */}
-              <Route path="settings" element={<Navigate to="/admin/settings/general" replace />} />
               <Route path="settings/general" element={<GeneralSettings />} />
               <Route path="settings/email" element={<EmailSettings />} />
               <Route path="settings/payment" element={<PaymentSettings />} />
               <Route path="settings/shipping" element={<ShippingSettings />} />
               <Route path="settings/seo" element={<SeoSettings />} />
+
+              {/* Default admin route */}
+              <Route index element={<Navigate to="/admin/dashboard" replace />} />
             </Route>
 
             {/* Redirect to home page if route not found */}

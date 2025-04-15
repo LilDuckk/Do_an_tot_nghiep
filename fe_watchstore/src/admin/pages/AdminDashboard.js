@@ -22,6 +22,7 @@ import {
   ListItemText,
   ListItemAvatar,
   Avatar,
+  CircularProgress,
 } from '@mui/material';
 import {
   ShoppingCart as OrderIcon,
@@ -33,9 +34,11 @@ import {
   Warning as AlertIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import axiosInstance from '../../api/axios';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
   const [dashboardData, setDashboardData] = useState({
     totalRevenue: 0,
     totalOrders: 0,
@@ -55,15 +58,13 @@ const AdminDashboard = () => {
 
   const fetchDashboardData = async () => {
     try {
-      const response = await fetch('http://localhost:8080/api/admin/dashboard', {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('adminToken')}`,
-        },
-      });
-      const data = await response.json();
-      setDashboardData(data);
+      setLoading(true);
+      const response = await axiosInstance.get('/admin/dashboard/');
+      setDashboardData(response.data);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -128,6 +129,14 @@ const AdminDashboard = () => {
   const handleViewRevenue = () => {
     navigate('/admin/revenue');
   };
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
     <Container>
