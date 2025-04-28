@@ -1,0 +1,70 @@
+watchstore/
+├── apps/
+│   ├── products/
+│   │   ├── __init__.py
+│   │   ├── models/
+│   │   │   ├── __init__.py
+│   │   │   ├── category.py
+│   │   │   ├── brand.py
+│   │   │   ├── product.py
+│   │   │   ├── variant.py
+│   │   │   ├── attribute.py
+│   │   ├── serializers/
+│   │   │   ├── __init__.py
+│   │   │   ├── category_serializer.py
+│   │   │   ├── product_serializer.py
+│   │   ├── views/
+│   │   │   ├── __init__.py
+│   │   │   ├── category_view.py
+│   │   │   ├── product_view.py
+│   │   ├── urls.py               # Route cho app product
+│   │   ├── admin.py
+│   │   ├── apps.py
+│   │   └── tests/
+│   │       └── test_product.py
+│
+│   ├── users/
+│   │   ├── models/
+│   │   │   ├── user.py
+│   │   │   ├── role.py
+│   │   │   └── permission.py
+│   │   ├── serializers/user_serializer.py
+│   │   ├── views/user_view.py
+│   │   ├── urls.py
+│   │   ├── permissions.py        # custom quyền nâng cao
+│   │   └── signals.py            # auto create role, user profile
+│
+│   ├── inventory/
+│   │   ├── models/inventory.py
+│   │   ├── models/stock_transaction.py
+│   │   ├── serializers/
+│   │   ├── views/
+│   │   ├── urls.py
+│
+│   ├── orders/
+│   │   ├── models/order.py
+│   │   ├── models/order_detail.py
+│   │   ├── serializers/
+│   │   ├── views/
+│   │   ├── urls.py
+│
+│   ├── core/
+│   │   ├── models/
+│   │   │   ├── base.py           # AbstractModel: created_at, updated_at
+│   │   │   ├── audit_log.py
+│   │   ├── middleware.py         # Lưu user request vào thread local
+│   │   ├── signals.py            # Ghi log khi model bị insert/update/delete
+│   │   ├── utils/
+│   │   │   ├── slug.py
+│   │   │   ├── mixins.py
+│   │   │   └── helpers.py
+│
+│   └── reports/
+│       ├── views/
+│       │   ├── daily_revenue_view.py
+│       │   ├── top_customers_view.py
+│       └── urls.py
+│
+├── config/
+│   ├── urls.py                   # Tổng hợp tất cả route apps
+│   └── settings.py
