@@ -2,7 +2,6 @@ from django.db import models
 from apps.core.models.base import BaseModel
 
 class Permission(BaseModel):
-    id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=50)
     code = models.CharField(unique=True, max_length=100)
     description = models.TextField(blank=True, null=True)

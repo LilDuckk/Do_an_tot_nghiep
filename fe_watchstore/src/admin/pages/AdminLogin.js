@@ -11,7 +11,7 @@ import {
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
-import axios from 'axios';
+import api from '../../api';
 
 const styles = {
   container: {
@@ -64,37 +64,22 @@ const AdminLogin = () => {
     setLoading(true);
 
     try {
-      const apiUrl = process.env.REACT_APP_API_URL || 'http://127.0.0.1:8000/api';
-      const baseUrl = apiUrl.endsWith('/api') ? apiUrl : `${apiUrl}/api`;
-      const loginUrl = `${baseUrl}/auth/login/`;
-      
-      console.log('AdminLogin - Sending request to:', loginUrl);
+      console.log('AdminLogin - Sending request to /auth/login/');
 
-      const response = await axios.post(
-        loginUrl,
-        {
-          username: formData.username,
-          password: formData.password
-        },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-          }
-        }
-      );
+      const response = await api.post('/auth/login/', {
+        username: formData.username,
+        password: formData.password
+      });
 
       console.log('AdminLogin - Response received:', {
         status: response.status,
-        hasAccessToken: !!response.data?.access,
-        hasRefreshToken: !!response.data?.refresh
+        hasAccessToken: !!response.data?.access
       });
 
       if (response.data && response.data.access) {
         console.log('AdminLogin - Login successful, updating auth state');
-        // Lưu token vào localStorage và cập nhật trạng thái đăng nhập
+        // Chỉ lưu access token
         await login(response.data.access);
-        localStorage.setItem('refreshToken', response.data.refresh);
         
         console.log('AdminLogin - Auth state updated, navigating to dashboard');
         // Chuyển hướng về trang dashboard

@@ -1,11 +1,16 @@
-from django.urls import path
-from . import views
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from apps.inventory.views.inventory_view import InventoryViewSet
+from apps.inventory.views.inventory_transaction_view import InventoryTransactionViewSet
+from apps.inventory.views.stock_take_view import StockTakeViewSet
+from apps.inventory.views.stock_transfer_view import StockTransferViewSet
 
-app_name = 'inventory'
+router = DefaultRouter()
+router.register(r'inventories', InventoryViewSet)
+router.register(r'inventory-transactions', InventoryTransactionViewSet)
+router.register(r'stock-takes', StockTakeViewSet)
+router.register(r'stock-transfers', StockTransferViewSet)
 
 urlpatterns = [
-    path('', views.InventoryListCreateView.as_view(), name='inventory-list-create'),
-    path('<int:pk>/', views.InventoryRetrieveUpdateDestroyView.as_view(), name='inventory-detail'),
-    path('transactions/', views.InventoryTransactionListCreateView.as_view(), name='inventory-transaction-list-create'),
-    path('transactions/<int:pk>/', views.InventoryTransactionRetrieveUpdateDestroyView.as_view(), name='inventory-transaction-detail'),
+    path('', include(router.urls)),
 ]

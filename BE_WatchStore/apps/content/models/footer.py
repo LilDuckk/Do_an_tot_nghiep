@@ -1,28 +1,25 @@
 from django.db import models
-from apps.users.models import UserAccount
 from apps.core.models.base import BaseModel
 
 class FooterCategory(BaseModel):
-    id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=100)
-    display_order = models.IntegerField(default=0)
-    is_active = models.BooleanField(default=True)
-    created_by = models.ForeignKey(UserAccount, models.DO_NOTHING, related_name='footer_categories_created', db_column='created_by')
-    updated_by = models.ForeignKey(UserAccount, models.DO_NOTHING, related_name='footer_categories_updated', db_column='updated_by')
+    display_order = models.IntegerField(blank=True, null=True)
+    is_active = models.BooleanField(blank=True, null=True)
+    created_by = models.ForeignKey('UserAccount', models.DO_NOTHING, db_column='created_by', blank=True, null=True)
+    updated_by = models.ForeignKey('UserAccount', models.DO_NOTHING, db_column='updated_by', related_name='footercategory_updated_by_set', blank=True, null=True)
 
     class Meta:
         managed = False
         db_table = 'footercategory'
 
 class FooterLink(BaseModel):
-    id = models.AutoField(primary_key=True)
-    category = models.ForeignKey(FooterCategory, models.DO_NOTHING, related_name='links')
+    category = models.ForeignKey(FooterCategory, models.DO_NOTHING, blank=True, null=True)
     title = models.CharField(max_length=255)
     url = models.CharField(max_length=255)
-    display_order = models.IntegerField(default=0)
-    is_active = models.BooleanField(default=True)
-    created_by = models.ForeignKey(UserAccount, models.DO_NOTHING, related_name='footer_links_created', db_column='created_by')
-    updated_by = models.ForeignKey(UserAccount, models.DO_NOTHING, related_name='footer_links_updated', db_column='updated_by')
+    display_order = models.IntegerField(blank=True, null=True)
+    is_active = models.BooleanField(blank=True, null=True)
+    created_by = models.ForeignKey('UserAccount', models.DO_NOTHING, db_column='created_by', blank=True, null=True)
+    updated_by = models.ForeignKey('UserAccount', models.DO_NOTHING, db_column='updated_by', related_name='footerlink_updated_by_set', blank=True, null=True)
 
     class Meta:
         managed = False

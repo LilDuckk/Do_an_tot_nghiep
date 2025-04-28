@@ -1,0 +1,13 @@
+from rest_framework import viewsets
+from apps.products.models.brand import Brand
+from apps.products.serializers.brand_serializer import BrandSerializer
+from apps.core.utils import IsAdminUser
+
+class BrandViewSet(viewsets.ModelViewSet):
+    queryset = Brand.objects.all()
+    serializer_class = BrandSerializer
+    permission_classes = [IsAdminUser]
+    filterset_fields = ['name']
+    search_fields = ['name', 'description']
+    ordering_fields = ['name', 'created_at']
+    ordering = ['-created_at'] 

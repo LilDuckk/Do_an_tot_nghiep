@@ -1,70 +1,140 @@
-watchstore/
-├── apps/
-│   ├── products/
+watchstore_project/
+├── manage.py
+├── requirements.txt
+├── .env
+├── config/                              # (Dự án gốc)
+│   ├── __init__.py
+│   ├── settings.py
+│   ├── urls.py
+│   ├── asgi.py
+│   └── wsgi.py
+├── apps/                                # (Nơi chứa toàn bộ apps nghiệp vụ)
+│   ├── core/                            # Các lớp cơ sở, hệ thống log
 │   │   ├── __init__.py
+│   │   ├── apps.py
+│   │   ├── admin.py
+│   │   ├── urls.py                      # (nếu cần expose API log)
+│   │   ├── models/
+│   │   │   ├── __init__.py
+│   │   │   ├── base.py                  # BaseModel, SoftDeleteMixin
+│   │   │   ├── audit_log.py             # Model AuditLog
+│   │   ├── serializers/
+│   │   │   ├── __init__.py
+│   │   │   ├── audit_log_serializer.py
+│   │   ├── views/
+│   │   │   ├── __init__.py
+│   │   │   ├── audit_log_view.py
+│   │   ├── middleware.py                # Middleware lấy user request
+│   │   ├── signals.py                   # Signals ghi log tự động
+│   │   └── utils/
+│   │       ├── __init__.py
+│   │       ├── slug.py
+│   │       ├── permissions.py
+│   │       └── helpers.py
+│
+│   ├── users/                            # Người dùng, role, phân quyền
+│   │   ├── __init__.py
+│   │   ├── apps.py
+│   │   ├── admin.py
+│   │   ├── urls.py
+│   │   ├── models/
+│   │   │   ├── __init__.py
+│   │   │   ├── user.py
+│   │   │   ├── role.py
+│   │   │   ├── permission.py
+│   │   │   └── role_permission.py
+│   │   ├── serializers/
+│   │   │   ├── __init__.py
+│   │   │   ├── user_serializer.py
+│   │   │   ├── role_serializer.py
+│   │   │   ├── role_permission_serializer.py
+│   │   │   └── permission_serializer.py
+│   │   ├── views/
+│   │   │   ├── __init__.py
+│   │   │   ├── user_view.py
+│   │   │   ├── role_view.py
+│   │   │   └── role_permission_view.py
+│   │   │   └── permission_view.py
+│   │   ├── permissions.py                # (quyền custom nếu cần)
+│   │   └── signals.py
+│
+│   ├── products/                         # Sản phẩm, thuộc tính, hình ảnh
+│   │   ├── __init__.py
+│   │   ├── apps.py
+│   │   ├── admin.py
+│   │   ├── urls.py
 │   │   ├── models/
 │   │   │   ├── __init__.py
 │   │   │   ├── category.py
 │   │   │   ├── brand.py
 │   │   │   ├── product.py
-│   │   │   ├── variant.py
 │   │   │   ├── attribute.py
+│   │   │   ├── variant.py
+│   │   │   ├── product_image.py
 │   │   ├── serializers/
 │   │   │   ├── __init__.py
 │   │   │   ├── category_serializer.py
 │   │   │   ├── product_serializer.py
+│   │   │   ├── variant_serializer.py
 │   │   ├── views/
 │   │   │   ├── __init__.py
 │   │   │   ├── category_view.py
 │   │   │   ├── product_view.py
-│   │   ├── urls.py               # Route cho app product
-│   │   ├── admin.py
+│   │   │   ├── variant_view.py
+│
+│   ├── orders/                           # Đơn hàng, chi tiết đơn hàng, trả hàng
+│   │   ├── __init__.py
 │   │   ├── apps.py
-│   │   └── tests/
-│   │       └── test_product.py
-│
-│   ├── users/
-│   │   ├── models/
-│   │   │   ├── user.py
-│   │   │   ├── role.py
-│   │   │   └── permission.py
-│   │   ├── serializers/user_serializer.py
-│   │   ├── views/user_view.py
+│   │   ├── admin.py
 │   │   ├── urls.py
-│   │   ├── permissions.py        # custom quyền nâng cao
-│   │   └── signals.py            # auto create role, user profile
+│   │   ├── models/
+│   │   │   ├── __init__.py
+│   │   │   ├── order.py
+│   │   │   ├── order_detail.py
+│   │   │   ├── return_order.py
+│   │   │   ├── return_order_detail.py
+│   │   ├── serializers/
+│   │   ├── views/
 │
-│   ├── inventory/
-│   │   ├── models/inventory.py
-│   │   ├── models/stock_transaction.py
+│   ├── inventory/                        # Tồn kho, kiểm kho, giao dịch kho
+│   │   ├── models/
+│   │   │   ├── inventory.py
+│   │   │   ├── inventory_transaction.py
+│   │   │   ├── stock_take.py
+│   │   │   ├── stock_transfer.py
 │   │   ├── serializers/
 │   │   ├── views/
 │   │   ├── urls.py
 │
-│   ├── orders/
-│   │   ├── models/order.py
-│   │   ├── models/order_detail.py
+│   ├── warranty/                         # Bảo hành sản phẩm
+│   │   ├── models/
+│   │   │   ├── warranty.py
+│   │   │   ├── warranty_claim.py
 │   │   ├── serializers/
 │   │   ├── views/
 │   │   ├── urls.py
 │
-│   ├── core/
+│   ├── coupons/                          # Mã giảm giá
 │   │   ├── models/
-│   │   │   ├── base.py           # AbstractModel: created_at, updated_at
-│   │   │   ├── audit_log.py
-│   │   ├── middleware.py         # Lưu user request vào thread local
-│   │   ├── signals.py            # Ghi log khi model bị insert/update/delete
-│   │   ├── utils/
-│   │   │   ├── slug.py
-│   │   │   ├── mixins.py
-│   │   │   └── helpers.py
+│   │   │   ├── coupon.py
+│   │   ├── serializers/
+│   │   ├── views/
+│   │   ├── urls.py
 │
-│   └── reports/
+│   ├── content/                          # Banner, tin tức, liên hệ
+│   │   ├── models/
+│   │   │   ├── banner.py
+│   │   │   ├── news.py
+│   │   │   ├── footer.py
+│   │   │   ├── contact_info.py
+│   │   ├── serializers/
+│   │   ├── views/
+│   │   ├── urls.py
+│
+│   └── reports/                          # Các báo cáo custom (từ SQL View)
 │       ├── views/
 │       │   ├── daily_revenue_view.py
+│       │   ├── best_selling_view.py
 │       │   ├── top_customers_view.py
+│       ├── serializers/
 │       └── urls.py
-│
-├── config/
-│   ├── urls.py                   # Tổng hợp tất cả route apps
-│   └── settings.py

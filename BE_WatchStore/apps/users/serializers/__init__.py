@@ -1,7 +1,6 @@
-from .user import UserSerializer
-from .employee import EmployeeSerializer
+# apps/users/serializers/__init__.py
 
-__all__ = [
-    'UserSerializer',
-    'EmployeeSerializer'
-] 
+from .user_serializer import *
+from .role_serializer import *
+from .permission_serializer import *
+from .role_permission_serializer import *

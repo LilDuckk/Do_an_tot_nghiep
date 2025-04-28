@@ -1,4 +1,8 @@
-from .brand import Brand
-from .category import Category
-from .product import Product, ProductVariant, ProductImage
-from .attribute import AttributeType, AttributeValue, ProductVariantAttribute 
+# apps/products/models/__init__.py
+
+from .category import *
+from .brand import *
+from .product import *
+from .attribute import *
+from .variant import *
+from .product_image import *

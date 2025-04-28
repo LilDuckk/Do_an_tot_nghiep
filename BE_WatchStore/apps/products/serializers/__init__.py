@@ -1,11 +1,6 @@
-from .product import ProductSerializer, ProductVariantSerializer
-
-__all__ = [
-    'ProductSerializer',
-    'ProductVariantSerializer'
-]
-
-from .serializers import (
-    ProductImageSerializer, ProductVariantAttributeSerializer, BrandSerializer,
-    CategorySerializer, AttributeTypeSerializer, AttributeValueSerializer
-) 
+from .category_serializer import CategorySerializer
+from .brand_serializer import BrandSerializer
+from .product_serializer import ProductSerializer
+from .variant_serializer import ProductVariantSerializer
+from .product_image_serializer import ProductImageSerializer
+from .attribute_serializer import AttributeSerializer 

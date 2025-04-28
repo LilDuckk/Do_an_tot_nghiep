@@ -10,7 +10,12 @@ const api = axios.create({
 // Interceptor để thêm token vào header
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('access_token');
+    // Không thêm token cho request login
+    if (config.url === '/auth/login/') {
+      return config;
+    }
+
+    const token = localStorage.getItem('accessToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -19,31 +24,19 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Interceptor để xử lý refresh token
+// Interceptor để xử lý lỗi response
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    const originalRequest = error.config;
-    
-    if (error.response.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
-      
-      try {
-        const refreshToken = localStorage.getItem('refresh_token');
-        const response = await api.post('/auth/refresh/', { refresh: refreshToken });
-        
-        localStorage.setItem('access_token', response.data.access);
-        originalRequest.headers.Authorization = `Bearer ${response.data.access}`;
-        
-        return api(originalRequest);
-      } catch (error) {
-        // Xử lý khi refresh token thất bại
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
+    // Nếu lỗi 401, chuyển hướng về trang login
+    if (error.response?.status === 401) {
+      localStorage.removeItem('accessToken');
+      if (window.location.pathname.startsWith('/admin')) {
+        window.location.href = '/admin/login';
+      } else {
         window.location.href = '/login';
       }
     }
-    
     return Promise.reject(error);
   }
 );

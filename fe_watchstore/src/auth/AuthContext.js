@@ -35,7 +35,6 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     console.log('AuthContext - Logout called');
     localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
     setUser(null);
     console.log('AuthContext - User state cleared');
   };

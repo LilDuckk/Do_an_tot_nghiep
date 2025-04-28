@@ -1,12 +1,20 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { Box, Toolbar, CircularProgress } from '@mui/material';
 import { useAuth } from '../../auth/AuthContext';
 import AdminNavbar from '../components/AdminNavbar';
 
 const AdminLayout = () => {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, logout } = useAuth();
   const location = useLocation();
+
+  useEffect(() => {
+    // Kiểm tra token khi component mount
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      logout();
+    }
+  }, [logout]);
 
   if (loading) {
     return (

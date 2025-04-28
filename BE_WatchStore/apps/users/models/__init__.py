@@ -1,6 +1,6 @@
-from .user import User, UserAccount
-from .role import Role, RolePermission
-from .permission import Permission
-from .customer import Customer
-from .employee import Employee
-from .user_role import UserRole 
+# apps/users/models/__init__.py
+
+from .user import *
+from .role import *
+from .permission import *
+from .role_permission import *

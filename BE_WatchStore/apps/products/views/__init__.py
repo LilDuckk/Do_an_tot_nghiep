@@ -1,11 +1,7 @@
-from .views import (
-    ProductViewSet, ProductVariantViewSet,
-    ProductImageViewSet, ProductVariantAttributeViewSet
-)
+# apps/products/views/__init__.py
 
-__all__ = [
-    'ProductViewSet',
-    'ProductVariantViewSet',
-    'ProductImageViewSet',
-    'ProductVariantAttributeViewSet'
-] 
+from .category_view import *
+from .product_view import *
+from .variant_view import *
+from .attribute_view import *
+from .brand_view import *

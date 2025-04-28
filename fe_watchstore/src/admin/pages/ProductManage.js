@@ -46,7 +46,8 @@ const ProductManage = () => {
     description: '',
     base_price: '',
     category_id: '',
-    brand_id: ''
+    brand_id: '',
+    images: []
   });
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -111,7 +112,8 @@ const ProductManage = () => {
         description: product.description,
         base_price: product.base_price,
         category_id: product.category_id,
-        brand_id: product.brand_id
+        brand_id: product.brand_id,
+        images: product.images || []
       });
     } else {
       setSelectedProduct(null);
@@ -120,7 +122,8 @@ const ProductManage = () => {
         description: '',
         base_price: '',
         category_id: '',
-        brand_id: ''
+        brand_id: '',
+        images: []
       });
     }
     setOpenDialog(true);
@@ -134,7 +137,8 @@ const ProductManage = () => {
       description: '',
       base_price: '',
       category_id: '',
-      brand_id: ''
+      brand_id: '',
+      images: []
     });
   };
 
@@ -236,6 +240,7 @@ const ProductManage = () => {
                     <TableCell>Giá</TableCell>
                     <TableCell>Danh mục</TableCell>
                     <TableCell>Thương hiệu</TableCell>
+                    <TableCell>Hình ảnh</TableCell>
                     <TableCell>Thao tác</TableCell>
                   </TableRow>
                 </TableHead>
@@ -253,22 +258,25 @@ const ProductManage = () => {
                           }).format(product.base_price)}
                         </TableCell>
                         <TableCell>
-                          {categories.find(c => c.id === product.category_id)?.name}
+                          {categories.find(c => c.id === product.category_id)?.name || 'N/A'}
                         </TableCell>
                         <TableCell>
-                          {brands.find(b => b.id === product.brand_id)?.name}
+                          {brands.find(b => b.id === product.brand_id)?.name || 'N/A'}
                         </TableCell>
                         <TableCell>
-                          <IconButton
-                            color="primary"
-                            onClick={() => handleOpenDialog(product)}
-                          >
+                          {product.images && product.images.length > 0 ? (
+                            <img 
+                              src={product.images[0].url} 
+                              alt={product.name}
+                              style={{ width: 50, height: 50, objectFit: 'cover' }}
+                            />
+                          ) : 'N/A'}
+                        </TableCell>
+                        <TableCell>
+                          <IconButton onClick={() => handleOpenDialog(product)}>
                             <EditIcon />
                           </IconButton>
-                          <IconButton
-                            color="error"
-                            onClick={() => handleDelete(product.id)}
-                          >
+                          <IconButton onClick={() => handleDelete(product.id)}>
                             <DeleteIcon />
                           </IconButton>
                         </TableCell>
@@ -285,6 +293,8 @@ const ProductManage = () => {
               page={page}
               onPageChange={handleChangePage}
               onRowsPerPageChange={handleChangeRowsPerPage}
+              labelRowsPerPage="Số hàng mỗi trang"
+              labelDisplayedRows={({ from, to, count }) => `${from}-${to} của ${count}`}
             />
           </Paper>
         )}
@@ -294,81 +304,77 @@ const ProductManage = () => {
             {selectedProduct ? 'Cập nhật sản phẩm' : 'Thêm sản phẩm mới'}
           </DialogTitle>
           <DialogContent>
-            <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
-              <Grid container spacing={2}>
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Tên sản phẩm"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    required
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Mô tả"
-                    name="description"
-                    value={formData.description}
-                    onChange={handleChange}
-                    multiline
-                    rows={4}
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Giá cơ bản"
-                    name="base_price"
-                    type="number"
-                    value={formData.base_price}
-                    onChange={handleChange}
-                    required
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <FormControl fullWidth>
-                    <InputLabel>Danh mục</InputLabel>
-                    <Select
-                      name="category_id"
-                      value={formData.category_id}
-                      onChange={handleChange}
-                      required
-                    >
-                      {categories.map((category) => (
-                        <MenuItem key={category.id} value={category.id}>
-                          {category.name}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <FormControl fullWidth>
-                    <InputLabel>Thương hiệu</InputLabel>
-                    <Select
-                      name="brand_id"
-                      value={formData.brand_id}
-                      onChange={handleChange}
-                      required
-                    >
-                      {brands.map((brand) => (
-                        <MenuItem key={brand.id} value={brand.id}>
-                          {brand.name}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Grid>
+            <Grid container spacing={2} sx={{ mt: 1 }}>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Tên sản phẩm"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                />
               </Grid>
-            </Box>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Mô tả"
+                  name="description"
+                  value={formData.description}
+                  onChange={handleChange}
+                  multiline
+                  rows={4}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Giá"
+                  name="base_price"
+                  type="number"
+                  value={formData.base_price}
+                  onChange={handleChange}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth>
+                  <InputLabel>Danh mục</InputLabel>
+                  <Select
+                    name="category_id"
+                    value={formData.category_id}
+                    onChange={handleChange}
+                    label="Danh mục"
+                  >
+                    {categories.map((category) => (
+                      <MenuItem key={category.id} value={category.id}>
+                        {category.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth>
+                  <InputLabel>Thương hiệu</InputLabel>
+                  <Select
+                    name="brand_id"
+                    value={formData.brand_id}
+                    onChange={handleChange}
+                    label="Thương hiệu"
+                  >
+                    {brands.map((brand) => (
+                      <MenuItem key={brand.id} value={brand.id}>
+                        {brand.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+            </Grid>
           </DialogContent>
           <DialogActions>
             <Button onClick={handleCloseDialog}>Hủy</Button>
             <Button onClick={handleSubmit} variant="contained" color="primary">
-              {selectedProduct ? 'Cập nhật' : 'Thêm mới'}
+              {selectedProduct ? 'Cập nhật' : 'Thêm'}
             </Button>
           </DialogActions>
         </Dialog>

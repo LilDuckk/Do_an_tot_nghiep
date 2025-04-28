@@ -1,79 +1,73 @@
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
-from django.contrib.contenttypes.models import ContentType
-from django.conf import settings
-from .models.audit_log import AuditLog
+from django.utils import timezone
+from apps.core.models.audit_log import AuditLog
+from apps.core.middleware import UserMiddleware
+
+def get_request_ip():
+    try:
+        from django.http import HttpRequest
+        request = HttpRequest()
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        return ip
+    except:
+        return None
 
 @receiver(post_save)
-def model_post_save(sender, instance, created, **kwargs):
-    """
-    Signal để lắng nghe sự kiện post_save
-    """
-    # Bỏ qua nếu là model AuditLog
-    if sender == AuditLog:
+def log_save(sender, instance, created, **kwargs):
+    if sender._meta.app_label == 'core' and sender._meta.model_name == 'auditlog':
         return
-        
-    # Lấy thông tin user và request từ middleware
-    user = getattr(settings, 'AUDIT_LOG_USER', None)
-    ip_address = getattr(settings, 'AUDIT_LOG_IP_ADDRESS', None)
-    user_agent = getattr(settings, 'AUDIT_LOG_USER_AGENT', None)
-    
-    # Tạo audit log
-    content_type = ContentType.objects.get_for_model(sender)
-    
-    if created:
-        # Tạo mới
-        AuditLog.objects.create(
-            content_type=content_type,
-            object_id=instance.pk,
-            action='CREATE',
-            new_values=instance.__dict__,
-            user=user,
-            ip_address=ip_address,
-            user_agent=user_agent
-        )
-    else:
-        # Cập nhật
-        # Lấy trạng thái cũ từ instance._state.fields_cache
-        old_values = {}
-        for field in instance._meta.fields:
-            if field.name in instance._state.fields_cache:
-                old_values[field.name] = instance._state.fields_cache[field.name]
-        
-        AuditLog.objects.create(
-            content_type=content_type,
-            object_id=instance.pk,
-            action='UPDATE',
-            old_values=old_values,
-            new_values=instance.__dict__,
-            user=user,
-            ip_address=ip_address,
-            user_agent=user_agent
-        )
+
+    action = 'CREATE' if created else 'UPDATE'
+    old_values = None
+    new_values = None
+
+    if not created:
+        old_values = {
+            field.name: getattr(instance, field.name)
+            for field in instance._meta.fields
+            if field.name not in ['created_at', 'updated_at']
+        }
+
+    new_values = {
+        field.name: getattr(instance, field.name)
+        for field in instance._meta.fields
+        if field.name not in ['created_at', 'updated_at']
+    }
+
+    AuditLog.objects.create(
+        action=action,
+        model_name=f"{sender._meta.app_label}.{sender._meta.model_name}",
+        object_id=str(instance.pk),
+        old_values=old_values,
+        new_values=new_values,
+        user=UserMiddleware.get_current_user(),
+        ip_address=get_request_ip(),
+        action_date=timezone.now()
+    )
 
 @receiver(post_delete)
-def model_post_delete(sender, instance, **kwargs):
-    """
-    Signal để lắng nghe sự kiện post_delete
-    """
-    # Bỏ qua nếu là model AuditLog
-    if sender == AuditLog:
+def log_delete(sender, instance, **kwargs):
+    if sender._meta.app_label == 'core' and sender._meta.model_name == 'auditlog':
         return
-        
-    # Lấy thông tin user và request từ middleware
-    user = getattr(settings, 'AUDIT_LOG_USER', None)
-    ip_address = getattr(settings, 'AUDIT_LOG_IP_ADDRESS', None)
-    user_agent = getattr(settings, 'AUDIT_LOG_USER_AGENT', None)
-    
-    # Tạo audit log
-    content_type = ContentType.objects.get_for_model(sender)
-    
+
+    old_values = {
+        field.name: getattr(instance, field.name)
+        for field in instance._meta.fields
+        if field.name not in ['created_at', 'updated_at']
+    }
+
     AuditLog.objects.create(
-        content_type=content_type,
-        object_id=instance.pk,
         action='DELETE',
-        old_values=instance.__dict__,
-        user=user,
-        ip_address=ip_address,
-        user_agent=user_agent
-    )
+        model_name=f"{sender._meta.app_label}.{sender._meta.model_name}",
+        object_id=str(instance.pk),
+        old_values=old_values,
+        new_values=None,
+        user=UserMiddleware.get_current_user(),
+        ip_address=get_request_ip(),
+        action_date=timezone.now()
+    ) 
