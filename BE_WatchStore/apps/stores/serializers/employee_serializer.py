@@ -1,11 +1,10 @@
 from rest_framework import serializers
 from apps.stores.models.employee import Employee
-from apps.users.serializers.user_serializer import UserAccountSerializer
-from apps.stores.serializers.store_serializer import StoreSerializer
+from apps.users.serializers.user_serializer import UserSerializer
+from apps.stores.serializers.base_serializer import BaseEmployeeSerializer
 
-class EmployeeSerializer(serializers.ModelSerializer):
-    user = UserAccountSerializer(read_only=True)
-    store = StoreSerializer(read_only=True)
+class EmployeeSerializer(BaseEmployeeSerializer):
+    store = serializers.SerializerMethodField()
     user_id = serializers.PrimaryKeyRelatedField(
         queryset=Employee.objects.all(),
         source='user',
@@ -17,11 +16,15 @@ class EmployeeSerializer(serializers.ModelSerializer):
         write_only=True
     )
 
-    class Meta:
-        model = Employee
-        fields = [
-            'id', 'user', 'user_id', 'first_name', 'last_name',
-            'phone', 'address', 'employee_code', 'position',
-            'hire_date', 'store', 'store_id', 'created_at', 'updated_at'
+    class Meta(BaseEmployeeSerializer.Meta):
+        fields = BaseEmployeeSerializer.Meta.fields + [
+            'user_id', 'hire_date', 'store', 'store_id',
+            'created_at', 'updated_at'
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at'] 
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def get_store(self, obj):
+        from apps.stores.serializers.store_serializer import StoreSerializer
+        if obj.store:
+            return StoreSerializer(obj.store).data
+        return None

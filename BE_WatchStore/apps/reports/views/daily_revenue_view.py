@@ -2,7 +2,7 @@ from rest_framework import viewsets
 from django_filters import rest_framework as filters
 from apps.reports.models.daily_revenue import DailyRevenue
 from apps.reports.serializers.daily_revenue_serializer import DailyRevenueSerializer
-from apps.core.permissions import IsAdminUser
+from apps.core.utils import IsAdminUser
 
 class DailyRevenueFilter(filters.FilterSet):
     start_date = filters.DateFilter(field_name='date', lookup_expr='gte')

@@ -1,12 +1,12 @@
 from rest_framework import serializers
 from apps.stores.models.store import Store
-from apps.stores.serializers.employee_serializer import EmployeeSerializer
-from apps.users.serializers.user_serializer import UserAccountSerializer
+from apps.users.serializers.user_serializer import UserSerializer
+from apps.stores.serializers.base_serializer import BaseEmployeeSerializer
 
 class StoreSerializer(serializers.ModelSerializer):
-    manager = EmployeeSerializer(read_only=True)
-    created_by = UserAccountSerializer(read_only=True)
-    updated_by = UserAccountSerializer(read_only=True)
+    manager = BaseEmployeeSerializer(read_only=True)
+    created_by = UserSerializer(read_only=True)
+    updated_by = UserSerializer(read_only=True)
     manager_id = serializers.PrimaryKeyRelatedField(
         queryset=Store.objects.all(),
         source='manager',
@@ -20,4 +20,4 @@ class StoreSerializer(serializers.ModelSerializer):
             'opening_date', 'is_active', 'manager', 'manager_id',
             'created_by', 'updated_by', 'created_at', 'updated_at'
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at'] 
+        read_only_fields = ['id', 'created_at', 'updated_at']

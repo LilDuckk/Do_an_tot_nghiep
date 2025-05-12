@@ -7,5 +7,5 @@ class Role(BaseModel):
     is_active = models.BooleanField(blank=True, null=True)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'role' 

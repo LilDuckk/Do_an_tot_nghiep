@@ -5,6 +5,7 @@ from apps.orders.views.order_detail_view import OrderDetailViewSet
 from apps.orders.views.return_order_view import ReturnOrderViewSet
 from apps.orders.views.return_order_detail_view import ReturnOrderDetailViewSet
 from apps.orders.views.coupon_view import CouponViewSet
+from apps.orders.views.customer_view import CustomerViewSet
 
 router = DefaultRouter()
 router.register(r'orders', OrderViewSet)
@@ -12,6 +13,7 @@ router.register(r'order-details', OrderDetailViewSet)
 router.register(r'return-orders', ReturnOrderViewSet)
 router.register(r'return-order-details', ReturnOrderDetailViewSet)
 router.register(r'coupons', CouponViewSet)
+router.register(r'customers', CustomerViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),

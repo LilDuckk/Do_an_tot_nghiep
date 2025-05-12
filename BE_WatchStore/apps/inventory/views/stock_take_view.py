@@ -1,7 +1,7 @@
 from rest_framework import viewsets
 from apps.inventory.models.stock_take import StockTake
 from apps.inventory.serializers.stock_take_serializer import StockTakeSerializer
-from apps.core.permissions import IsAdminUser
+from apps.core.utils import IsAdminUser
 
 class StockTakeViewSet(viewsets.ModelViewSet):
     queryset = StockTake.objects.all()

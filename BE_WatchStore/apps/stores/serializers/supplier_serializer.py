@@ -1,10 +1,10 @@
 from rest_framework import serializers
 from apps.stores.models.supplier import Supplier
-from apps.users.serializers.user_serializer import UserAccountSerializer
+from apps.users.serializers.user_serializer import UserSerializer
 
 class SupplierSerializer(serializers.ModelSerializer):
-    created_by = UserAccountSerializer(read_only=True)
-    updated_by = UserAccountSerializer(read_only=True)
+    created_by = UserSerializer(read_only=True)
+    updated_by = UserSerializer(read_only=True)
 
     class Meta:
         model = Supplier

@@ -1,17 +1,21 @@
-from threading import current_thread
+from threading import local
 
 class UserMiddleware:
+    _user = local()  # Sử dụng threading.local để lưu trữ dữ liệu theo thread
+
     def __init__(self, get_response):
         self.get_response = get_response
-        self._user = {}
 
     def __call__(self, request):
-        self._user[current_thread()] = request.user
+        self.set_current_user(request.user)
         response = self.get_response(request)
-        if current_thread() in self._user:
-            del self._user[current_thread()]
+        self.set_current_user(None)
         return response
 
     @classmethod
+    def set_current_user(cls, user):
+        cls._user.user = user  # Đặt user hiện tại
+
+    @classmethod
     def get_current_user(cls):
-        return cls._user.get(current_thread()) 
+        return getattr(cls._user, 'user', None)  # Lấy user hiện tại hoặc trả về None

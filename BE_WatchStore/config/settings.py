@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     'apps.content',
     'apps.inventory',
     'apps.stores',
+    'apps.reports',
 ]
 
 MIDDLEWARE = [
@@ -78,6 +79,12 @@ DATABASES = {
     }
 }
 
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+}
+
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -94,6 +101,8 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+AUTH_USER_MODEL = 'users.UserAccount'
+
 # Internationalization
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
@@ -102,3 +111,11 @@ USE_TZ = True
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Static files (CSS, JavaScript, Images)
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+
+# Media files
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')

@@ -93,7 +93,6 @@ CREATE TABLE Customer (
     birth_date DATE,
     gender VARCHAR(10),
     notes TEXT,
-    user_id INTEGER REFERENCES UserAccount(id),
     is_deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

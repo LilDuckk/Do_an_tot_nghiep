@@ -147,7 +147,6 @@ class Customer(models.Model):
     birth_date = models.DateField(blank=True, null=True)
     gender = models.CharField(max_length=10, blank=True, null=True)
     notes = models.TextField(blank=True, null=True)
-    user = models.ForeignKey('Useraccount', models.DO_NOTHING, blank=True, null=True)
     is_deleted = models.BooleanField(blank=True, null=True)
     created_at = models.DateTimeField(blank=True, null=True)
     updated_at = models.DateTimeField(blank=True, null=True)

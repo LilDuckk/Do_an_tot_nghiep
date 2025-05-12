@@ -2,7 +2,7 @@ from rest_framework import viewsets
 from django_filters import rest_framework as filters
 from apps.reports.models.top_products import TopProduct
 from apps.reports.serializers.top_products_serializer import TopProductSerializer
-from apps.core.permissions import IsAdminUser
+from apps.core.utils import IsAdminUser
 
 class TopProductFilter(filters.FilterSet):
     start_date = filters.DateFilter(field_name='date', lookup_expr='gte')

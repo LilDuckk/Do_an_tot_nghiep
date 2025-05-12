@@ -1,5 +1,6 @@
 from django.db import models
 from apps.core.models.base import BaseModel
+from apps.users.models import UserAccount
 
 class Brand(BaseModel):
     name = models.CharField(max_length=255)
@@ -10,9 +11,9 @@ class Brand(BaseModel):
     meta_title = models.CharField(max_length=255, blank=True, null=True)
     meta_description = models.TextField(blank=True, null=True)
     is_active = models.BooleanField(blank=True, null=True)
-    created_by = models.ForeignKey('UserAccount', models.DO_NOTHING, db_column='created_by', blank=True, null=True)
-    updated_by = models.ForeignKey('UserAccount', models.DO_NOTHING, db_column='updated_by', related_name='brand_updated_by_set', blank=True, null=True)
+    created_by = models.ForeignKey(UserAccount, models.DO_NOTHING, db_column='created_by', blank=True, null=True)
+    updated_by = models.ForeignKey(UserAccount, models.DO_NOTHING, db_column='updated_by', related_name='brand_updated_by_set', blank=True, null=True)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'brand' 

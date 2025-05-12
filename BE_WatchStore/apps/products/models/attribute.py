@@ -6,7 +6,7 @@ class AttributeType(BaseModel):
     description = models.TextField(blank=True, null=True)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'attributetype'
 
 class AttributeValue(BaseModel):
@@ -14,5 +14,5 @@ class AttributeValue(BaseModel):
     value = models.CharField(max_length=255)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'attributevalue' 

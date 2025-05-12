@@ -1,7 +1,7 @@
 from rest_framework import viewsets
 from apps.inventory.models.inventory_transaction import InventoryTransaction
 from apps.inventory.serializers.inventory_transaction_serializer import InventoryTransactionSerializer
-from apps.core.permissions import IsAdminUser
+from apps.core.utils import IsAdminUser
 
 class InventoryTransactionViewSet(viewsets.ModelViewSet):
     queryset = InventoryTransaction.objects.all()

@@ -1,4 +1,4 @@
 from .banner_serializer import BannerSerializer
 from .news_serializer import NewsSerializer
-from .footer_serializer import FooterSerializer
+from .footer_serializer import FooterCategorySerializer, FooterLinkSerializer
 from .contact_info_serializer import ContactInfoSerializer 
