@@ -6,12 +6,12 @@ from rest_framework.permissions import IsAuthenticated
 from apps.users.models.user import UserAccount
 from apps.users.serializers.user_serializer import UserSerializer
 from apps.users.serializers.auth.change_password_serializer import ChangePasswordSerializer
-from apps.core.utils import IsAdminUser
+from rest_framework.permissions import DjangoModelPermissions
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = UserAccount.objects.all()
     serializer_class = UserSerializer
-    permission_classes = [IsAdminUser]
+    permission_classes = [DjangoModelPermissions]
     filterset_fields = ['is_active', 'is_staff']
     search_fields = ['username', 'email']  # ✅ Nếu model không có first_name, last_name
     ordering_fields = ['username', 'email', 'created_at']

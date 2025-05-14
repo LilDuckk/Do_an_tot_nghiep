@@ -1,16 +1,13 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from apps.users.views.user_view import UserViewSet
-from apps.users.views.role_view import RoleViewSet
-from apps.users.views.permission_view import PermissionViewSet
-from apps.users.views.role_permission_view import RolePermissionViewSet
 from apps.users.views.auth_view import LoginAPIView, MeAPIView, ChangePasswordAPIView
+from apps.users.views.group_permission_view import GroupViewSet, PermissionViewSet
 
 router = DefaultRouter()
 router.register(r'users', UserViewSet)
-router.register(r'roles', RoleViewSet)
-router.register(r'permissions', PermissionViewSet)
-router.register(r'role-permissions', RolePermissionViewSet)
+router.register(r'auth/groups', GroupViewSet, basename='group')
+router.register(r'auth/permissions', PermissionViewSet, basename='permission')
 
 urlpatterns = [
     # 🔁 CRUD endpoints

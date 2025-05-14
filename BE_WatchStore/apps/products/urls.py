@@ -6,6 +6,7 @@ from apps.products.views.product_view import ProductViewSet
 from apps.products.views.variant_view import VariantViewSet
 from apps.products.views.attribute_view import AttributeValueViewSet
 from apps.products.views.attribute_view import AttributeTypeViewSet
+from apps.products.views.product_image_view import ProductImageViewSet
 
 router = DefaultRouter()
 router.register(r'categories', CategoryViewSet)
@@ -14,6 +15,7 @@ router.register(r'products', ProductViewSet)
 router.register(r'variants', VariantViewSet)
 router.register(r'attributesvalue', AttributeValueViewSet)
 router.register(r'attributestype', AttributeTypeViewSet)
+router.register(r'product-images', ProductImageViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),

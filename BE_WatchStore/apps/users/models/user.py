@@ -1,6 +1,5 @@
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
 from django.db import models
-from apps.users.models.role import Role
 
 
 class UserAccountManager(BaseUserManager):
@@ -23,7 +22,6 @@ class UserAccount(AbstractBaseUser, PermissionsMixin):
     username = models.CharField(unique=True, max_length=100)
     email = models.EmailField(unique=True, max_length=255, blank=True, null=True)
 
-    role = models.ForeignKey(Role, models.DO_NOTHING, blank=True, null=True)
     last_login = models.DateTimeField(blank=True, null=True)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)  # Required for admin login

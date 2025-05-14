@@ -1,12 +1,12 @@
 from rest_framework import viewsets
 from apps.stores.models.store import Store
 from apps.stores.serializers.store_serializer import StoreSerializer
-from apps.core.utils import IsAdminUser
+from rest_framework.permissions import DjangoModelPermissions
 
 class StoreViewSet(viewsets.ModelViewSet):
     queryset = Store.objects.all()
     serializer_class = StoreSerializer
-    permission_classes = [IsAdminUser]
+    permission_classes = [DjangoModelPermissions]
     filterset_fields = ['name', 'address', 'is_active']
     search_fields = ['name', 'address', 'phone', 'email']
     ordering_fields = ['name', 'created_at']

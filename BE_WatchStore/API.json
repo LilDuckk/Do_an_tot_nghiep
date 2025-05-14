@@ -27,6 +27,65 @@
             "type": "string"
           }
         }
+      },
+      "UserDetailWithPermissions": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "username": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "is_active": { "type": "boolean" },
+          "is_staff": { "type": "boolean" },
+          "is_superuser": { "type": "boolean" },
+          "groups": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": { "type": "integer" },
+                "name": { "type": "string" }
+              }
+            }
+          },
+          "user_permissions": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "List of permission codenames (e.g., app_label.codename)"
+          }
+        }
+      },
+      "DjangoGroupInput": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": { "type": "string" },
+          "permissions": { 
+            "type": "array", 
+            "items": { "type": "integer" },
+            "description": "List of permission IDs"
+          }
+        }
+      },
+      "DjangoGroupOutput": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "name": { "type": "string" },
+          "permissions": { 
+            "type": "array", 
+            "items": { "type": "integer" },
+            "description": "List of permission IDs associated with the group"
+          }
+        }
+      },
+      "DjangoPermission": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "name": { "type": "string", "description": "Human-readable name of the permission" },
+          "codename": { "type": "string", "description": "Codename of the permission (e.g., view_user)" },
+          "content_type": { "type": "integer", "description": "ID of the associated content type (model)" }
+        }
       }
     }
   },
@@ -49,12 +108,8 @@
                 "type": "object",
                 "required": ["username", "password"],
                 "properties": {
-                  "username": {
-                    "type": "string"
-                  },
-                  "password": {
-                    "type": "string"
-                  }
+                  "username": { "type": "string" },
+                  "password": { "type": "string" }
                 }
               },
               "example": {
@@ -72,28 +127,9 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "access": {
-                      "type": "string",
-                      "description": "JWT access token"
-                    },
-                    "refresh": {
-                      "type": "string",
-                      "description": "JWT refresh token"
-                    },
-                    "user": {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "type": "integer"
-                        },
-                        "username": {
-                          "type": "string"
-                        },
-                        "email": {
-                      "type": "string"
-                        }
-                      }
-                    }
+                    "access": { "type": "string", "description": "JWT access token" },
+                    "refresh": { "type": "string", "description": "JWT refresh token" },
+                    "user": { "$ref": "#/components/schemas/UserDetailWithPermissions" }
                   }
                 }
               }
@@ -107,13 +143,7 @@
           },
           "400": {
             "description": "Invalid credentials",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
           }
         }
       }
@@ -125,43 +155,11 @@
         "responses": {
           "200": {
             "description": "User information retrieved successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "integer"
-                    },
-                    "username": {
-                      "type": "string"
-                    },
-                    "email": {
-                      "type": "string"
-                    },
-                    "first_name": {
-                      "type": "string"
-                    },
-                    "last_name": {
-                      "type": "string"
-                    },
-                    "role": {
-                      "type": "string"
-                    }
-                  }
-                }
-              }
-            }
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UserDetailWithPermissions" } } }
           },
           "401": {
             "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
           }
         }
       }
@@ -178,12 +176,8 @@
                 "type": "object",
                 "required": ["old_password", "new_password"],
                 "properties": {
-                  "old_password": {
-                    "type": "string"
-                  },
-                  "new_password": {
-                    "type": "string"
-                  }
+                  "old_password": { "type": "string" },
+                  "new_password": { "type": "string" }
                 }
               },
               "example": {
@@ -194,18 +188,10 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "Password changed successfully"
-          },
+          "200": { "description": "Password changed successfully" },
           "400": {
-            "description": "Invalid old password",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+            "description": "Invalid old password or new password validation failed",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
           }
         }
       }
@@ -218,18 +204,14 @@
           {
             "name": "search",
             "in": "query",
-            "description": "Search by username, email, first_name, last_name",
-            "schema": {
-              "type": "string"
-            }
+            "description": "Search by username, email",
+            "schema": { "type": "string" }
           },
           {
             "name": "ordering",
             "in": "query",
             "description": "Order by fields (prefix with '-' for descending)",
-            "schema": {
-              "type": "string"
-            }
+            "schema": { "type": "string" }
           }
         ],
         "responses": {
@@ -237,46 +219,7 @@
             "description": "List of users retrieved successfully",
             "content": {
               "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "id": {
-                        "type": "integer"
-                      },
-                      "username": {
-                        "type": "string"
-                      },
-                      "email": {
-                        "type": "string"
-                      },
-                      "first_name": {
-                        "type": "string"
-                      },
-                      "last_name": {
-                        "type": "string"
-                      },
-                      "role": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "integer"
-                          },
-                          "name": {
-                        "type": "string"
-                          }
-                        }
-                      },
-                      "is_active": {
-                        "type": "boolean"
-                      },
-                      "is_staff": {
-                        "type": "boolean"
-                      }
-                    }
-                  }
-                }
+                "schema": { "type": "array", "items": { "$ref": "#/components/schemas/UserDetailWithPermissions" } }
               }
             }
           }
@@ -291,34 +234,27 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["username", "email", "password", "role_id"],
+                "required": ["username", "password"],
                 "properties": {
-                  "username": {
-                    "type": "string"
+                  "username": { "type": "string" },
+                  "email": { "type": "string", "format": "email" },
+                  "password": { "type": "string" },
+                  "groups": { 
+                    "type": "array", 
+                    "items": { "type": "integer" },
+                    "description": "List of Group IDs to assign to the user",
+                    "required": false 
                   },
-                  "email": {
-                    "type": "string"
-                  },
-                  "password": {
-                    "type": "string"
-                  },
-                  "first_name": {
-                    "type": "string"
-                  },
-                  "last_name": {
-                    "type": "string"
-                  },
-                  "role_id": {
-                    "type": "integer",
-                    "description": "ID of the role from roles table"
-                  }
+                  "is_active": { "type": "boolean", "default": true },
+                  "is_staff": { "type": "boolean", "default": false },
+                  "is_superuser": { "type": "boolean", "default": false }
                 }
               },
               "example": {
-                "username": "user1",
-                "email": "user1@example.com",
-                "password": "user12345",
-                "role_id": 2
+                "username": "newuser",
+                "email": "newuser@example.com",
+                "password": "password123",
+                "groups": [1]
               }
             }
           }
@@ -326,47 +262,7 @@
         "responses": {
           "201": {
             "description": "User created successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "integer"
-                    },
-                    "username": {
-                      "type": "string"
-                    },
-                    "email": {
-                      "type": "string"
-                    },
-                    "first_name": {
-                      "type": "string"
-                    },
-                    "last_name": {
-                      "type": "string"
-                    },
-                    "role": {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "type": "integer"
-                        },
-                        "name": {
-                          "type": "string"
-                        }
-                      }
-                    },
-                    "is_active": {
-                      "type": "boolean"
-                    },
-                    "is_staff": {
-                      "type": "boolean"
-                    }
-                  }
-                }
-              }
-            }
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UserDetailWithPermissions" } } }
           }
         }
       }
@@ -375,76 +271,18 @@
       "get": {
         "tags": ["Account"],
         "summary": "Get user details",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            }
-          }
-        ],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
         "responses": {
           "200": {
             "description": "User details retrieved successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "integer"
-                    },
-                    "username": {
-                      "type": "string"
-                    },
-                    "email": {
-                      "type": "string"
-                    },
-                    "first_name": {
-                      "type": "string"
-                    },
-                    "last_name": {
-                      "type": "string"
-                    },
-                    "role": {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "type": "integer"
-                        },
-                        "name": {
-                          "type": "string"
-                        }
-                      }
-                    },
-                    "is_active": {
-                      "type": "boolean"
-                    },
-                    "is_staff": {
-                      "type": "boolean"
-                    }
-                  }
-                }
-              }
-            }
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UserDetailWithPermissions" } } }
           }
         }
       },
       "put": {
         "tags": ["Account"],
         "summary": "Update user",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            }
-          }
-        ],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
         "requestBody": {
           "required": true,
           "content": {
@@ -452,22 +290,17 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "email": {
-                    "type": "string"
+                  "username": { "type": "string" },
+                  "email": { "type": "string", "format": "email" },
+                  "groups": { 
+                    "type": "array", 
+                    "items": { "type": "integer" },
+                    "description": "List of Group IDs to assign to the user" 
                   },
-                  "first_name": {
-                    "type": "string"
-                  },
-                  "last_name": {
-                    "type": "string"
-                  },
-                  "role_id": {
-                    "type": "integer",
-                    "description": "ID of the role from roles table"
-                  },
-                  "is_active": {
-                    "type": "boolean"
-                  }
+                  "is_active": { "type": "boolean" },
+                  "is_staff": { "type": "boolean" },
+                  "is_superuser": { "type": "boolean" }
+                  
                 }
               }
             }
@@ -476,68 +309,15 @@
         "responses": {
           "200": {
             "description": "User updated successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "integer"
-                    },
-                    "username": {
-                      "type": "string"
-                    },
-                    "email": {
-                      "type": "string"
-                    },
-                    "first_name": {
-                      "type": "string"
-                    },
-                    "last_name": {
-                      "type": "string"
-                    },
-                    "role": {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "type": "integer"
-                        },
-                        "name": {
-                          "type": "string"
-                        }
-                      }
-                    },
-                    "is_active": {
-                      "type": "boolean"
-                    },
-                    "is_staff": {
-                      "type": "boolean"
-                    }
-                  }
-                }
-              }
-            }
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UserDetailWithPermissions" } } }
           }
         }
       },
       "delete": {
         "tags": ["Account"],
         "summary": "Delete user",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "User deleted successfully"
-          }
-        }
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "204": { "description": "User deleted successfully" } }
       }
     },
     "/account/users/{id}/change_password/": {
@@ -580,350 +360,74 @@
         }
       }
     },
-    "/account/roles/": {
+    "/account/auth/groups/": {
       "get": {
-        "tags": ["Users"],
-        "summary": "List all roles",
+        "tags": ["Authorization"],
+        "summary": "List all groups",
         "responses": {
           "200": {
-            "description": "List of roles retrieved successfully"
+            "description": "List of groups",
+            "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/DjangoGroupOutput" } } } }
           }
         }
       },
       "post": {
-        "tags": ["Users"],
-        "summary": "Create a new role",
+        "tags": ["Authorization"],
+        "summary": "Create a new group",
         "requestBody": {
           "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["name"],
-                "properties": {
-                  "name": {
-                    "type": "string"
-                  },
-                  "description": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          }
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DjangoGroupInput" } } }
         },
         "responses": {
           "201": {
-            "description": "Role created successfully"
+            "description": "Group created",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DjangoGroupOutput" } } }
           }
         }
       }
     },
-    "/account/roles/{id}/": {
+    "/account/auth/groups/{id}/": {
       "get": {
-        "tags": ["Users"],
-        "summary": "Get role details",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            }
-          }
-        ],
+        "tags": ["Authorization"],
+        "summary": "Get group details",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
         "responses": {
           "200": {
-            "description": "Role details retrieved successfully"
+            "description": "Group details",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DjangoGroupOutput" } } }
           }
         }
       },
       "put": {
-        "tags": ["Users"],
-        "summary": "Update role",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            }
-          }
-        ],
+        "tags": ["Authorization"],
+        "summary": "Update group",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
         "requestBody": {
           "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "name": {
-                    "type": "string"
-                  },
-                  "description": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          }
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DjangoGroupInput" } } }
         },
         "responses": {
           "200": {
-            "description": "Role updated successfully"
+            "description": "Group updated",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DjangoGroupOutput" } } }
           }
         }
       },
       "delete": {
-        "tags": ["Users"],
-        "summary": "Delete role",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Role deleted successfully"
-          }
-        }
+        "tags": ["Authorization"],
+        "summary": "Delete group",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "204": { "description": "Group deleted successfully" } }
       }
     },
-    "/account/permissions/": {
+    "/account/auth/permissions/": {
       "get": {
-        "tags": ["Users"],
+        "tags": ["Authorization"],
         "summary": "List all permissions",
         "responses": {
           "200": {
-            "description": "List of permissions retrieved successfully"
-          }
-        }
-      },
-      "post": {
-        "tags": ["Users"],
-        "summary": "Create a new permission",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["name"],
-                "properties": {
-                  "name": {
-                    "type": "string"
-                  },
-                  "description": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Permission created successfully"
-          }
-        }
-      }
-    },
-    "/account/permissions/{id}/": {
-      "get": {
-        "tags": ["Users"],
-        "summary": "Get permission details",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Permission details retrieved successfully"
-          }
-        }
-      },
-      "put": {
-        "tags": ["Users"],
-        "summary": "Update permission",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "name": {
-                    "type": "string"
-                  },
-                  "description": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Permission updated successfully"
-          }
-        }
-      },
-      "delete": {
-        "tags": ["Users"],
-        "summary": "Delete permission",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Permission deleted successfully"
-          }
-        }
-      }
-    },
-    "/account/role-permissions/": {
-      "get": {
-        "tags": ["Users"],
-        "summary": "List all role permissions",
-        "responses": {
-          "200": {
-            "description": "List of role permissions retrieved successfully"
-          }
-        }
-      },
-      "post": {
-        "tags": ["Users"],
-        "summary": "Create a new role permission",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["role", "permission"],
-                "properties": {
-                  "role": {
-                    "type": "integer"
-                  },
-                  "permission": {
-                    "type": "integer"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Role permission created successfully"
-          }
-        }
-      }
-    },
-    "/account/role-permissions/{id}/": {
-      "get": {
-        "tags": ["Users"],
-        "summary": "Get role permission details",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Role permission details retrieved successfully"
-          }
-        }
-      },
-      "put": {
-        "tags": ["Users"],
-        "summary": "Update role permission",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "role": {
-                    "type": "integer"
-                  },
-                  "permission": {
-                    "type": "integer"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Role permission updated successfully"
-          }
-        }
-      },
-      "delete": {
-        "tags": ["Users"],
-        "summary": "Delete role permission",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Role permission deleted successfully"
+            "description": "List of permissions",
+            "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/DjangoPermission" } } } }
           }
         }
       }
@@ -2397,6 +1901,958 @@
         "responses": {
           "204": {
             "description": "Attribute type deleted successfully"
+          }
+        }
+      }
+    },
+    "/products/brands/": {
+      "get": {
+        "tags": ["Products"],
+        "summary": "List all brands",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Search by name, description",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ordering",
+            "in": "query",
+            "description": "Order by fields (prefix with '-' for descending)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of brands",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "slug": {
+                        "type": "string"
+                      },
+                      "description": {
+                        "type": "string"
+                      },
+                      "logo_url": {
+                        "type": "string"
+                      },
+                      "display_order": {
+                        "type": "integer"
+                      },
+                      "is_active": {
+                        "type": "boolean"
+                      },
+                      "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                      }
+                    }
+                  }
+                },
+                "example": [
+                  {
+                    "id": 1,
+                    "name": "Casio",
+                    "slug": "casio",
+                    "description": "Casio is a Japanese multinational consumer electronics and commercial electronics manufacturing company.",
+                    "logo_url": "https://example.com/logos/casio.png",
+                    "display_order": 1,
+                    "is_active": true,
+                    "created_at": "2023-01-01T00:00:00Z",
+                    "updated_at": "2023-01-01T00:00:00Z"
+                  },
+                  {
+                    "id": 2,
+                    "name": "Rolex",
+                    "slug": "rolex",
+                    "description": "Rolex is a Swiss luxury watch manufacturer based in Geneva, Switzerland.",
+                    "logo_url": "https://example.com/logos/rolex.png",
+                    "display_order": 2,
+                    "is_active": true,
+                    "created_at": "2023-01-01T00:00:00Z",
+                    "updated_at": "2023-01-01T00:00:00Z"
+                  },
+                  {
+                    "id": 3,
+                    "name": "Seiko",
+                    "slug": "seiko",
+                    "description": "Seiko is a Japanese watch manufacturer.",
+                    "logo_url": "https://example.com/logos/seiko.png",
+                    "display_order": 3,
+                    "is_active": true,
+                    "created_at": "2023-01-01T00:00:00Z",
+                    "updated_at": "2023-01-01T00:00:00Z"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Products"],
+        "summary": "Create a new brand",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name"],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "logo_url": {
+                    "type": "string"
+                  },
+                  "display_order": {
+                    "type": "integer"
+                  },
+                  "is_active": {
+                    "type": "boolean"
+                  }
+                }
+              },
+              "example": {
+                "name": "Citizen",
+                "description": "Citizen is a Japanese watch manufacturer.",
+                "logo_url": "https://example.com/logos/citizen.png",
+                "display_order": 4,
+                "is_active": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Brand created successfully"
+          },
+          "400": {
+            "description": "Invalid input data"
+          }
+        }
+      }
+    },
+    "/products/brands/{id}/": {
+      "get": {
+        "tags": ["Products"],
+        "summary": "Get brand details",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Brand details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "slug": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "logo_url": {
+                      "type": "string"
+                    },
+                    "display_order": {
+                      "type": "integer"
+                    },
+                    "is_active": {
+                      "type": "boolean"
+                    },
+                    "created_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updated_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                },
+                "example": {
+                  "id": 1,
+                  "name": "Casio",
+                  "slug": "casio",
+                  "description": "Casio is a Japanese multinational consumer electronics and commercial electronics manufacturing company.",
+                  "logo_url": "https://example.com/logos/casio.png",
+                  "display_order": 1,
+                  "is_active": true,
+                  "created_at": "2023-01-01T00:00:00Z",
+                  "updated_at": "2023-01-01T00:00:00Z"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Brand not found"
+          }
+        }
+      },
+      "put": {
+        "tags": ["Products"],
+        "summary": "Update brand",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "logo_url": {
+                    "type": "string"
+                  },
+                  "display_order": {
+                    "type": "integer"
+                  },
+                  "is_active": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Brand updated successfully"
+          },
+          "404": {
+            "description": "Brand not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Products"],
+        "summary": "Delete brand",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Brand deleted successfully"
+          },
+          "404": {
+            "description": "Brand not found"
+          }
+        }
+      }
+    },
+    "/products/categories/": {
+      "get": {
+        "tags": ["Products"],
+        "summary": "List all categories",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Search by name, description",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "parent",
+            "in": "query",
+            "description": "Filter by parent category ID",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "ordering",
+            "in": "query",
+            "description": "Order by fields (prefix with '-' for descending)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of categories",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "slug": {
+                        "type": "string"
+                      },
+                      "description": {
+                        "type": "string"
+                      },
+                      "parent": {
+                        "type": "integer",
+                        "nullable": true
+                      },
+                      "display_order": {
+                        "type": "integer"
+                      },
+                      "is_active": {
+                        "type": "boolean"
+                      },
+                      "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                      }
+                    }
+                  }
+                },
+                "example": [
+                  {
+                    "id": 1,
+                    "name": "Men's Watches",
+                    "slug": "mens-watches",
+                    "description": "Watches designed for men",
+                    "parent": null,
+                    "display_order": 1,
+                    "is_active": true,
+                    "created_at": "2023-01-01T00:00:00Z",
+                    "updated_at": "2023-01-01T00:00:00Z"
+                  },
+                  {
+                    "id": 2,
+                    "name": "Women's Watches",
+                    "slug": "womens-watches",
+                    "description": "Watches designed for women",
+                    "parent": null,
+                    "display_order": 2,
+                    "is_active": true,
+                    "created_at": "2023-01-01T00:00:00Z",
+                    "updated_at": "2023-01-01T00:00:00Z"
+                  },
+                  {
+                    "id": 3,
+                    "name": "Luxury Watches",
+                    "slug": "luxury-watches",
+                    "description": "High-end luxury watches",
+                    "parent": 1,
+                    "display_order": 1,
+                    "is_active": true,
+                    "created_at": "2023-01-01T00:00:00Z",
+                    "updated_at": "2023-01-01T00:00:00Z"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Products"],
+        "summary": "Create a new category",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name"],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "parent": {
+                    "type": "integer",
+                    "nullable": true
+                  },
+                  "display_order": {
+                    "type": "integer"
+                  },
+                  "is_active": {
+                    "type": "boolean"
+                  }
+                }
+              },
+              "example": {
+                "name": "Smart Watches",
+                "description": "Modern smart watches with advanced features",
+                "parent": 1,
+                "display_order": 3,
+                "is_active": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Category created successfully"
+          },
+          "400": {
+            "description": "Invalid input data"
+          }
+        }
+      }
+    },
+    "/products/categories/{id}/": {
+      "get": {
+        "tags": ["Products"],
+        "summary": "Get category details",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Category details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "slug": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "parent": {
+                      "type": "integer",
+                      "nullable": true
+                    },
+                    "display_order": {
+                      "type": "integer"
+                    },
+                    "is_active": {
+                      "type": "boolean"
+                    },
+                    "created_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updated_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                },
+                "example": {
+                  "id": 1,
+                  "name": "Men's Watches",
+                  "slug": "mens-watches",
+                  "description": "Watches designed for men",
+                  "parent": null,
+                  "display_order": 1,
+                  "is_active": true,
+                  "created_at": "2023-01-01T00:00:00Z",
+                  "updated_at": "2023-01-01T00:00:00Z"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Category not found"
+          }
+        }
+      },
+      "put": {
+        "tags": ["Products"],
+        "summary": "Update category",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "parent": {
+                    "type": "integer",
+                    "nullable": true
+                  },
+                  "display_order": {
+                    "type": "integer"
+                  },
+                  "is_active": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Category updated successfully"
+          },
+          "404": {
+            "description": "Category not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Products"],
+        "summary": "Delete category",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Category deleted successfully"
+          },
+          "404": {
+            "description": "Category not found"
+          }
+        }
+      }
+    },
+    "/products/product-images/": {
+      "get": {
+        "tags": ["Products"],
+        "summary": "List all product images",
+        "parameters": [
+          {
+            "name": "product",
+            "in": "query",
+            "description": "Filter by product ID",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "product_variant",
+            "in": "query",
+            "description": "Filter by product variant ID",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "is_primary",
+            "in": "query",
+            "description": "Filter by primary image status",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "ordering",
+            "in": "query",
+            "description": "Order by fields (prefix with '-' for descending)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of product images",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer"
+                      },
+                      "product": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "product_variant": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer"
+                          },
+                          "sku": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "image_url": {
+                        "type": "string"
+                      },
+                      "is_primary": {
+                        "type": "boolean"
+                      },
+                      "alt_text": {
+                        "type": "string"
+                      },
+                      "display_order": {
+                        "type": "integer"
+                      },
+                      "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                      }
+                    }
+                  }
+                },
+                "example": [
+                  {
+                    "id": 1,
+                    "product": {
+                      "id": 1,
+                      "name": "Casio G-Shock"
+                    },
+                    "product_variant": null,
+                    "image_url": "https://example.com/images/casio-g-shock-1.jpg",
+                    "is_primary": true,
+                    "alt_text": "Casio G-Shock front view",
+                    "display_order": 1,
+                    "created_at": "2023-01-01T00:00:00Z",
+                    "updated_at": "2023-01-01T00:00:00Z"
+                  },
+                  {
+                    "id": 2,
+                    "product": {
+                      "id": 1,
+                      "name": "Casio G-Shock"
+                    },
+                    "product_variant": null,
+                    "image_url": "https://example.com/images/casio-g-shock-2.jpg",
+                    "is_primary": false,
+                    "alt_text": "Casio G-Shock side view",
+                    "display_order": 2,
+                    "created_at": "2023-01-01T00:00:00Z",
+                    "updated_at": "2023-01-01T00:00:00Z"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Products"],
+        "summary": "Create a new product image",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["image_url"],
+                "properties": {
+                  "product_id": {
+                    "type": "integer"
+                  },
+                  "product_variant_id": {
+                    "type": "integer"
+                  },
+                  "image_url": {
+                    "type": "string"
+                  },
+                  "is_primary": {
+                    "type": "boolean"
+                  },
+                  "alt_text": {
+                    "type": "string"
+                  },
+                  "display_order": {
+                    "type": "integer"
+                  }
+                }
+              },
+              "example": {
+                "product_id": 1,
+                "image_url": "https://example.com/images/casio-g-shock-3.jpg",
+                "is_primary": false,
+                "alt_text": "Casio G-Shock back view",
+                "display_order": 3
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Product image created successfully"
+          },
+          "400": {
+            "description": "Invalid input data"
+          }
+        }
+      }
+    },
+    "/products/product-images/{id}/": {
+      "get": {
+        "tags": ["Products"],
+        "summary": "Get product image details",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Product image details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    },
+                    "product": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "integer"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "product_variant": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "integer"
+                        },
+                        "sku": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "image_url": {
+                      "type": "string"
+                    },
+                    "is_primary": {
+                      "type": "boolean"
+                    },
+                    "alt_text": {
+                      "type": "string"
+                    },
+                    "display_order": {
+                      "type": "integer"
+                    },
+                    "created_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updated_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                },
+                "example": {
+                  "id": 1,
+                  "product": {
+                    "id": 1,
+                    "name": "Casio G-Shock"
+                  },
+                  "product_variant": null,
+                  "image_url": "https://example.com/images/casio-g-shock-1.jpg",
+                  "is_primary": true,
+                  "alt_text": "Casio G-Shock front view",
+                  "display_order": 1,
+                  "created_at": "2023-01-01T00:00:00Z",
+                  "updated_at": "2023-01-01T00:00:00Z"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Product image not found"
+          }
+        }
+      },
+      "put": {
+        "tags": ["Products"],
+        "summary": "Update product image",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "product_id": {
+                    "type": "integer"
+                  },
+                  "product_variant_id": {
+                    "type": "integer"
+                  },
+                  "image_url": {
+                    "type": "string"
+                  },
+                  "is_primary": {
+                    "type": "boolean"
+                  },
+                  "alt_text": {
+                    "type": "string"
+                  },
+                  "display_order": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Product image updated successfully"
+          },
+          "404": {
+            "description": "Product image not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Products"],
+        "summary": "Delete product image",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Product image deleted successfully"
+          },
+          "404": {
+            "description": "Product image not found"
           }
         }
       }
