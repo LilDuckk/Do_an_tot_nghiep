@@ -7,4 +7,4 @@ class MeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = UserAccount
-        fields = ['id', 'username', 'email', 'role', 'is_active']
+        fields = ['id', 'username', 'email', 'role', 'is_active', 'is_staff']

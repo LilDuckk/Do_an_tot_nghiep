@@ -2,6 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
 from apps.users.models.user import UserAccount
+from apps.users.serializers.role_serializer import RoleSerializer
 
 
 class LoginSerializer(serializers.Serializer):
@@ -16,7 +17,17 @@ class LoginSerializer(serializers.Serializer):
             raise serializers.ValidationError("User is inactive")
         
         refresh = RefreshToken.for_user(user)
+        role_serializer = RoleSerializer(user.role) if user.role else None
+        
         return {
             'access': str(refresh.access_token),
             'refresh': str(refresh),
+            'user': {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'role': role_serializer.data if role_serializer else None,
+                'is_active': user.is_active,
+                'is_staff': user.is_staff
+            }
         }

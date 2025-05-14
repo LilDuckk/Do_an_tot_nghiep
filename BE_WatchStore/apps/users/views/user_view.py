@@ -22,7 +22,14 @@ class UserViewSet(viewsets.ModelViewSet):
         user = self.get_object()
         serializer = ChangePasswordSerializer(data=request.data)
         if serializer.is_valid():
-            user.set_password(serializer.validated_data['password'])
+            # Kiểm tra mật khẩu cũ
+            if not user.check_password(serializer.validated_data['old_password']):
+                return Response(
+                    {'old_password': ['Mật khẩu cũ không đúng']},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            # Đổi mật khẩu mới
+            user.set_password(serializer.validated_data['new_password'])
             user.save()
-            return Response({'status': 'Password changed successfully'})
+            return Response({'status': 'Đổi mật khẩu thành công'})
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
