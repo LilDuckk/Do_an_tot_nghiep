@@ -28,6 +28,8 @@ db.sqlite3-journal
 media/
 static/
 staticfiles/
+**/migrations/*.py
+!**/migrations/__init__.py
 
 # Node.js
 node_modules/
@@ -205,3 +207,5 @@ docker-compose.override.yml
 .editorconfig
 .gitattributes
 .gitkeep 
+BE_WatchStore/apps/content/migrations/0002_initial.py
+BE_WatchStore/apps/content/migrations/0002_initial.py

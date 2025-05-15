@@ -3,4 +3,4 @@ from .brand_serializer import BrandSerializer
 from .product_serializer import ProductSerializer
 from .variant_serializer import ProductVariantSerializer
 from .product_image_serializer import ProductImageSerializer
-from .attribute_serializer import AttributeSerializer 
+from .attribute_serializer import AttributeValue, AttributeType 

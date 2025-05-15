@@ -1,3 +1,3 @@
-# apps/core/__init__.py
+# apps/core/views/__init__.py
 
-default_app_config = 'apps.core.apps.CoreConfig'
+from .audit_log_view import *
