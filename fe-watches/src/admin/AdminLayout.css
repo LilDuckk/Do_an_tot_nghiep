@@ -1,0 +1,373 @@
+/* Admin Layout Base Styles */
+:root {
+  /* Light Theme Variables */
+  --light-bg: #f8f9fa;
+  --light-sidebar-bg: #ffffff;
+  --light-header-bg: #ffffff;
+  --light-text: #333333;
+  --light-border: #e0e0e0;
+  --light-hover: #f0f0f0;
+  --light-active: #e9ecef;
+  --light-shadow: rgba(0, 0, 0, 0.1);
+  --light-dropdown-bg: #ffffff;
+  --light-icon: #555555;
+  
+  /* Dark Theme Variables */
+  --dark-bg: #1a1a1a;
+  --dark-sidebar-bg: #2c2c2c;
+  --dark-header-bg: #2c2c2c;
+  --dark-text: #e0e0e0;
+  --dark-border: #444444;
+  --dark-hover: #3a3a3a;
+  --dark-active: #3f3f3f;
+  --dark-shadow: rgba(0, 0, 0, 0.3);
+  --dark-dropdown-bg: #383838;
+  --dark-icon: #bbbbbb;
+}
+
+/* Theme Application */
+body[data-admin-theme="light"] {
+  background-color: var(--light-bg) !important;
+  color: var(--light-text) !important;
+}
+
+body[data-admin-theme="dark"] {
+  background-color: var(--dark-bg) !important;
+  color: var(--dark-text) !important;
+}
+
+/* Admin-specific theme variables */
+.admin-layout[data-admin-theme="light"],
+body[data-admin-theme="light"] .admin-layout {
+  --bg: var(--light-bg);
+  --sidebar-bg: var(--light-sidebar-bg);
+  --header-bg: var(--light-header-bg);
+  --text: var(--light-text);
+  --border: var(--light-border);
+  --hover: var(--light-hover);
+  --active: var(--light-active);
+  --shadow: var(--light-shadow);
+  --dropdown-bg: var(--light-dropdown-bg);
+  --icon: var(--light-icon);
+}
+
+.admin-layout[data-admin-theme="dark"],
+body[data-admin-theme="dark"] .admin-layout {
+  --bg: var(--dark-bg);
+  --sidebar-bg: var(--dark-sidebar-bg);
+  --header-bg: var(--dark-header-bg);
+  --text: var(--dark-text);
+  --border: var(--dark-border);
+  --hover: var(--dark-hover);
+  --active: var(--dark-active);
+  --shadow: var(--dark-shadow);
+  --dropdown-bg: var(--dark-dropdown-bg);
+  --icon: var(--dark-icon);
+}
+
+/* Layout Structure */
+.admin-layout {
+  display: flex;
+  min-height: 100vh;
+  background-color: var(--bg) !important;
+  color: var(--text) !important;
+  transition: all 0.3s ease;
+}
+
+/* Sidebar Styles */
+.admin-sidebar {
+  width: 250px;
+  background-color: var(--sidebar-bg) !important;
+  border-right: 1px solid var(--border);
+  box-shadow: 2px 0 8px var(--shadow);
+  transition: width 0.3s ease, border-radius 0.3s;
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  height: 100vh;
+  border-top-right-radius: 18px;
+  border-bottom-right-radius: 18px;
+  z-index: 101;
+}
+
+.admin-layout.collapsed .admin-sidebar {
+  width: 60px;
+  border-top-right-radius: 18px;
+  border-bottom-right-radius: 18px;
+}
+
+.admin-sidebar-top {
+  display: flex;
+  align-items: center;
+  padding: 15px;
+  border-bottom: 1px solid var(--border);
+  background: var(--sidebar-bg);
+  border-top-right-radius: 18px;
+}
+
+.admin-sidebar-top h2 {
+  margin: 0 0 0 10px;
+  font-size: 1.25rem;
+  color: var(--text) !important;
+  font-weight: bold;
+  letter-spacing: 1px;
+}
+
+.sidebar-toggle {
+  background: none;
+  border: none;
+  color: var(--icon);
+  font-size: 1.3rem;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.sidebar-toggle:hover {
+  background: var(--hover);
+}
+
+.admin-sidebar nav {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  max-height: calc(100vh - 60px); /* Subtract the height of the sidebar top section */
+}
+
+.admin-sidebar nav ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.admin-sidebar nav ul li {
+  margin: 0;
+  padding: 0;
+}
+
+.admin-sidebar nav ul li a,
+.dropdown-label {
+  display: flex;
+  align-items: center;
+  padding: 13px 18px;
+  color: var(--text) !important;
+  text-decoration: none;
+  transition: background-color 0.2s, color 0.2s;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 1.07rem;
+  border-radius: 6px;
+  margin: 2px 6px;
+}
+
+.admin-sidebar nav ul li a:hover,
+.dropdown-label:hover {
+  background-color: var(--hover) !important;
+  color: #2186eb !important;
+}
+
+.admin-sidebar nav ul li a.active {
+  background-color: var(--active) !important;
+  font-weight: bold;
+  color: #2186eb !important;
+}
+
+.sidebar-icon {
+  margin-right: 12px;
+  font-size: 1.25rem;
+  min-width: 24px;
+  text-align: center;
+  color: var(--icon) !important;
+  transition: color 0.2s;
+}
+
+.admin-layout.collapsed .sidebar-icon {
+  margin-right: 0;
+  font-size: 1.35rem;
+}
+
+/* Dropdown Menu */
+.dropdown-label {
+  position: relative;
+  justify-content: space-between;
+}
+
+.dropdown-arrow {
+  font-size: 0.8rem;
+  transition: transform 0.3s;
+}
+
+.dropdown-label.open .dropdown-arrow {
+  transform: rotate(180deg);
+}
+
+.dropdown-menu {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+  background-color: var(--dropdown-bg) !important;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px var(--shadow);
+  margin: 2px 0 6px 0;
+  position: static;
+}
+
+.dropdown-menu.show {
+  max-height: 500px;
+  overflow: visible;
+}
+
+.dropdown-menu li a {
+  padding-left: 45px;
+  font-size: 1rem;
+  border-radius: 6px;
+}
+
+.admin-layout.collapsed .dropdown-menu {
+  position: static;
+  left: unset;
+  top: unset;
+  width: 100%;
+  z-index: 1;
+  box-shadow: none;
+  border: none;
+  background: var(--dropdown-bg) !important;
+}
+
+.admin-layout.collapsed .dropdown-menu li a {
+  padding-left: 15px;
+}
+
+/* Đảm bảo dropdown không bị lòi ra ngoài khi sidebar thu nhỏ */
+.admin-layout.collapsed .dropdown-menu {
+  overflow: visible;
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Main Content Area */
+.admin-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+  margin-left: 250px;
+  transition: margin-left 0.3s ease;
+}
+
+.admin-layout.collapsed .admin-main {
+  margin-left: 60px;
+}
+
+/* Header Styles */
+.admin-header {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 10px 20px;
+  background-color: var(--header-bg) !important;
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 2px 5px var(--shadow);
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 250px;
+  z-index: 100;
+  transition: left 0.3s ease;
+}
+
+.admin-layout.collapsed .admin-header {
+  left: 60px;
+}
+
+.admin-user-info {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding: 5px 10px;
+  border-radius: 4px;
+}
+
+.admin-user-info:hover {
+  background-color: var(--hover);
+}
+
+.admin-user-name {
+  margin-left: 10px;
+  font-weight: 500;
+}
+
+/* Theme Toggle Button */
+.theme-toggle {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  margin-right: 15px;
+  padding: 5px 10px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.theme-toggle:hover {
+  background-color: var(--hover);
+}
+
+/* Content Area */
+.admin-main > div:not(.admin-header) {
+  padding: 20px;
+  padding-top: 70px; /* Add padding to account for the fixed header */
+  flex: 1;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .admin-sidebar {
+    width: 60px;
+  }
+  
+  .admin-layout:not(.collapsed) .admin-sidebar {
+    width: 250px;
+    position: fixed;
+    z-index: 1000;
+    height: 100vh;
+  }
+  
+  .admin-layout:not(.collapsed) .admin-main {
+    margin-left: 250px;
+  }
+}
+
+/* Override Admin.css styles when inside admin layout */
+.admin-layout .admin-dashboard-container {
+  background-color: var(--bg) !important;
+  box-shadow: 0 2px 8px var(--shadow);
+}
+
+.admin-layout .admin-dashboard-container h2 {
+  color: var(--text) !important;
+}
+
+.admin-layout .admin-dashboard-container p {
+  color: var(--text) !important;
+}
+
+.admin-layout .admin-login-container {
+  background-color: var(--sidebar-bg) !important;
+  box-shadow: 0 2px 8px var(--shadow);
+}
+
+/* Fix for index.css background override */
+body[data-admin-theme] {
+  background: initial !important;
+}
+
+/* Apply theme to all content within admin layout */
+.admin-layout * {
+  color: var(--text);
+}
+
+.admin-layout .admin-main > div:not(.admin-header) {
+  background-color: var(--bg) !important;
+}

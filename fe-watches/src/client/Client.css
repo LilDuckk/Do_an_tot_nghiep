@@ -1,0 +1,17 @@
+.client-home-container {
+  max-width: 800px;
+  margin: 60px auto;
+  padding: 40px;
+  background: #fffbe6;
+  border-radius: 10px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  text-align: center;
+}
+.client-home-container h1 {
+  color: #e17055;
+  margin-bottom: 16px;
+}
+.client-home-container p {
+  color: #636e72;
+  font-size: 18px;
+} 

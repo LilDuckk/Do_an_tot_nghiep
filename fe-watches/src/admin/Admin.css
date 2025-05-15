@@ -1,0 +1,58 @@
+.admin-login-container {
+  max-width: 400px;
+  margin: 100px auto;
+  padding: 32px;
+  background: var(--sidebar-bg);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px var(--shadow);
+  text-align: center;
+}
+.admin-login-form input {
+  display: block;
+  width: 100%;
+  margin: 12px 0;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+}
+.admin-login-form button {
+  width: 100%;
+  padding: 10px;
+  background: var(--text);
+  color: var(--sidebar-bg);
+  border: none;
+  border-radius: 4px;
+  font-size: 16px;
+  cursor: pointer;
+  margin-top: 10px;
+  transition: background 0.2s;
+}
+.admin-login-form button:hover {
+  background: var(--icon);
+}
+
+.admin-dashboard-container {
+  max-width: 600px;
+  margin: 80px auto;
+  padding: 32px;
+  background: var(--bg);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px var(--shadow);
+  text-align: center;
+}
+.admin-dashboard-container h2 {
+  color: var(--text);
+  margin-bottom: 16px;
+}
+.admin-dashboard-container p {
+  color: var(--text);
+  font-size: 18px;
+}
+
+.admin-error {
+  color: #e84118;
+  margin-top: 10px;
+  font-size: 15px;
+} 

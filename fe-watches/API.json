@@ -1,0 +1,3776 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Watch Store",
+    "version": "1.0.0",
+    "description": "API documentation for Watch Store backend"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8000/api",
+      "description": "Local development server"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        }
+      },
+      "UserDetailWithPermissions": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "username": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "is_active": { "type": "boolean" },
+          "is_staff": { "type": "boolean" },
+          "is_superuser": { "type": "boolean" },
+          "groups": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": { "type": "integer" },
+                "name": { "type": "string" }
+              }
+            }
+          },
+          "user_permissions": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "List of permission codenames (e.g., app_label.codename)"
+          }
+        }
+      },
+      "DjangoGroupInput": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": { "type": "string" },
+          "permissions": { 
+            "type": "array", 
+            "items": { "type": "integer" },
+            "description": "List of permission IDs"
+          }
+        }
+      },
+      "DjangoGroupOutput": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "name": { "type": "string" },
+          "permissions": { 
+            "type": "array", 
+            "items": { "type": "integer" },
+            "description": "List of permission IDs associated with the group"
+          }
+        }
+      },
+      "DjangoPermission": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "name": { "type": "string", "description": "Human-readable name of the permission" },
+          "codename": { "type": "string", "description": "Codename of the permission (e.g., view_user)" },
+          "content_type": { "type": "integer", "description": "ID of the associated content type (model)" }
+        }
+      }
+    }
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "paths": {
+    "/account/auth/login/": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Login user",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["username", "password"],
+                "properties": {
+                  "username": { "type": "string" },
+                  "password": { "type": "string" }
+                }
+              },
+              "example": {
+                "username": "admin",
+                "password": "admin123"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "access": { "type": "string", "description": "JWT access token" },
+                    "refresh": { "type": "string", "description": "JWT refresh token" },
+                    "user": { "$ref": "#/components/schemas/UserDetailWithPermissions" }
+                  }
+                }
+              }
+            },
+            "x-postman-script": {
+              "exec": [
+                "let responseData = pm.response.json();",
+                "pm.globals.set(\"bearerToken\", responseData.access);"
+              ]
+            }
+          },
+          "400": {
+            "description": "Invalid credentials",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          }
+        }
+      }
+    },
+    "/account/auth/me/": {
+      "get": {
+        "tags": ["Authentication"],
+        "summary": "Get current user info",
+        "responses": {
+          "200": {
+            "description": "User information retrieved successfully",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UserDetailWithPermissions" } } }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          }
+        }
+      }
+    },
+    "/account/auth/change_password/": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Change user password",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["old_password", "new_password"],
+                "properties": {
+                  "old_password": { "type": "string" },
+                  "new_password": { "type": "string" }
+                }
+              },
+              "example": {
+                "old_password": "admin123",
+                "new_password": "admin12345"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Password changed successfully" },
+          "400": {
+            "description": "Invalid old password or new password validation failed",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          }
+        }
+      }
+    },
+    "/account/users/": {
+      "get": {
+        "tags": ["Account"],
+        "summary": "List all users",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Search by username, email",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "ordering",
+            "in": "query",
+            "description": "Order by fields (prefix with '-' for descending)",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of users retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": { "type": "array", "items": { "$ref": "#/components/schemas/UserDetailWithPermissions" } }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Account"],
+        "summary": "Create a new user",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["username", "password"],
+                "properties": {
+                  "username": { "type": "string" },
+                  "email": { "type": "string", "format": "email" },
+                  "password": { "type": "string" },
+                  "groups": { 
+                    "type": "array", 
+                    "items": { "type": "integer" },
+                    "description": "List of Group IDs to assign to the user",
+                    "required": false 
+                  },
+                  "is_active": { "type": "boolean", "default": true },
+                  "is_staff": { "type": "boolean", "default": false },
+                  "is_superuser": { "type": "boolean", "default": false }
+                }
+              },
+              "example": {
+                "username": "newuser",
+                "email": "newuser@example.com",
+                "password": "password123",
+                "groups": [1]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User created successfully",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UserDetailWithPermissions" } } }
+          }
+        }
+      }
+    },
+    "/account/users/{id}/": {
+      "get": {
+        "tags": ["Account"],
+        "summary": "Get user details",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": {
+          "200": {
+            "description": "User details retrieved successfully",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UserDetailWithPermissions" } } }
+          }
+        }
+      },
+      "put": {
+        "tags": ["Account"],
+        "summary": "Update user",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": { "type": "string" },
+                  "email": { "type": "string", "format": "email" },
+                  "groups": { 
+                    "type": "array", 
+                    "items": { "type": "integer" },
+                    "description": "List of Group IDs to assign to the user" 
+                  },
+                  "is_active": { "type": "boolean" },
+                  "is_staff": { "type": "boolean" },
+                  "is_superuser": { "type": "boolean" }
+                  
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User updated successfully",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UserDetailWithPermissions" } } }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Account"],
+        "summary": "Delete user",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "204": { "description": "User deleted successfully" } }
+      }
+    },
+    "/account/users/{id}/change_password/": {
+      "post": {
+        "tags": ["Account"],
+        "summary": "Change user password",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["old_password", "new_password"],
+                "properties": {
+                  "old_password": {
+                    "type": "string"
+                  },
+                  "new_password": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password changed successfully"
+          }
+        }
+      }
+    },
+    "/account/auth/groups/": {
+      "get": {
+        "tags": ["Authorization"],
+        "summary": "List all groups",
+        "responses": {
+          "200": {
+            "description": "List of groups",
+            "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/DjangoGroupOutput" } } } }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Authorization"],
+        "summary": "Create a new group",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DjangoGroupInput" } } }
+        },
+        "responses": {
+          "201": {
+            "description": "Group created",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DjangoGroupOutput" } } }
+          }
+        }
+      }
+    },
+    "/account/auth/groups/{id}/": {
+      "get": {
+        "tags": ["Authorization"],
+        "summary": "Get group details",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": {
+          "200": {
+            "description": "Group details",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DjangoGroupOutput" } } }
+          }
+        }
+      },
+      "put": {
+        "tags": ["Authorization"],
+        "summary": "Update group",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DjangoGroupInput" } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Group updated",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DjangoGroupOutput" } } }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Authorization"],
+        "summary": "Delete group",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "204": { "description": "Group deleted successfully" } }
+      }
+    },
+    "/account/auth/permissions/": {
+      "get": {
+        "tags": ["Authorization"],
+        "summary": "List all permissions",
+        "responses": {
+          "200": {
+            "description": "List of permissions",
+            "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/DjangoPermission" } } } }
+          }
+        }
+      }
+    },
+    "/products/": {
+      "get": {
+        "tags": ["Products"],
+        "summary": "List all products",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Search by name, description, sku",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "brand",
+            "in": "query",
+            "description": "Filter by brand ID",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "description": "Filter by category ID",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "ordering",
+            "in": "query",
+            "description": "Order by fields (prefix with '-' for descending)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of products",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "description": {
+                        "type": "string"
+                      },
+                      "brand": {
+                        "type": "integer"
+                      },
+                      "category": {
+                        "type": "integer"
+                      },
+                      "sku": {
+                        "type": "string"
+                      },
+                      "is_active": {
+                        "type": "boolean"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Products"],
+        "summary": "Create a new product",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "brand", "category"],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "brand": {
+                    "type": "integer"
+                  },
+                  "category": {
+                    "type": "integer"
+                  },
+                  "sku": {
+                    "type": "string"
+                  },
+                  "is_active": {
+                    "type": "boolean"
+                  }
+                }
+              },
+              "example": {
+                "name": "Đồng hồ Casio",
+                "brand": 1,
+                "category": 1
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Product created successfully"
+          },
+          "400": {
+            "description": "Invalid input data"
+          }
+        }
+      }
+    },
+    "/products/{id}/": {
+      "get": {
+        "tags": ["Products"],
+        "summary": "Get product details",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Product details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "brand": {
+                      "type": "integer"
+                    },
+                    "category": {
+                      "type": "integer"
+                    },
+                    "sku": {
+                      "type": "string"
+                    },
+                    "is_active": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Product not found"
+          }
+        }
+      },
+      "put": {
+        "tags": ["Products"],
+        "summary": "Update product",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "brand": {
+                    "type": "integer"
+                  },
+                  "category": {
+                    "type": "integer"
+                  },
+                  "sku": {
+                    "type": "string"
+                  },
+                  "is_active": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Product updated successfully"
+          },
+          "404": {
+            "description": "Product not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Products"],
+        "summary": "Delete product",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Product deleted successfully"
+          },
+          "404": {
+            "description": "Product not found"
+          }
+        }
+      }
+    },
+    "/orders/": {
+      "get": {
+        "tags": ["Orders"],
+        "summary": "List all orders",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Search by order_number",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "user",
+            "in": "query",
+            "description": "Filter by user ID",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Filter by status",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "payment_method",
+            "in": "query",
+            "description": "Filter by payment method",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ordering",
+            "in": "query",
+            "description": "Order by fields (prefix with '-' for descending)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of orders",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer"
+                      },
+                      "order_number": {
+                        "type": "string"
+                      },
+                      "user": {
+                        "type": "integer"
+                      },
+                      "status": {
+                        "type": "string"
+                      },
+                      "payment_method": {
+                        "type": "string"
+                      },
+                      "shipping_address": {
+                        "type": "string"
+                      },
+                      "note": {
+                        "type": "string"
+                      },
+                      "total_amount": {
+                        "type": "number"
+                      },
+                      "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Orders"],
+        "summary": "Create a new order",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["user", "items"],
+                "properties": {
+                  "user": {
+                    "type": "integer"
+                  },
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": ["variant", "quantity"],
+                      "properties": {
+                        "variant": {
+                          "type": "integer"
+                        },
+                        "quantity": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  },
+                  "shipping_address": {
+                    "type": "string"
+                  },
+                  "payment_method": {
+                    "type": "string"
+                  },
+                  "note": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "user": 1,
+                "items": [
+                  {"variant": 1, "quantity": 2},
+                  {"variant": 2, "quantity": 1}
+                ],
+                "shipping_address": "123 Đường ABC, Quận 1, TP.HCM",
+                "payment_method": "cod"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Order created successfully"
+          },
+          "400": {
+            "description": "Invalid input data"
+          }
+        }
+      }
+    },
+    "/orders/{id}/": {
+      "get": {
+        "tags": ["Orders"],
+        "summary": "Get order details",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Order details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    },
+                    "order_number": {
+                      "type": "string"
+                    },
+                    "user": {
+                      "type": "integer"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "payment_method": {
+                      "type": "string"
+                    },
+                    "shipping_address": {
+                      "type": "string"
+                    },
+                    "note": {
+                      "type": "string"
+                    },
+                    "total_amount": {
+                      "type": "number"
+                    },
+                    "created_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "variant": {
+                            "type": "integer"
+                          },
+                          "quantity": {
+                            "type": "integer"
+                          },
+                          "price": {
+                            "type": "number"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Order not found"
+          }
+        }
+      },
+      "put": {
+        "tags": ["Orders"],
+        "summary": "Update order",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string"
+                  },
+                  "shipping_address": {
+                    "type": "string"
+                  },
+                  "payment_method": {
+                    "type": "string"
+                  },
+                  "note": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Order updated successfully"
+          },
+          "404": {
+            "description": "Order not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Orders"],
+        "summary": "Delete order",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Order deleted successfully"
+          },
+          "404": {
+            "description": "Order not found"
+          }
+        }
+      }
+    },
+    "/stores/": {
+      "get": {
+        "tags": ["Stores"],
+        "summary": "List all stores",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Search by name, address, phone, email",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "is_active",
+            "in": "query",
+            "description": "Filter by active status",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "ordering",
+            "in": "query",
+            "description": "Order by fields (prefix with '-' for descending)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of stores",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "address": {
+                        "type": "string"
+                      },
+                      "phone": {
+                        "type": "string"
+                      },
+                      "email": {
+                        "type": "string"
+                      },
+                      "is_active": {
+                        "type": "boolean"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Stores"],
+        "summary": "Create a new store",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "address"],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "address": {
+                    "type": "string"
+                  },
+                  "phone": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string"
+                  },
+                  "is_active": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Store created successfully"
+          },
+          "400": {
+            "description": "Invalid input data"
+          }
+        }
+      }
+    },
+    "/stores/{id}/": {
+      "get": {
+        "tags": ["Stores"],
+        "summary": "Get store details",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Store details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "address": {
+                      "type": "string"
+                    },
+                    "phone": {
+                      "type": "string"
+                    },
+                    "email": {
+                      "type": "string"
+                    },
+                    "is_active": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Store not found"
+          }
+        }
+      },
+      "put": {
+        "tags": ["Stores"],
+        "summary": "Update store",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "address": {
+                    "type": "string"
+                  },
+                  "phone": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string"
+                  },
+                  "is_active": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Store updated successfully"
+          },
+          "404": {
+            "description": "Store not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Stores"],
+        "summary": "Delete store",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Store deleted successfully"
+          },
+          "404": {
+            "description": "Store not found"
+          }
+        }
+      }
+    },
+    "/stores/store-inventories/": {
+      "get": {
+        "tags": ["Stores"],
+        "summary": "List all store inventories",
+        "parameters": [
+          {
+            "name": "store",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "variant",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of store inventories retrieved successfully"
+          }
+        }
+      },
+      "post": {
+        "tags": ["Stores"],
+        "summary": "Create a new store inventory",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["store", "variant", "quantity"],
+                "properties": {
+                  "store": {
+                    "type": "integer"
+                  },
+                  "variant": {
+                    "type": "integer"
+                  },
+                  "quantity": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Store inventory created successfully"
+          }
+        }
+      }
+    },
+    "/stores/store-inventories/{id}/": {
+      "get": {
+        "tags": ["Stores"],
+        "summary": "Get store inventory details",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Store inventory details retrieved successfully"
+          }
+        }
+      },
+      "put": {
+        "tags": ["Stores"],
+        "summary": "Update store inventory",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "store": {
+                    "type": "integer"
+                  },
+                  "variant": {
+                    "type": "integer"
+                  },
+                  "quantity": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Store inventory updated successfully"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Stores"],
+        "summary": "Delete store inventory",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Store inventory deleted successfully"
+          }
+        }
+      }
+    },
+    "/warranties/": {
+      "get": {
+        "tags": ["Warranty"],
+        "summary": "List all warranties",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Search by warranty_number",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "product",
+            "in": "query",
+            "description": "Filter by product ID",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "variant",
+            "in": "query",
+            "description": "Filter by variant ID",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Filter by status",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ordering",
+            "in": "query",
+            "description": "Order by fields (prefix with '-' for descending)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of warranties",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer"
+                      },
+                      "warranty_number": {
+                        "type": "string"
+                      },
+                      "product": {
+                        "type": "integer"
+                      },
+                      "variant": {
+                        "type": "integer"
+                      },
+                      "start_date": {
+                        "type": "string",
+                        "format": "date"
+                      },
+                      "end_date": {
+                        "type": "string",
+                        "format": "date"
+                      },
+                      "status": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Warranty"],
+        "summary": "Create a new warranty",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["product", "variant", "start_date", "end_date"],
+                "properties": {
+                  "product": {
+                    "type": "integer"
+                  },
+                  "variant": {
+                    "type": "integer"
+                  },
+                  "start_date": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "end_date": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": ["active", "expired", "cancelled"]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Warranty created successfully"
+          },
+          "400": {
+            "description": "Invalid input data"
+          }
+        }
+      }
+    },
+    "/audit-logs/": {
+      "get": {
+        "tags": ["Core"],
+        "summary": "List all audit logs",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Search by action, user, model",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ordering",
+            "in": "query",
+            "description": "Order by fields (prefix with '-' for descending)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of audit logs"
+          }
+        }
+      }
+    },
+    "/audit-logs/{id}/": {
+      "get": {
+        "tags": ["Core"],
+        "summary": "Get audit log details",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Audit log details"
+          }
+        }
+      }
+    },
+    "/products/attributesvalue/": {
+      "get": {
+        "tags": ["Products"],
+        "summary": "List all attribute values",
+        "responses": {
+          "200": {
+            "description": "List of attribute values retrieved successfully"
+          }
+        }
+      },
+      "post": {
+        "tags": ["Products"],
+        "summary": "Create a new attribute value",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "type"],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Attribute value created successfully"
+          }
+        }
+      }
+    },
+    "/products/attributesvalue/{id}/": {
+      "get": {
+        "tags": ["Products"],
+        "summary": "Get attribute value details",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Attribute value details retrieved successfully"
+          }
+        }
+      },
+      "put": {
+        "tags": ["Products"],
+        "summary": "Update attribute value",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Attribute value updated successfully"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Products"],
+        "summary": "Delete attribute value",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Attribute value deleted successfully"
+          }
+        }
+      }
+    },
+    "/products/attributestype/": {
+      "get": {
+        "tags": ["Products"],
+        "summary": "List all attribute types",
+        "responses": {
+          "200": {
+            "description": "List of attribute types retrieved successfully"
+          }
+        }
+      },
+      "post": {
+        "tags": ["Products"],
+        "summary": "Create a new attribute type",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name"],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Attribute type created successfully"
+          }
+        }
+      }
+    },
+    "/products/attributestype/{id}/": {
+      "get": {
+        "tags": ["Products"],
+        "summary": "Get attribute type details",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Attribute type details retrieved successfully"
+          }
+        }
+      },
+      "put": {
+        "tags": ["Products"],
+        "summary": "Update attribute type",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Attribute type updated successfully"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Products"],
+        "summary": "Delete attribute type",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Attribute type deleted successfully"
+          }
+        }
+      }
+    },
+    "/products/brands/": {
+      "get": {
+        "tags": ["Products"],
+        "summary": "List all brands",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Search by name, description",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ordering",
+            "in": "query",
+            "description": "Order by fields (prefix with '-' for descending)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of brands",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "slug": {
+                        "type": "string"
+                      },
+                      "description": {
+                        "type": "string"
+                      },
+                      "logo_url": {
+                        "type": "string"
+                      },
+                      "display_order": {
+                        "type": "integer"
+                      },
+                      "is_active": {
+                        "type": "boolean"
+                      },
+                      "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                      }
+                    }
+                  }
+                },
+                "example": [
+                  {
+                    "id": 1,
+                    "name": "Casio",
+                    "slug": "casio",
+                    "description": "Casio is a Japanese multinational consumer electronics and commercial electronics manufacturing company.",
+                    "logo_url": "https://example.com/logos/casio.png",
+                    "display_order": 1,
+                    "is_active": true,
+                    "created_at": "2023-01-01T00:00:00Z",
+                    "updated_at": "2023-01-01T00:00:00Z"
+                  },
+                  {
+                    "id": 2,
+                    "name": "Rolex",
+                    "slug": "rolex",
+                    "description": "Rolex is a Swiss luxury watch manufacturer based in Geneva, Switzerland.",
+                    "logo_url": "https://example.com/logos/rolex.png",
+                    "display_order": 2,
+                    "is_active": true,
+                    "created_at": "2023-01-01T00:00:00Z",
+                    "updated_at": "2023-01-01T00:00:00Z"
+                  },
+                  {
+                    "id": 3,
+                    "name": "Seiko",
+                    "slug": "seiko",
+                    "description": "Seiko is a Japanese watch manufacturer.",
+                    "logo_url": "https://example.com/logos/seiko.png",
+                    "display_order": 3,
+                    "is_active": true,
+                    "created_at": "2023-01-01T00:00:00Z",
+                    "updated_at": "2023-01-01T00:00:00Z"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Products"],
+        "summary": "Create a new brand",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name"],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "logo_url": {
+                    "type": "string"
+                  },
+                  "display_order": {
+                    "type": "integer"
+                  },
+                  "is_active": {
+                    "type": "boolean"
+                  }
+                }
+              },
+              "example": {
+                "name": "Citizen",
+                "description": "Citizen is a Japanese watch manufacturer.",
+                "logo_url": "https://example.com/logos/citizen.png",
+                "display_order": 4,
+                "is_active": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Brand created successfully"
+          },
+          "400": {
+            "description": "Invalid input data"
+          }
+        }
+      }
+    },
+    "/products/brands/{id}/": {
+      "get": {
+        "tags": ["Products"],
+        "summary": "Get brand details",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Brand details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "slug": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "logo_url": {
+                      "type": "string"
+                    },
+                    "display_order": {
+                      "type": "integer"
+                    },
+                    "is_active": {
+                      "type": "boolean"
+                    },
+                    "created_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updated_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                },
+                "example": {
+                  "id": 1,
+                  "name": "Casio",
+                  "slug": "casio",
+                  "description": "Casio is a Japanese multinational consumer electronics and commercial electronics manufacturing company.",
+                  "logo_url": "https://example.com/logos/casio.png",
+                  "display_order": 1,
+                  "is_active": true,
+                  "created_at": "2023-01-01T00:00:00Z",
+                  "updated_at": "2023-01-01T00:00:00Z"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Brand not found"
+          }
+        }
+      },
+      "put": {
+        "tags": ["Products"],
+        "summary": "Update brand",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "logo_url": {
+                    "type": "string"
+                  },
+                  "display_order": {
+                    "type": "integer"
+                  },
+                  "is_active": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Brand updated successfully"
+          },
+          "404": {
+            "description": "Brand not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Products"],
+        "summary": "Delete brand",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Brand deleted successfully"
+          },
+          "404": {
+            "description": "Brand not found"
+          }
+        }
+      }
+    },
+    "/products/categories/": {
+      "get": {
+        "tags": ["Products"],
+        "summary": "List all categories",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Search by name, description",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "parent",
+            "in": "query",
+            "description": "Filter by parent category ID",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "ordering",
+            "in": "query",
+            "description": "Order by fields (prefix with '-' for descending)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of categories",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "slug": {
+                        "type": "string"
+                      },
+                      "description": {
+                        "type": "string"
+                      },
+                      "parent": {
+                        "type": "integer",
+                        "nullable": true
+                      },
+                      "display_order": {
+                        "type": "integer"
+                      },
+                      "is_active": {
+                        "type": "boolean"
+                      },
+                      "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                      }
+                    }
+                  }
+                },
+                "example": [
+                  {
+                    "id": 1,
+                    "name": "Men's Watches",
+                    "slug": "mens-watches",
+                    "description": "Watches designed for men",
+                    "parent": null,
+                    "display_order": 1,
+                    "is_active": true,
+                    "created_at": "2023-01-01T00:00:00Z",
+                    "updated_at": "2023-01-01T00:00:00Z"
+                  },
+                  {
+                    "id": 2,
+                    "name": "Women's Watches",
+                    "slug": "womens-watches",
+                    "description": "Watches designed for women",
+                    "parent": null,
+                    "display_order": 2,
+                    "is_active": true,
+                    "created_at": "2023-01-01T00:00:00Z",
+                    "updated_at": "2023-01-01T00:00:00Z"
+                  },
+                  {
+                    "id": 3,
+                    "name": "Luxury Watches",
+                    "slug": "luxury-watches",
+                    "description": "High-end luxury watches",
+                    "parent": 1,
+                    "display_order": 1,
+                    "is_active": true,
+                    "created_at": "2023-01-01T00:00:00Z",
+                    "updated_at": "2023-01-01T00:00:00Z"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Products"],
+        "summary": "Create a new category",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name"],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "parent": {
+                    "type": "integer",
+                    "nullable": true
+                  },
+                  "display_order": {
+                    "type": "integer"
+                  },
+                  "is_active": {
+                    "type": "boolean"
+                  }
+                }
+              },
+              "example": {
+                "name": "Smart Watches",
+                "description": "Modern smart watches with advanced features",
+                "parent": 1,
+                "display_order": 3,
+                "is_active": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Category created successfully"
+          },
+          "400": {
+            "description": "Invalid input data"
+          }
+        }
+      }
+    },
+    "/products/categories/{id}/": {
+      "get": {
+        "tags": ["Products"],
+        "summary": "Get category details",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Category details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "slug": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "parent": {
+                      "type": "integer",
+                      "nullable": true
+                    },
+                    "display_order": {
+                      "type": "integer"
+                    },
+                    "is_active": {
+                      "type": "boolean"
+                    },
+                    "created_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updated_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                },
+                "example": {
+                  "id": 1,
+                  "name": "Men's Watches",
+                  "slug": "mens-watches",
+                  "description": "Watches designed for men",
+                  "parent": null,
+                  "display_order": 1,
+                  "is_active": true,
+                  "created_at": "2023-01-01T00:00:00Z",
+                  "updated_at": "2023-01-01T00:00:00Z"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Category not found"
+          }
+        }
+      },
+      "put": {
+        "tags": ["Products"],
+        "summary": "Update category",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "parent": {
+                    "type": "integer",
+                    "nullable": true
+                  },
+                  "display_order": {
+                    "type": "integer"
+                  },
+                  "is_active": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Category updated successfully"
+          },
+          "404": {
+            "description": "Category not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Products"],
+        "summary": "Delete category",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Category deleted successfully"
+          },
+          "404": {
+            "description": "Category not found"
+          }
+        }
+      }
+    },
+    "/products/product-images/": {
+      "get": {
+        "tags": ["Products"],
+        "summary": "List all product images",
+        "parameters": [
+          {
+            "name": "product",
+            "in": "query",
+            "description": "Filter by product ID",
+            "schema": { "type": "integer" }
+          },
+          {
+            "name": "product_variant",
+            "in": "query",
+            "description": "Filter by product variant ID",
+            "schema": { "type": "integer" }
+          },
+          {
+            "name": "is_primary",
+            "in": "query",
+            "description": "Filter by primary image status",
+            "schema": { "type": "boolean" }
+          },
+          {
+            "name": "ordering",
+            "in": "query",
+            "description": "Order by fields (prefix with '-' for descending)",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of product images",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": { "type": "integer" },
+                      "product": {
+                        "type": "object",
+                        "properties": {
+                          "id": { "type": "integer" },
+                          "name": { "type": "string" }
+                        }
+                      },
+                      "product_variant": {
+                        "type": "object",
+                        "properties": {
+                          "id": { "type": "integer" },
+                          "sku": { "type": "string" }
+                        }
+                      },
+                      "image_url": { "type": "string" },
+                      "is_primary": { "type": "boolean" },
+                      "alt_text": { "type": "string" },
+                      "display_order": { "type": "integer" },
+                      "created_at": { "type": "string", "format": "date-time" },
+                      "updated_at": { "type": "string", "format": "date-time" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Products"],
+        "summary": "Create a new product image",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["image"],
+                "properties": {
+                  "product_id": {
+                    "type": "integer",
+                    "description": "ID của sản phẩm (bắt buộc nếu không có product_variant_id)"
+                  },
+                  "product_variant_id": {
+                    "type": "integer",
+                    "description": "ID của biến thể sản phẩm (bắt buộc nếu không có product_id)"
+                  },
+                  "image": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "File ảnh (png, jpg, jpeg, gif, webp, tối đa 5MB)"
+                  },
+                  "is_primary": {
+                    "type": "boolean",
+                    "description": "Đặt làm ảnh chính"
+                  },
+                  "alt_text": {
+                    "type": "string",
+                    "description": "Mô tả thay thế cho ảnh"
+                  },
+                  "display_order": {
+                    "type": "integer",
+                    "description": "Thứ tự hiển thị"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Tạo ảnh sản phẩm thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "integer" },
+                    "product": {
+                      "type": "object",
+                      "properties": {
+                        "id": { "type": "integer" },
+                        "name": { "type": "string" }
+                      }
+                    },
+                    "product_variant": {
+                      "type": "object",
+                      "properties": {
+                        "id": { "type": "integer" },
+                        "sku": { "type": "string" }
+                      }
+                    },
+                    "image_url": { "type": "string" },
+                    "is_primary": { "type": "boolean" },
+                    "alt_text": { "type": "string" },
+                    "display_order": { "type": "integer" },
+                    "created_at": { "type": "string", "format": "date-time" },
+                    "updated_at": { "type": "string", "format": "date-time" }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Dữ liệu không hợp lệ hoặc thiếu product_id/product_variant_id hoặc file quá lớn"
+          }
+        }
+      }
+    },
+    "/products/product-images/{id}/": {
+      "get": {
+        "tags": ["Products"],
+        "summary": "Get product image details",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Product image details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    },
+                    "product": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "integer"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "product_variant": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "integer"
+                        },
+                        "sku": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "image_url": {
+                      "type": "string"
+                    },
+                    "is_primary": {
+                      "type": "boolean"
+                    },
+                    "alt_text": {
+                      "type": "string"
+                    },
+                    "display_order": {
+                      "type": "integer"
+                    },
+                    "created_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updated_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                },
+                "example": {
+                  "id": 1,
+                  "product": {
+                    "id": 1,
+                    "name": "Casio G-Shock"
+                  },
+                  "product_variant": null,
+                  "image_url": "https://example.com/images/casio-g-shock-1.jpg",
+                  "is_primary": true,
+                  "alt_text": "Casio G-Shock front view",
+                  "display_order": 1,
+                  "created_at": "2023-01-01T00:00:00Z",
+                  "updated_at": "2023-01-01T00:00:00Z"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Product image not found"
+          }
+        }
+      },
+      "put": {
+        "tags": ["Products"],
+        "summary": "Update product image",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "product_id": {
+                    "type": "integer"
+                  },
+                  "product_variant_id": {
+                    "type": "integer"
+                  },
+                  "image_url": {
+                    "type": "string"
+                  },
+                  "is_primary": {
+                    "type": "boolean"
+                  },
+                  "alt_text": {
+                    "type": "string"
+                  },
+                  "display_order": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Product image updated successfully"
+          },
+          "404": {
+            "description": "Product image not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Products"],
+        "summary": "Delete product image",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Product image deleted successfully"
+          },
+          "404": {
+            "description": "Product image not found"
+          }
+        }
+      }
+    },
+    "/orders/return-order-details/": {
+      "get": {
+        "tags": ["Orders"],
+        "summary": "List all return order details",
+        "responses": {
+          "200": {
+            "description": "List of return order details retrieved successfully"
+          }
+        }
+      },
+      "post": {
+        "tags": ["Orders"],
+        "summary": "Create a new return order detail",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["return_order", "variant", "quantity"],
+                "properties": {
+                  "return_order": {
+                    "type": "integer"
+                  },
+                  "variant": {
+                    "type": "integer"
+                  },
+                  "quantity": {
+                    "type": "integer"
+                  },
+                  "reason": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Return order detail created successfully"
+          }
+        }
+      }
+    },
+    "/orders/return-order-details/{id}/": {
+      "get": {
+        "tags": ["Orders"],
+        "summary": "Get return order detail details",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return order detail details retrieved successfully"
+          }
+        }
+      },
+      "put": {
+        "tags": ["Orders"],
+        "summary": "Update return order detail",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "return_order": {
+                    "type": "integer"
+                  },
+                  "variant": {
+                    "type": "integer"
+                  },
+                  "quantity": {
+                    "type": "integer"
+                  },
+                  "reason": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Return order detail updated successfully"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Orders"],
+        "summary": "Delete return order detail",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Return order detail deleted successfully"
+          }
+        }
+      }
+    },
+    "/orders/": {
+      "get": {
+        "tags": ["Orders"],
+        "summary": "List all orders",
+        "parameters": [
+          {
+            "name": "customer",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["pending", "processing", "completed", "cancelled"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of orders retrieved successfully"
+          }
+        }
+      },
+      "post": {
+        "tags": ["Orders"],
+        "summary": "Create a new order",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["customer", "items"],
+                "properties": {
+                  "customer": {
+                    "type": "integer"
+                  },
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": ["product_variant", "quantity"],
+                      "properties": {
+                        "product_variant": {
+                          "type": "integer"
+                        },
+                        "quantity": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": ["pending", "processing", "completed", "cancelled"]
+                  },
+                  "note": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Order created successfully"
+          }
+        }
+      }
+    },
+    "/orders/{id}/": {
+      "get": {
+        "tags": ["Orders"],
+        "summary": "Get order details",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Order details retrieved successfully"
+          }
+        }
+      },
+      "put": {
+        "tags": ["Orders"],
+        "summary": "Update order",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "customer": {
+                    "type": "integer"
+                  },
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": ["product_variant", "quantity"],
+                      "properties": {
+                        "product_variant": {
+                          "type": "integer"
+                        },
+                        "quantity": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": ["pending", "processing", "completed", "cancelled"]
+                  },
+                  "note": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Order updated successfully"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Orders"],
+        "summary": "Delete order",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Order deleted successfully"
+          }
+        }
+      }
+    },
+    "/orders/return-orders/": {
+      "get": {
+        "tags": ["Orders"],
+        "summary": "List all return orders",
+        "parameters": [
+          {
+            "name": "order",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["pending", "processing", "completed", "cancelled"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of return orders retrieved successfully"
+          }
+        }
+      },
+      "post": {
+        "tags": ["Orders"],
+        "summary": "Create a new return order",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["order", "items"],
+                "properties": {
+                  "order": {
+                    "type": "integer"
+                  },
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": ["product_variant", "quantity"],
+                      "properties": {
+                        "product_variant": {
+                          "type": "integer"
+                        },
+                        "quantity": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": ["pending", "processing", "completed", "cancelled"]
+                  },
+                  "note": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Return order created successfully"
+          }
+        }
+      }
+    },
+    "/orders/return-orders/{id}/": {
+      "get": {
+        "tags": ["Orders"],
+        "summary": "Get return order details",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return order details retrieved successfully"
+          }
+        }
+      },
+      "put": {
+        "tags": ["Orders"],
+        "summary": "Update return order",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "order": {
+                    "type": "integer"
+                  },
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": ["product_variant", "quantity"],
+                      "properties": {
+                        "product_variant": {
+                          "type": "integer"
+                        },
+                        "quantity": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": ["pending", "processing", "completed", "cancelled"]
+                  },
+                  "note": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Return order updated successfully"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Orders"],
+        "summary": "Delete return order",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Return order deleted successfully"
+          }
+        }
+      }
+    },
+    "/inventory/inventory-transactions/": {
+      "get": {
+        "tags": ["Inventory"],
+        "summary": "List all inventory transactions",
+        "parameters": [
+          {
+            "name": "inventory",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "transaction_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["in", "out", "adjustment"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of inventory transactions retrieved successfully"
+          }
+        }
+      },
+      "post": {
+        "tags": ["Inventory"],
+        "summary": "Create a new inventory transaction",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["inventory", "transaction_type", "quantity"],
+                "properties": {
+                  "inventory": {
+                    "type": "integer"
+                  },
+                  "transaction_type": {
+                    "type": "string",
+                    "enum": ["in", "out", "adjustment"]
+                  },
+                  "quantity": {
+                    "type": "integer"
+                  },
+                  "note": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Inventory transaction created successfully"
+          }
+        }
+      }
+    },
+    "/inventory/inventory-transactions/{id}/": {
+      "get": {
+        "tags": ["Inventory"],
+        "summary": "Get inventory transaction details",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Inventory transaction details retrieved successfully"
+          }
+        }
+      },
+      "put": {
+        "tags": ["Inventory"],
+        "summary": "Update inventory transaction",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "inventory": {
+                    "type": "integer"
+                  },
+                  "transaction_type": {
+                    "type": "string",
+                    "enum": ["in", "out", "adjustment"]
+                  },
+                  "quantity": {
+                    "type": "integer"
+                  },
+                  "note": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Inventory transaction updated successfully"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Inventory"],
+        "summary": "Delete inventory transaction",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Inventory transaction deleted successfully"
+          }
+        }
+      }
+    },
+    "/inventory/stock-takes/": {
+      "get": {
+        "tags": ["Inventory"],
+        "summary": "List all stock takes",
+        "parameters": [
+          {
+            "name": "store",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["pending", "in_progress", "completed"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of stock takes retrieved successfully"
+          }
+        }
+      },
+      "post": {
+        "tags": ["Inventory"],
+        "summary": "Create a new stock take",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["store"],
+                "properties": {
+                  "store": {
+                    "type": "integer"
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": ["pending", "in_progress", "completed"]
+                  },
+                  "note": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Stock take created successfully"
+          }
+        }
+      }
+    },
+    "/inventory/stock-takes/{id}/": {
+      "get": {
+        "tags": ["Inventory"],
+        "summary": "Get stock take details",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Stock take details retrieved successfully"
+          }
+        }
+      },
+      "put": {
+        "tags": ["Inventory"],
+        "summary": "Update stock take",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "store": {
+                    "type": "integer"
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": ["pending", "in_progress", "completed"]
+                  },
+                  "note": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Stock take updated successfully"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Inventory"],
+        "summary": "Delete stock take",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Stock take deleted successfully"
+          }
+        }
+      }
+    },
+    "/inventory/stock-transfers/": {
+      "get": {
+        "tags": ["Inventory"],
+        "summary": "List all stock transfers",
+        "parameters": [
+          {
+            "name": "from_store",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "to_store",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["pending", "in_progress", "completed", "cancelled"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of stock transfers retrieved successfully"
+          }
+        }
+      },
+      "post": {
+        "tags": ["Inventory"],
+        "summary": "Create a new stock transfer",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["from_store", "to_store", "items"],
+                "properties": {
+                  "from_store": {
+                    "type": "integer"
+                  },
+                  "to_store": {
+                    "type": "integer"
+                  },
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": ["variant", "quantity"],
+                      "properties": {
+                        "variant": {
+                          "type": "integer"
+                        },
+                        "quantity": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": ["pending", "in_progress", "completed", "cancelled"]
+                  },
+                  "note": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Stock transfer created successfully"
+          }
+        }
+      }
+    },
+    "/inventory/stock-transfers/{id}/": {
+      "get": {
+        "tags": ["Inventory"],
+        "summary": "Get stock transfer details",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Stock transfer details retrieved successfully"
+          }
+        }
+      },
+      "put": {
+        "tags": ["Inventory"],
+        "summary": "Update stock transfer",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "from_store": {
+                    "type": "integer"
+                  },
+                  "to_store": {
+                    "type": "integer"
+                  },
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": ["variant", "quantity"],
+                      "properties": {
+                        "variant": {
+                          "type": "integer"
+                        },
+                        "quantity": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": ["pending", "in_progress", "completed", "cancelled"]
+                  },
+                  "note": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Stock transfer updated successfully"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Inventory"],
+        "summary": "Delete stock transfer",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Stock transfer deleted successfully"
+          }
+        }
+      }
+    },
+    "/products/variants/": {
+      "get": {
+        "tags": ["Products"],
+        "summary": "List all product variants",
+        "parameters": [
+          { "name": "search", "in": "query", "description": "Search by name, sku", "schema": { "type": "string" } },
+          { "name": "product", "in": "query", "description": "Filter by product ID", "schema": { "type": "integer" } },
+          { "name": "ordering", "in": "query", "description": "Order by fields (prefix with '-' for descending)", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of product variants",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": { "type": "integer" },
+                      "product": { "type": "integer" },
+                      "sku": { "type": "string" },
+                      "price_adjustment": { "type": "number" },
+                      "stock_alert_threshold": { "type": "integer" },
+                      "barcode": { "type": "string" },
+                      "is_active": { "type": "boolean" },
+                      "created_at": { "type": "string", "format": "date-time" },
+                      "updated_at": { "type": "string", "format": "date-time" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Products"],
+        "summary": "Create a new product variant",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["product", "sku"],
+                "properties": {
+                  "product": { "type": "integer" },
+                  "sku": { "type": "string" },
+                  "price_adjustment": { "type": "number" },
+                  "stock_alert_threshold": { "type": "integer" },
+                  "barcode": { "type": "string" },
+                  "is_active": { "type": "boolean" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Product variant created successfully" },
+          "400": { "description": "Invalid input data" }
+        }
+      }
+    },
+    "/products/variants/{id}/": {
+      "get": {
+        "tags": ["Products"],
+        "summary": "Get product variant details",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Product variant details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "integer" },
+                    "product": { "type": "integer" },
+                    "sku": { "type": "string" },
+                    "price_adjustment": { "type": "number" },
+                    "stock_alert_threshold": { "type": "integer" },
+                    "barcode": { "type": "string" },
+                    "is_active": { "type": "boolean" },
+                    "created_at": { "type": "string", "format": "date-time" },
+                    "updated_at": { "type": "string", "format": "date-time" }
+                  }
+                }
+              }
+            }
+          },
+          "404": { "description": "Product variant not found" }
+        }
+      },
+      "put": {
+        "tags": ["Products"],
+        "summary": "Update product variant",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "product": { "type": "integer" },
+                  "sku": { "type": "string" },
+                  "price_adjustment": { "type": "number" },
+                  "stock_alert_threshold": { "type": "integer" },
+                  "barcode": { "type": "string" },
+                  "is_active": { "type": "boolean" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Product variant updated successfully" },
+          "404": { "description": "Product variant not found" }
+        }
+      },
+      "delete": {
+        "tags": ["Products"],
+        "summary": "Delete product variant",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "204": { "description": "Product variant deleted successfully" },
+          "404": { "description": "Product variant not found" }
+        }
+      }
+    }
+  }
+}
