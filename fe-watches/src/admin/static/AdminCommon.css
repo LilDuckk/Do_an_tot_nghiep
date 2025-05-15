@@ -1,0 +1,240 @@
+/* CSS dùng chung cho các trang quản lý (list, create, update) */
+
+.admin-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.admin-list-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: var(--text);
+}
+
+.admin-btn {
+  padding: 8px 18px;
+  border: none;
+  border-radius: 4px;
+  background: var(--icon);
+  color: var(--sidebar-bg);
+  font-size: 1rem;
+  cursor: pointer;
+  margin-right: 8px;
+  transition: background 0.2s;
+}
+.admin-btn.primary {
+  background: #2186eb;
+  color: #fff;
+}
+.admin-btn.danger, .admin-table .danger {
+  background: #e84118;
+  color: #fff;
+}
+.admin-btn:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--bg);
+  box-shadow: 0 2px 8px var(--shadow);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.admin-table th, .admin-table td {
+  padding: 12px 10px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+.admin-table th {
+  background: var(--sidebar-bg);
+  color: var(--text);
+  font-weight: 600;
+}
+.admin-table tr:last-child td {
+  border-bottom: none;
+}
+.admin-table tr:hover {
+  background: var(--hover);
+}
+
+.admin-group-create, .admin-group-edit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+}
+
+.admin-form {
+  max-width: 800px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: var(--sidebar-bg);
+  padding: 32px 32px 24px 32px;
+  border-radius: 12px;
+  box-shadow: 0 2px 16px var(--shadow);
+}
+.admin-form label {
+  display: flex;
+  flex-direction: column;
+  font-weight: 500;
+  color: var(--text);
+}
+.admin-form input,
+.admin-form select {
+  margin-top: 6px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 1rem;
+}
+.admin-form input[type="checkbox"] {
+  width: auto;
+  margin-right: 8px;
+}
+
+.admin-error {
+  color: #e84118;
+  margin-top: 10px;
+  font-size: 15px;
+  text-align: center;
+}
+
+@media (max-width: 600px) {
+  .admin-form {
+    max-width: 100%;
+    padding: 12px;
+  }
+  .admin-table th, .admin-table td {
+    padding: 8px 4px;
+    font-size: 0.95rem;
+  }
+  .admin-list-header h2 {
+    font-size: 1.1rem;
+  }
+}
+
+/* ====== PHẦN CHỌN QUYỀN 2 BẢNG ====== */
+.admin-perm-2col {
+  display: flex;
+  gap: 36px;
+  margin-bottom: 12px;
+  width: 900px;
+  max-width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  justify-content: center;
+}
+.admin-perm-col {
+  flex: 1;
+  background: #f6f8fa;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px #e0e6ed;
+  padding: 18px 14px 20px 14px;
+  min-width: 340px;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.admin-perm-col b {
+  font-size: 1.13rem;
+  color: #2186eb;
+  margin-bottom: 10px;
+  letter-spacing: 0.5px;
+}
+.admin-perm-col input[type="text"] {
+  margin-bottom: 12px;
+  border: 1px solid #b5c9e2;
+  background: #fff;
+  border-radius: 4px;
+  padding: 8px 10px;
+  font-size: 1rem;
+}
+.admin-perm-list {
+  border: 1px solid #e0e6ed;
+  background: #fff;
+  border-radius: 8px;
+  min-height: 180px;
+  max-height: 260px;
+  overflow-y: auto;
+  overflow-x: auto;
+  box-shadow: 0 1px 4px #e0e6ed;
+  padding: 4px 0;
+}
+.admin-perm-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 9px 12px;
+  border-bottom: 1px solid #f0f0f0;
+  transition: background 0.15s;
+  white-space: nowrap;
+  gap: 10px;
+}
+.admin-perm-item:last-child {
+  border-bottom: none;
+}
+.admin-perm-item:hover {
+  background: #eaf3ff;
+}
+.admin-perm-item span {
+  display: inline-block;
+  max-width: 70%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.admin-perm-move-btn {
+  background: #2186eb;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 5px 16px;
+  font-size: 1.1rem;
+  cursor: pointer;
+  margin-left: 8px;
+  transition: background 0.2s;
+  font-weight: 600;
+  box-shadow: 0 1px 2px #b5c9e2;
+}
+.admin-perm-move-btn:hover {
+  background: #1761b6;
+}
+.admin-perm-empty {
+  color: #aaa;
+  text-align: center;
+  padding: 16px 0;
+  font-size: 1.05rem;
+}
+
+@media (max-width: 1100px) {
+  .admin-perm-2col {
+    width: 100%;
+    gap: 18px;
+  }
+  .admin-form {
+    max-width: 98vw;
+    padding: 12px;
+  }
+}
+@media (max-width: 900px) {
+  .admin-perm-2col {
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+    align-items: stretch;
+  }
+  .admin-perm-col {
+    min-width: 0;
+    padding: 10px 6px 14px 6px;
+  }
+} 
