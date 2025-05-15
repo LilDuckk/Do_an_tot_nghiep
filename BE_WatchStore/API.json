@@ -1486,149 +1486,6 @@
         }
       }
     },
-    "/warranty/warranty-claims/": {
-      "get": {
-        "tags": ["Warranty"],
-        "summary": "List all warranty claims",
-        "parameters": [
-          {
-            "name": "warranty",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer"
-            }
-          },
-          {
-            "name": "status",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": ["pending", "approved", "rejected", "completed"]
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "List of warranty claims retrieved successfully"
-          }
-        }
-      },
-      "post": {
-        "tags": ["Warranty"],
-        "summary": "Create a new warranty claim",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["warranty", "description"],
-                "properties": {
-                  "warranty": {
-                    "type": "integer"
-                  },
-                  "description": {
-                    "type": "string"
-                  },
-                  "status": {
-                    "type": "string",
-                    "enum": ["pending", "approved", "rejected", "completed"]
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Warranty claim created successfully"
-          }
-        }
-      }
-    },
-    "/warranty/warranty-claims/{id}/": {
-      "get": {
-        "tags": ["Warranty"],
-        "summary": "Get warranty claim details",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Warranty claim details retrieved successfully"
-          }
-        }
-      },
-      "put": {
-        "tags": ["Warranty"],
-        "summary": "Update warranty claim",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "warranty": {
-                    "type": "integer"
-                  },
-                  "description": {
-                    "type": "string"
-                  },
-                  "status": {
-                    "type": "string",
-                    "enum": ["pending", "approved", "rejected", "completed"]
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Warranty claim updated successfully"
-          }
-        }
-      },
-      "delete": {
-        "tags": ["Warranty"],
-        "summary": "Delete warranty claim",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Warranty claim deleted successfully"
-          }
-        }
-      }
-    },
     "/audit-logs/": {
       "get": {
         "tags": ["Core"],
@@ -2518,33 +2375,25 @@
             "name": "product",
             "in": "query",
             "description": "Filter by product ID",
-            "schema": {
-              "type": "integer"
-            }
+            "schema": { "type": "integer" }
           },
           {
             "name": "product_variant",
             "in": "query",
             "description": "Filter by product variant ID",
-            "schema": {
-              "type": "integer"
-            }
+            "schema": { "type": "integer" }
           },
           {
             "name": "is_primary",
             "in": "query",
             "description": "Filter by primary image status",
-            "schema": {
-              "type": "boolean"
-            }
+            "schema": { "type": "boolean" }
           },
           {
             "name": "ordering",
             "in": "query",
             "description": "Order by fields (prefix with '-' for descending)",
-            "schema": {
-              "type": "string"
-            }
+            "schema": { "type": "string" }
           }
         ],
         "responses": {
@@ -2557,84 +2406,30 @@
                   "items": {
                     "type": "object",
                     "properties": {
-                      "id": {
-                        "type": "integer"
-                      },
+                      "id": { "type": "integer" },
                       "product": {
                         "type": "object",
                         "properties": {
-                          "id": {
-                            "type": "integer"
-                          },
-                          "name": {
-                            "type": "string"
-                          }
+                          "id": { "type": "integer" },
+                          "name": { "type": "string" }
                         }
                       },
                       "product_variant": {
                         "type": "object",
                         "properties": {
-                          "id": {
-                            "type": "integer"
-                          },
-                          "sku": {
-                            "type": "string"
-                          }
+                          "id": { "type": "integer" },
+                          "sku": { "type": "string" }
                         }
                       },
-                      "image_url": {
-                        "type": "string"
-                      },
-                      "is_primary": {
-                        "type": "boolean"
-                      },
-                      "alt_text": {
-                        "type": "string"
-                      },
-                      "display_order": {
-                        "type": "integer"
-                      },
-                      "created_at": {
-                        "type": "string",
-                        "format": "date-time"
-                      },
-                      "updated_at": {
-                        "type": "string",
-                        "format": "date-time"
-                      }
+                      "image_url": { "type": "string" },
+                      "is_primary": { "type": "boolean" },
+                      "alt_text": { "type": "string" },
+                      "display_order": { "type": "integer" },
+                      "created_at": { "type": "string", "format": "date-time" },
+                      "updated_at": { "type": "string", "format": "date-time" }
                     }
                   }
-                },
-                "example": [
-                  {
-                    "id": 1,
-                    "product": {
-                      "id": 1,
-                      "name": "Casio G-Shock"
-                    },
-                    "product_variant": null,
-                    "image_url": "https://example.com/images/casio-g-shock-1.jpg",
-                    "is_primary": true,
-                    "alt_text": "Casio G-Shock front view",
-                    "display_order": 1,
-                    "created_at": "2023-01-01T00:00:00Z",
-                    "updated_at": "2023-01-01T00:00:00Z"
-                  },
-                  {
-                    "id": 2,
-                    "product": {
-                      "id": 1,
-                      "name": "Casio G-Shock"
-                    },
-                    "product_variant": null,
-                    "image_url": "https://example.com/images/casio-g-shock-2.jpg",
-                    "is_primary": false,
-                    "alt_text": "Casio G-Shock side view",
-                    "display_order": 2,
-                    "created_at": "2023-01-01T00:00:00Z",
-                    "updated_at": "2023-01-01T00:00:00Z"
-                  }
-                ]
+                }
               }
             }
           }
@@ -2646,47 +2441,77 @@
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": {
+            "multipart/form-data": {
               "schema": {
                 "type": "object",
-                "required": ["image_url"],
+                "required": ["image"],
                 "properties": {
                   "product_id": {
-                    "type": "integer"
+                    "type": "integer",
+                    "description": "ID của sản phẩm (bắt buộc nếu không có product_variant_id)"
                   },
                   "product_variant_id": {
-                    "type": "integer"
+                    "type": "integer",
+                    "description": "ID của biến thể sản phẩm (bắt buộc nếu không có product_id)"
                   },
-                  "image_url": {
-                    "type": "string"
+                  "image": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "File ảnh (png, jpg, jpeg, gif, webp, tối đa 5MB)"
                   },
                   "is_primary": {
-                    "type": "boolean"
+                    "type": "boolean",
+                    "description": "Đặt làm ảnh chính"
                   },
                   "alt_text": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Mô tả thay thế cho ảnh"
                   },
                   "display_order": {
-                    "type": "integer"
+                    "type": "integer",
+                    "description": "Thứ tự hiển thị"
                   }
                 }
-              },
-              "example": {
-                "product_id": 1,
-                "image_url": "https://example.com/images/casio-g-shock-3.jpg",
-                "is_primary": false,
-                "alt_text": "Casio G-Shock back view",
-                "display_order": 3
               }
             }
           }
         },
         "responses": {
           "201": {
-            "description": "Product image created successfully"
+            "description": "Tạo ảnh sản phẩm thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "integer" },
+                    "product": {
+                      "type": "object",
+                      "properties": {
+                        "id": { "type": "integer" },
+                        "name": { "type": "string" }
+                      }
+                    },
+                    "product_variant": {
+                      "type": "object",
+                      "properties": {
+                        "id": { "type": "integer" },
+                        "sku": { "type": "string" }
+                      }
+                    },
+                    "image_url": { "type": "string" },
+                    "is_primary": { "type": "boolean" },
+                    "alt_text": { "type": "string" },
+                    "display_order": { "type": "integer" },
+                    "created_at": { "type": "string", "format": "date-time" },
+                    "updated_at": { "type": "string", "format": "date-time" }
+                  }
+                }
+              }
+            }
           },
           "400": {
-            "description": "Invalid input data"
+            "description": "Dữ liệu không hợp lệ hoặc thiếu product_id/product_variant_id hoặc file quá lớn"
           }
         }
       }
@@ -2981,6 +2806,352 @@
         "responses": {
           "204": {
             "description": "Return order detail deleted successfully"
+          }
+        }
+      }
+    },
+    "/orders/": {
+      "get": {
+        "tags": ["Orders"],
+        "summary": "List all orders",
+        "parameters": [
+          {
+            "name": "customer",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["pending", "processing", "completed", "cancelled"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of orders retrieved successfully"
+          }
+        }
+      },
+      "post": {
+        "tags": ["Orders"],
+        "summary": "Create a new order",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["customer", "items"],
+                "properties": {
+                  "customer": {
+                    "type": "integer"
+                  },
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": ["product_variant", "quantity"],
+                      "properties": {
+                        "product_variant": {
+                          "type": "integer"
+                        },
+                        "quantity": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": ["pending", "processing", "completed", "cancelled"]
+                  },
+                  "note": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Order created successfully"
+          }
+        }
+      }
+    },
+    "/orders/{id}/": {
+      "get": {
+        "tags": ["Orders"],
+        "summary": "Get order details",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Order details retrieved successfully"
+          }
+        }
+      },
+      "put": {
+        "tags": ["Orders"],
+        "summary": "Update order",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "customer": {
+                    "type": "integer"
+                  },
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": ["product_variant", "quantity"],
+                      "properties": {
+                        "product_variant": {
+                          "type": "integer"
+                        },
+                        "quantity": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": ["pending", "processing", "completed", "cancelled"]
+                  },
+                  "note": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Order updated successfully"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Orders"],
+        "summary": "Delete order",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Order deleted successfully"
+          }
+        }
+      }
+    },
+    "/orders/return-orders/": {
+      "get": {
+        "tags": ["Orders"],
+        "summary": "List all return orders",
+        "parameters": [
+          {
+            "name": "order",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["pending", "processing", "completed", "cancelled"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of return orders retrieved successfully"
+          }
+        }
+      },
+      "post": {
+        "tags": ["Orders"],
+        "summary": "Create a new return order",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["order", "items"],
+                "properties": {
+                  "order": {
+                    "type": "integer"
+                  },
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": ["product_variant", "quantity"],
+                      "properties": {
+                        "product_variant": {
+                          "type": "integer"
+                        },
+                        "quantity": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": ["pending", "processing", "completed", "cancelled"]
+                  },
+                  "note": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Return order created successfully"
+          }
+        }
+      }
+    },
+    "/orders/return-orders/{id}/": {
+      "get": {
+        "tags": ["Orders"],
+        "summary": "Get return order details",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return order details retrieved successfully"
+          }
+        }
+      },
+      "put": {
+        "tags": ["Orders"],
+        "summary": "Update return order",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "order": {
+                    "type": "integer"
+                  },
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": ["product_variant", "quantity"],
+                      "properties": {
+                        "product_variant": {
+                          "type": "integer"
+                        },
+                        "quantity": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": ["pending", "processing", "completed", "cancelled"]
+                  },
+                  "note": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Return order updated successfully"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Orders"],
+        "summary": "Delete return order",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Return order deleted successfully"
           }
         }
       }
@@ -3461,6 +3632,143 @@
           "204": {
             "description": "Stock transfer deleted successfully"
           }
+        }
+      }
+    },
+    "/products/variants/": {
+      "get": {
+        "tags": ["Products"],
+        "summary": "List all product variants",
+        "parameters": [
+          { "name": "search", "in": "query", "description": "Search by name, sku", "schema": { "type": "string" } },
+          { "name": "product", "in": "query", "description": "Filter by product ID", "schema": { "type": "integer" } },
+          { "name": "ordering", "in": "query", "description": "Order by fields (prefix with '-' for descending)", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of product variants",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": { "type": "integer" },
+                      "product": { "type": "integer" },
+                      "sku": { "type": "string" },
+                      "price_adjustment": { "type": "number" },
+                      "stock_alert_threshold": { "type": "integer" },
+                      "barcode": { "type": "string" },
+                      "is_active": { "type": "boolean" },
+                      "created_at": { "type": "string", "format": "date-time" },
+                      "updated_at": { "type": "string", "format": "date-time" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Products"],
+        "summary": "Create a new product variant",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["product", "sku"],
+                "properties": {
+                  "product": { "type": "integer" },
+                  "sku": { "type": "string" },
+                  "price_adjustment": { "type": "number" },
+                  "stock_alert_threshold": { "type": "integer" },
+                  "barcode": { "type": "string" },
+                  "is_active": { "type": "boolean" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Product variant created successfully" },
+          "400": { "description": "Invalid input data" }
+        }
+      }
+    },
+    "/products/variants/{id}/": {
+      "get": {
+        "tags": ["Products"],
+        "summary": "Get product variant details",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Product variant details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "integer" },
+                    "product": { "type": "integer" },
+                    "sku": { "type": "string" },
+                    "price_adjustment": { "type": "number" },
+                    "stock_alert_threshold": { "type": "integer" },
+                    "barcode": { "type": "string" },
+                    "is_active": { "type": "boolean" },
+                    "created_at": { "type": "string", "format": "date-time" },
+                    "updated_at": { "type": "string", "format": "date-time" }
+                  }
+                }
+              }
+            }
+          },
+          "404": { "description": "Product variant not found" }
+        }
+      },
+      "put": {
+        "tags": ["Products"],
+        "summary": "Update product variant",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "product": { "type": "integer" },
+                  "sku": { "type": "string" },
+                  "price_adjustment": { "type": "number" },
+                  "stock_alert_threshold": { "type": "integer" },
+                  "barcode": { "type": "string" },
+                  "is_active": { "type": "boolean" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Product variant updated successfully" },
+          "404": { "description": "Product variant not found" }
+        }
+      },
+      "delete": {
+        "tags": ["Products"],
+        "summary": "Delete product variant",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "204": { "description": "Product variant deleted successfully" },
+          "404": { "description": "Product variant not found" }
         }
       }
     }

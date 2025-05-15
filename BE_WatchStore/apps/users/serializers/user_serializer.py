@@ -57,3 +57,15 @@ class UserSerializer(serializers.ModelSerializer):
         if groups_data is not None:
             instance.groups.set(groups_data)
         return instance
+
+    def validate(self, attrs):
+        # Lấy thông tin group và is_superuser từ dữ liệu đầu vào
+        groups = attrs.get('groups_id', None)
+        is_superuser = attrs.get('is_superuser', False)
+        # Nếu không phải superuser thì phải có ít nhất 1 group
+        if not is_superuser:
+            if not groups or len(groups) == 0:
+                raise serializers.ValidationError({
+                    'groups_id': 'Tài khoản phải thuộc ít nhất 1 group, trừ khi là tài khoản superuser.'
+                })
+        return attrs
