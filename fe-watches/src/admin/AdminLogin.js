@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import './Admin.css';
+import axiosInstance from '../services/axiosConfig';
+import { authService } from '../services/authService';
+import { saveUserPermissionsAfterLogin } from '../services/permission';
+import './static/Admin.css';
 
 export default function AdminLogin() {
   const [username, setUsername] = useState('');
@@ -9,8 +12,7 @@ export default function AdminLogin() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const token = localStorage.getItem('accessToken');
-    if (token) {
+    if (authService.isTokenValid()) {
       navigate('/admin/dashboard');
     }
   }, [navigate]);
@@ -19,21 +21,27 @@ export default function AdminLogin() {
     e.preventDefault();
     setError('');
     try {
-      const res = await fetch('http://localhost:8000/api/account/auth/login/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
+      const response = await axiosInstance.post('/account/auth/login/', {
+        username,
+        password
       });
-      const data = await res.json();
-      if (res.ok && data.access) {
-        localStorage.setItem('accessToken', data.access);
-        localStorage.setItem('adminUser', JSON.stringify(data.user));
+
+      if (response.data.access) {
+        authService.setTokens(response.data.access, response.data.refresh);
+        localStorage.setItem('adminUser', JSON.stringify(response.data.user));
+        await saveUserPermissionsAfterLogin(response.data.user);
+        localStorage.setItem('user_permission_codenames', JSON.stringify(response.data.user.user_permissions || []));
         navigate('/admin/dashboard');
-      } else {
-        setError(data.error || 'Đăng nhập thất bại!');
       }
     } catch (err) {
-      setError('Lỗi kết nối server!');
+      console.error('Lỗi đăng nhập:', err);
+      if (err.response?.data?.detail) {
+        setError(err.response.data.detail);
+      } else if (err.response?.data?.non_field_errors) {
+        setError(err.response.data.non_field_errors[0]);
+      } else {
+        setError('Đăng nhập thất bại! Vui lòng kiểm tra lại thông tin.');
+      }
     }
   };
 
@@ -41,8 +49,20 @@ export default function AdminLogin() {
     <div className="admin-login-container">
       <h2>Đăng nhập Admin</h2>
       <form className="admin-login-form" onSubmit={handleSubmit}>
-        <input type="text" placeholder="Tên đăng nhập" value={username} onChange={e => setUsername(e.target.value)} />
-        <input type="password" placeholder="Mật khẩu" value={password} onChange={e => setPassword(e.target.value)} />
+        <input 
+          type="text" 
+          placeholder="Tên đăng nhập" 
+          value={username} 
+          onChange={e => setUsername(e.target.value)}
+          required 
+        />
+        <input 
+          type="password" 
+          placeholder="Mật khẩu" 
+          value={password} 
+          onChange={e => setPassword(e.target.value)}
+          required 
+        />
         <button type="submit">Đăng nhập</button>
         {error && <div className="admin-error">{error}</div>}
       </form>

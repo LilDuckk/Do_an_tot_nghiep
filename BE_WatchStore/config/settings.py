@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 from dotenv import load_dotenv
+from datetime import timedelta
 
 # Load biến môi trường từ file .env
 load_dotenv()
@@ -85,6 +86,9 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
+    'DEFAULT_PAGINATION_CLASS': 'config.pagination.CustomPagination',
+    'PAGE_SIZE': 10,
+    'DEFAULT_FILTER_BACKENDS': ['rest_framework.filters.SearchFilter'],
 }
 
 # Password validation
@@ -126,3 +130,16 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
 ]
 CORS_ALLOW_CREDENTIALS = True
+
+# JWT Settings
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=7),  # Token truy cập tồn tại 7 ngày
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=30),  # Token làm mới tồn tại 30 ngày
+    'ROTATE_REFRESH_TOKENS': True,  # Tự động tạo token làm mới mới khi refresh
+    'BLACKLIST_AFTER_ROTATION': True,  # Đưa token cũ vào blacklist sau khi refresh
+    'UPDATE_LAST_LOGIN': True,  # Cập nhật thời gian đăng nhập cuối cùng
+    'ALGORITHM': 'HS256',  # Thuật toán mã hóa
+    'SIGNING_KEY': SECRET_KEY,  # Khóa bí mật để ký token
+    'AUTH_HEADER_TYPES': ('Bearer',),  # Loại header xác thực
+    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),  # Loại token
+}

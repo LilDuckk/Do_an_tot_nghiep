@@ -28,7 +28,7 @@ export default function UserCreatePage() {
             'Content-Type': 'application/json'
           }
         });
-        setGroups(response.data);
+        setGroups(Array.isArray(response.data) ? response.data : (response.data.results || []));
       } catch (err) {
         console.error('Lỗi tải danh sách nhóm:', err);
         setError('Không thể tải danh sách nhóm');
@@ -61,7 +61,10 @@ export default function UserCreatePage() {
 
     try {
       const token = localStorage.getItem('accessToken');
-      const response = await axios.post('http://localhost:8000/api/account/users/', form, {
+      await axios.post('http://localhost:8000/api/account/users/', {
+        ...form,
+        groups_id: form.groups_id
+      }, {
         headers: { 
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -131,7 +134,7 @@ export default function UserCreatePage() {
             onChange={handleChange}
             disabled={form.is_superuser}
           >
-            {groups.map(g => (
+            {(Array.isArray(groups) ? groups : []).map(g => (
               <option key={g.id} value={g.id}>
                 {g.name}
               </option>
@@ -140,27 +143,29 @@ export default function UserCreatePage() {
           {form.is_superuser && <small>Tài khoản superuser không cần nhóm quyền</small>}
         </label>
         
-        <label>
+        <label class="admin-checkbox">
           <input 
             type="checkbox" 
             name="is_active" 
             checked={form.is_active} 
             onChange={handleChange} 
           /> 
+          <span class="admin-checkbox-custom"></span>
           Hoạt động
         </label>
         
-        <label>
+        <label class="admin-checkbox">
           <input 
             type="checkbox" 
             name="is_staff" 
             checked={form.is_staff} 
             onChange={handleChange} 
           /> 
+          <span class="admin-checkbox-custom"></span>
           Nhân viên
         </label>
         
-        <label>
+        <label class="admin-checkbox">
           <input 
             type="checkbox" 
             name="is_superuser" 
@@ -173,6 +178,7 @@ export default function UserCreatePage() {
               }
             }} 
           /> 
+          <span class="admin-checkbox-custom"></span>
           Quản trị viên
         </label>
         

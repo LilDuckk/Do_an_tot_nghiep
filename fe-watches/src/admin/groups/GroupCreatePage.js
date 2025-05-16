@@ -13,10 +13,13 @@ export default function GroupCreatePage() {
   useEffect(() => {
     const fetchPermissions = async () => {
       const token = localStorage.getItem('accessToken');
-      const res = await fetch('http://localhost:8000/api/account/auth/permissions/', {
+      const res = await fetch('http://localhost:8000/api/account/auth/permissions/all/', {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (res.ok) setPermissions(await res.json());
+      if (res.ok) {
+        const data = await res.json();
+        setPermissions(Array.isArray(data) ? data : (data.results || []));
+      }
     };
     fetchPermissions();
   }, []);
@@ -58,11 +61,11 @@ export default function GroupCreatePage() {
   };
 
   // Quyền chưa chọn
-  const availablePermissions = permissions.filter(
+  const availablePermissions = (Array.isArray(permissions) ? permissions : []).filter(
     p => !form.permissions.includes(p.id) && p.name.toLowerCase().includes(searchLeft.toLowerCase())
   );
   // Quyền đã chọn
-  const selectedPermissions = permissions.filter(
+  const selectedPermissions = (Array.isArray(permissions) ? permissions : []).filter(
     p => form.permissions.includes(p.id) && p.name.toLowerCase().includes(searchRight.toLowerCase())
   );
 

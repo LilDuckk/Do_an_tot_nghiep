@@ -37,7 +37,7 @@
           "is_active": { "type": "boolean" },
           "is_staff": { "type": "boolean" },
           "is_superuser": { "type": "boolean" },
-          "groups": {
+          "groups_id": {
             "type": "array",
             "items": {
               "type": "object",
@@ -239,7 +239,7 @@
                   "username": { "type": "string" },
                   "email": { "type": "string", "format": "email" },
                   "password": { "type": "string" },
-                  "groups": { 
+                  "groups_id": { 
                     "type": "array", 
                     "items": { "type": "integer" },
                     "description": "List of Group IDs to assign to the user",
@@ -254,7 +254,7 @@
                 "username": "newuser",
                 "email": "newuser@example.com",
                 "password": "password123",
-                "groups": [1]
+                "groups_id": [1]
               }
             }
           }
@@ -292,7 +292,7 @@
                 "properties": {
                   "username": { "type": "string" },
                   "email": { "type": "string", "format": "email" },
-                  "groups": { 
+                  "groups_id": { 
                     "type": "array", 
                     "items": { "type": "integer" },
                     "description": "List of Group IDs to assign to the user" 

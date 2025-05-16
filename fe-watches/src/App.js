@@ -1,19 +1,17 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
+import { authService } from './services/authService';
 import AdminLogin from './admin/AdminLogin';
 import ClientHome from './client/ClientHome';
 import Dashboard from './admin/Dashboard';
 import AdminLayout from './admin/AdminLayout';
-import UsersPage from './admin/users/UsersPage';
-import ProductsPage from './admin/products/ProductsPage';
 import OrdersPage from './admin/orders/OrdersPage';
+import ProductsPage from './admin/products/ProductsPage';
 import StoresPage from './admin/stores/StoresPage';
 import WarrantiesPage from './admin/warranties/WarrantiesPage';
 import AuditLogsPage from './admin/audit/AuditLogsPage';
 import LogoutPage from './admin/logout/LogoutPage';
 import ProfilePage from './admin/profile/ProfilePage';
-import GroupsPage from './admin/groups/GroupsPage';
-import PermissionsPage from './admin/permissions/PermissionsPage';
 import CategoriesPage from './admin/categories/CategoriesPage';
 import BrandsPage from './admin/brands/BrandsPage';
 import VariantsPage from './admin/variants/VariantsPage';
@@ -31,10 +29,24 @@ import GroupCreatePage from './admin/groups/GroupCreatePage';
 import GroupEditPage from './admin/groups/GroupEditPage';
 import GroupViewPage from './admin/groups/GroupViewPage';
 import PermissionsListPage from './admin/permissions/PermissionsListPage';
+import ProductCreatePage from './admin/products/ProductCreatePage';
+import ProductEditPage from './admin/products/ProductEditPage';
+import ProductViewPage from './admin/products/ProductViewPage';
+import BrandCreatePage from './admin/brands/BrandCreatePage';
+import BrandEditPage from './admin/brands/BrandEditPage';
+import BrandViewPage from './admin/brands/BrandViewPage';
+import CategoryCreatePage from './admin/categories/CategoryCreatePage';
+import CategoryEditPage from './admin/categories/CategoryEditPage';
+import CategoryViewPage from './admin/categories/CategoryViewPage';
+import AttributeCreatePage from './admin/attributes/AttributeCreatePage';
+import AttributeEditPage from './admin/attributes/AttributeEditPage';
+import AttributeViewPage from './admin/attributes/AttributeViewPage';
+import VariantCreatePage from './admin/variants/VariantCreatePage';
+import VariantEditPage from './admin/variants/VariantEditPage';
+import VariantViewPage from './admin/variants/VariantViewPage';
 
 function PrivateRoute({ children }) {
-  const token = localStorage.getItem('accessToken') || localStorage.getItem('access');
-  return token ? children : <Navigate to="/admin/login" />;
+  return authService.isTokenValid() ? children : <Navigate to="/admin/login" />;
 }
 
 function App() {
@@ -54,6 +66,9 @@ function App() {
           <Route path="groups/:id/edit" element={<GroupEditPage />} />
           <Route path="permissions" element={<PermissionsListPage />} />
           <Route path="products" element={<ProductsPage />} />
+          <Route path="products/create" element={<ProductCreatePage />} />
+          <Route path="products/:id" element={<ProductViewPage />} />
+          <Route path="products/:id/edit" element={<ProductEditPage />} />
           <Route path="orders" element={<OrdersPage />} />
           <Route path="stores" element={<StoresPage />} />
           <Route path="warranties" element={<WarrantiesPage />} />
@@ -61,9 +76,21 @@ function App() {
           <Route path="logout" element={<LogoutPage />} />
           <Route path="profile" element={<ProfilePage />} />
           <Route path="categories" element={<CategoriesPage />} />
+          <Route path="categories/create" element={<CategoryCreatePage />} />
+          <Route path="categories/:id" element={<CategoryViewPage />} />
+          <Route path="categories/:id/edit" element={<CategoryEditPage />} />
           <Route path="brands" element={<BrandsPage />} />
+          <Route path="brands/create" element={<BrandCreatePage />} />
+          <Route path="brands/:id" element={<BrandViewPage />} />
+          <Route path="brands/:id/edit" element={<BrandEditPage />} />
           <Route path="variants" element={<VariantsPage />} />
+          <Route path="variants/create" element={<VariantCreatePage />} />
+          <Route path="variants/:id" element={<VariantViewPage />} />
+          <Route path="variants/:id/edit" element={<VariantEditPage />} />
           <Route path="attributes" element={<AttributesPage />} />
+          <Route path="attributes/create" element={<AttributeCreatePage />} />
+          <Route path="attributes/:id" element={<AttributeViewPage />} />
+          <Route path="attributes/:id/edit" element={<AttributeEditPage />} />
           <Route path="return-orders" element={<ReturnOrdersPage />} />
           <Route path="inventories" element={<InventoriesPage />} />
           <Route path="stock-takes" element={<StockTakesPage />} />

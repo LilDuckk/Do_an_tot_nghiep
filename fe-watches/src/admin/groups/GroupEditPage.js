@@ -17,15 +17,21 @@ export default function GroupEditPage() {
       const token = localStorage.getItem('accessToken');
       const [groupRes, permsRes] = await Promise.all([
         fetch(`http://localhost:8000/api/account/auth/groups/${id}/`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch('http://localhost:8000/api/account/auth/permissions/', { headers: { Authorization: `Bearer ${token}` } })
+        fetch('http://localhost:8000/api/account/auth/permissions/all/', { headers: { Authorization: `Bearer ${token}` } })
       ]);
+      if (groupRes.status === 403) {
+        setError('Bạn không có quyền sửa mục này.');
+        setLoading(false);
+        return;
+      }
       if (groupRes.ok && permsRes.ok) {
         const group = await groupRes.json();
         setForm({
           name: group.name,
           permissions: group.permissions || []
         });
-        setPermissions(await permsRes.json());
+        const data = await permsRes.json();
+        setPermissions(Array.isArray(data) ? data : (data.results || []));
       } else {
         setError('Không lấy được dữ liệu');
       }
@@ -50,34 +56,39 @@ export default function GroupEditPage() {
   const handleSubmit = async e => {
     e.preventDefault();
     setError('');
+    setLoading(true);
     try {
       const token = localStorage.getItem('accessToken');
       const res = await fetch(`http://localhost:8000/api/account/auth/groups/${id}/`, {
         method: 'PUT',
         headers: {
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(form),
       });
-      if (res.ok) navigate('/admin/groups');
-      else {
-        const data = await res.json();
-        setError(data.error || 'Cập nhật thất bại');
+      if (res.status === 403) {
+        setError('Bạn không có quyền sửa mục này.');
+        setLoading(false);
+        return;
       }
+      if (!res.ok) throw new Error('Lỗi khi cập nhật nhóm');
+      navigate('/admin/groups');
     } catch (err) {
-      setError('Lỗi kết nối');
+      setError(err.message);
     }
+    setLoading(false);
   };
 
   if (loading) return <div>Đang tải...</div>;
+  if (error) return <div className="admin-error">{error}</div>;
 
   // Quyền chưa chọn
-  const availablePermissions = permissions.filter(
+  const availablePermissions = (Array.isArray(permissions) ? permissions : []).filter(
     p => !form.permissions.includes(p.id) && p.name.toLowerCase().includes(searchLeft.toLowerCase())
   );
   // Quyền đã chọn
-  const selectedPermissions = permissions.filter(
+  const selectedPermissions = (Array.isArray(permissions) ? permissions : []).filter(
     p => form.permissions.includes(p.id) && p.name.toLowerCase().includes(searchRight.toLowerCase())
   );
 
@@ -125,7 +136,6 @@ export default function GroupEditPage() {
           </div>
         </div>
         <button type="submit" className="admin-btn primary" style={{ marginTop: 16 }}>Lưu thay đổi</button>
-        {error && <div className="admin-error">{error}</div>}
       </form>
     </div>
   );

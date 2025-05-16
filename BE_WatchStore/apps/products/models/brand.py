@@ -5,7 +5,6 @@ from apps.users.models import UserAccount
 class Brand(BaseModel):
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
-    logo_url = models.CharField(max_length=255, blank=True, null=True)
     display_order = models.IntegerField(blank=True, null=True)
     slug = models.CharField(unique=True, max_length=255, blank=True, null=True)
     meta_title = models.CharField(max_length=255, blank=True, null=True)

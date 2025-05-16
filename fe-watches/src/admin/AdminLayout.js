@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
-import './AdminLayout.css';
+import './static/AdminLayout.css';
 
 const menuConfig = [
   { label: 'Dashboard', to: '/admin/dashboard', icon: '🏠' },

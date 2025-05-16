@@ -1,6 +1,6 @@
 import React from 'react';
-import './AdminLayout.css';
-import './Admin.css';
+import './static/AdminLayout.css';
+import './static/Admin.css';
 
 export default function Dashboard() {
   return (

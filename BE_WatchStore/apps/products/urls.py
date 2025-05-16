@@ -10,7 +10,7 @@ from apps.products.views.product_image_view import ProductImageViewSet
 router = DefaultRouter()
 router.register(r'categories', CategoryViewSet)
 router.register(r'brands', BrandViewSet)
-router.register(r'products', ProductViewSet)
+router.register(r'products', ProductViewSet, basename='product')
 router.register(r'product-variants', ProductVariantViewSet)
 router.register(r'variants', VariantViewSet)
 router.register(r'attributesvalue', AttributeValueViewSet)
