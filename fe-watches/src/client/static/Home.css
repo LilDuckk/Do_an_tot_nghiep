@@ -1,0 +1,16 @@
+html, body, #root {
+  width: 100vw;
+  min-width: 0;
+  overflow-x: hidden;
+}
+.home-hero {
+  min-height: 100vh;
+  background: #000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+

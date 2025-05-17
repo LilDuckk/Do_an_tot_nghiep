@@ -1,0 +1,28 @@
+.contact-container {
+  max-width: 600px;
+  margin: 48px auto 0 auto;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  padding: 36px 28px 28px 28px;
+}
+.contact-container h2 {
+  text-align: center;
+  margin-bottom: 22px;
+}
+.contact-info {
+  margin-bottom: 18px;
+  color: #444;
+  font-size: 1.08rem;
+}
+.contact-map iframe {
+  border-radius: 10px;
+  width: 100%;
+  min-height: 180px;
+  border: none;
+}
+@media (max-width: 700px) {
+  .contact-container {
+    padding: 18px 6px 12px 6px;
+  }
+} 

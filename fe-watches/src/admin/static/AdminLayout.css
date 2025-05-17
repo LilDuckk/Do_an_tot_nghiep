@@ -216,10 +216,11 @@ body[data-admin-theme="dark"] .admin-layout {
 .dropdown-menu.show {
   max-height: 500px;
   overflow: visible;
+  padding-left: 240px;
 }
 
 .dropdown-menu li a {
-  padding-left: 45px;
+  padding-left: 0px;
   font-size: 1rem;
   border-radius: 6px;
 }
@@ -236,7 +237,7 @@ body[data-admin-theme="dark"] .admin-layout {
 }
 
 .admin-layout.collapsed .dropdown-menu li a {
-  padding-left: 15px;
+  padding-left: 0px;
 }
 
 /* Đảm bảo dropdown không bị lòi ra ngoài khi sidebar thu nhỏ */
@@ -370,4 +371,9 @@ body[data-admin-theme] {
 
 .admin-layout .admin-main > div:not(.admin-header) {
   background-color: var(--bg) !important;
+}
+
+/* Ẩn hoàn toàn dropdown-menu khi sidebar bị collapsed */
+.admin-layout.collapsed .dropdown-menu {
+  display: none !important;
 }

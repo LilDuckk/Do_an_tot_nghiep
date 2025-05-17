@@ -1,0 +1,50 @@
+.hot-watches {
+  background: #222;
+  padding: 32px 0 32px 0;
+  margin: 0 auto 32px auto;
+  width: 90%;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.hot-watches__title {
+  color: #fff;
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 24px;
+  letter-spacing: 1px;
+}
+.hot-watches__list {
+  display: flex;
+  gap: 32px;
+  justify-content: center;
+  width: 100%;
+}
+.hot-watches__item {
+  background: #333;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.12);
+  width: 320px;
+  max-width: 90vw;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.hot-watches__item img {
+  width: 100%;
+  max-height: 200px;
+  display: block;
+}
+@media (max-width: 900px) {
+  .hot-watches__list {
+    flex-direction: column;
+    gap: 18px;
+    align-items: center;
+  }
+  .hot-watches__item {
+    width: 95vw;
+    max-width: 400px;
+  }
+} 

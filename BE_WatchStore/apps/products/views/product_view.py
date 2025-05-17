@@ -2,21 +2,30 @@ from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.permissions import DjangoModelPermissions, AllowAny
 from apps.products.models.product import Product
 from apps.products.serializers.product_serializer import ProductSerializer
 from apps.products.serializers.product_create_serializer import ProductCreateSerializer
-from rest_framework.permissions import DjangoModelPermissions
+from apps.products.filters import ProductFilter
 import os
 
 class ProductViewSet(viewsets.ModelViewSet):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
-    permission_classes = [DjangoModelPermissions]
     parser_classes = [MultiPartParser, FormParser]
-    filterset_fields = ['name', 'category', 'brand', 'base_price', 'is_active']
+    filterset_class = ProductFilter
     search_fields = ['name', 'description']
     ordering_fields = ['name', 'base_price', 'created_at']
     ordering = ['-created_at']
+
+    def get_permissions(self):
+        """
+        Cho phép truy cập public cho các action GET
+        Yêu cầu quyền admin cho các action thay đổi dữ liệu
+        """
+        if self.action in ['list', 'retrieve', 'list_all']:
+            return [AllowAny()]
+        return [DjangoModelPermissions()]
 
     def get_parsers(self):
         if hasattr(self, 'action') and self.action in ['create_with_images', 'update_with_images']:

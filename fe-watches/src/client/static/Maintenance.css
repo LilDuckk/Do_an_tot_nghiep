@@ -1,0 +1,28 @@
+.maintenance-container {
+  max-width: 700px;
+  margin: 48px auto 0 auto;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  padding: 36px 28px 28px 28px;
+}
+.maintenance-container h2 {
+  text-align: center;
+  margin-bottom: 22px;
+}
+.maintenance-container ul {
+  margin-bottom: 18px;
+  color: #444;
+  font-size: 1.08rem;
+}
+.maintenance-container li {
+  margin-bottom: 10px;
+}
+.maintenance-note {
+  background: #ffe5d0;
+  color: #d35400;
+  border-radius: 6px;
+  padding: 12px 18px;
+  font-size: 1rem;
+  text-align: center;
+} 

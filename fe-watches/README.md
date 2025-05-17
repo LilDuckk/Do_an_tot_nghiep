@@ -1,70 +1,91 @@
-# Getting Started with Create React App
+# Dự án Website Bán Đồng Hồ (fe-watches)
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Đây là dự án website bán đồng hồ được xây dựng bằng React.js. Dự án sử dụng các công nghệ hiện đại như React Router DOM cho điều hướng, Axios cho việc gọi API, và Chart.js cho việc hiển thị biểu đồ.
 
-## Available Scripts
+## Yêu cầu hệ thống
 
-In the project directory, you can run:
+- Node.js (phiên bản 14.0.0 trở lên)
+- npm (phiên bản 6.0.0 trở lên)
+
+## Cài đặt
+
+1. Clone dự án về máy local:
+```bash
+git clone [URL_REPOSITORY]
+cd fe-watches
+```
+
+2. Cài đặt các dependencies:
+```bash
+npm install
+```
+
+## Cấu trúc dự án
+
+```
+fe-watches/
+├── public/          # Chứa các file tĩnh
+├── src/            # Mã nguồn chính của ứng dụng
+├── package.json    # Quản lý dependencies và scripts
+└── README.md       # Tài liệu hướng dẫn
+```
+
+## Các lệnh có sẵn
 
 ### `npm start`
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+Chạy ứng dụng ở chế độ development.\
+Mở [http://localhost:3000](http://localhost:3000) để xem trong trình duyệt.
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+Trang sẽ tự động reload khi bạn thay đổi code.\
+Bạn cũng có thể thấy các lỗi lint trong console.
 
 ### `npm test`
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+Chạy test runner ở chế độ interactive watch mode.\
+Xem thêm thông tin về [running tests](https://facebook.github.io/create-react-app/docs/running-tests).
 
 ### `npm run build`
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+Build ứng dụng cho production vào thư mục `build`.\
+Ứng dụng được tối ưu hóa cho hiệu suất tốt nhất.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+Build được minify và tên file bao gồm hash.\
+Ứng dụng đã sẵn sàng để deploy!
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+## Công nghệ sử dụng
 
-### `npm run eject`
+- React.js
+- React Router DOM
+- Axios
+- Chart.js
+- React Chart.js 2
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+## Hướng dẫn phát triển
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+1. Đảm bảo bạn đã cài đặt đầy đủ các dependencies
+2. Chạy `npm start` để khởi động server development
+3. Mở trình duyệt và truy cập http://localhost:3000
+4. Bắt đầu phát triển!
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+## Hướng dẫn deploy
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+1. Chạy lệnh build:
+```bash
+npm run build
+```
 
-## Learn More
+2. Thư mục `build` sẽ chứa phiên bản production của ứng dụng
+3. Upload nội dung thư mục `build` lên server của bạn
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+## Đóng góp
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+1. Fork dự án
+2. Tạo branch mới (`git checkout -b feature/AmazingFeature`)
+3. Commit thay đổi (`git commit -m 'Add some AmazingFeature'`)
+4. Push lên branch (`git push origin feature/AmazingFeature`)
+5. Tạo Pull Request
 
-### Code Splitting
+## Giấy phép
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+Dự án này được phân phối dưới giấy phép MIT. Xem file `LICENSE` để biết thêm chi tiết.

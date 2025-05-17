@@ -25,7 +25,6 @@ wheels/
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
-media/
 **/migrations/*.py
 !**/migrations/__init__.py
 
@@ -204,6 +203,6 @@ docker-compose.override.yml
 .stylelintrc
 .editorconfig
 .gitattributes
-.gitkeep 
+.gitkeep
 BE_WatchStore/apps/content/migrations/0002_initial.py
 BE_WatchStore/apps/content/migrations/0002_initial.py

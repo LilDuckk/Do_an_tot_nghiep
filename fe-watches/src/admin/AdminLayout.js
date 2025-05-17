@@ -26,6 +26,12 @@ const menuConfig = [
     { label: 'Kiểm kê', to: '/admin/stock-takes' },
     { label: 'Chuyển kho', to: '/admin/stock-transfers' },
   ]},
+  { label: 'Hệ thống', icon: '⚙️', children: [
+    { label: 'Quản lý ảnh bìa', to: '/admin/system/banners' },
+    { label: 'Thông tin liên hệ', to: '/admin/system/contact' },
+    { label: 'Thông tin chân trang', to: '/admin/system/footer' },
+    { label: 'Quản lý tin tức', to: '/admin/system/news' },
+  ]},
   { label: 'Bảo hành', icon: '🛡️', to: '/admin/warranties' },
   { label: 'Lịch sử thao tác', icon: '📜', to: '/admin/audit-logs' },
   { label: 'Đăng xuất', icon: '🚪', to: '/admin/logout' },
@@ -71,18 +77,23 @@ export default function AdminLayout() {
               <li key={item.label} className={item.children ? 'has-dropdown' : ''}>
                 {item.children ? (
                   <>
-                    <div className={`dropdown-label${openDropdown === item.label ? ' open' : ''}`} onClick={() => handleDropdown(item.label)}>
+                    <div
+                      className={`dropdown-label${openDropdown === item.label ? ' open' : ''}`}
+                      onClick={() => !collapsed && handleDropdown(item.label)}
+                    >
                       <span className="sidebar-icon">{item.icon}</span>
                       {!collapsed && <span>{item.label}</span>}
-                      {!collapsed && <span className="dropdown-arrow">▼</span>}
+                      {!collapsed && <span className="dropdown-arrow">{openDropdown === item.label ? '▲' : '▼'}</span>}
                     </div>
-                    <ul className={`dropdown-menu${openDropdown === item.label ? ' show' : ''}`}>{
-                      item.children.map(child => (
-                        <li key={child.to}>
-                          <Link to={child.to} className={location.pathname === child.to ? 'active' : ''}>{child.label}</Link>
-                        </li>
-                      ))
-                    }</ul>
+                    {!collapsed && (
+                      <ul className={`dropdown-menu${openDropdown === item.label ? ' show' : ''}`}>
+                        {item.children.map(child => (
+                          <li key={child.to}>
+                            <Link to={child.to} className={location.pathname === child.to ? 'active' : ''}>{child.label}</Link>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </>
                 ) : (
                   <Link to={item.to} className={location.pathname === item.to ? 'active' : ''}>

@@ -14,7 +14,7 @@ export default function UsersListPage() {
   const navigate = useNavigate();
 
   const ITEMS_PER_PAGE = 20;
-  const DEBOUNCE_DELAY = 500; // 500ms delay
+  const DEBOUNCE_DELAY = 1000; // 500ms delay
 
   const debouncedSearchTerm = useDebounce(searchTerm, DEBOUNCE_DELAY);
 

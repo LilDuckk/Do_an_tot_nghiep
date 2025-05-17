@@ -1,11 +1,19 @@
 import React from 'react';
-import './Client.css';
+import Header from './Header';
+import Footer from './Footer';
+import HomeHero from './HomeHero';
+import HotWatches from './HotWatches';
+import WatchSuggest from './WatchSuggest';
+import './static/Home.css';
 
 export default function ClientHome() {
   return (
-    <div className="client-home-container">
-      <h1>Chào mừng đến với trang chủ!</h1>
-      <p>Đây là giao diện dành cho khách hàng.</p>
+    <div>
+      <Header />
+      <HomeHero />
+      <HotWatches />
+      <WatchSuggest />
+      <Footer />
     </div>
   );
 } 

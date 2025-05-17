@@ -44,6 +44,14 @@ import AttributeViewPage from './admin/attributes/AttributeViewPage';
 import VariantCreatePage from './admin/variants/VariantCreatePage';
 import VariantEditPage from './admin/variants/VariantEditPage';
 import VariantViewPage from './admin/variants/VariantViewPage';
+import ProductList from './client/ProductList';
+import ProductDetail from './client/ProductDetail';
+import Maintenance from './client/Maintenance';
+import Contact from './client/Contact';
+import BannerManagement from './admin/system/BannerManagement';
+import ContactManagement from './admin/system/ContactManagement';
+import FooterManagement from './admin/system/FooterManagement';
+import NewsManagement from './admin/system/NewsManagement';
 
 function PrivateRoute({ children }) {
   return authService.isTokenValid() ? children : <Navigate to="/admin/login" />;
@@ -95,8 +103,16 @@ function App() {
           <Route path="inventories" element={<InventoriesPage />} />
           <Route path="stock-takes" element={<StockTakesPage />} />
           <Route path="stock-transfers" element={<StockTransfersPage />} />
+          <Route path="system/banners" element={<BannerManagement />} />
+          <Route path="system/contact" element={<ContactManagement />} />
+          <Route path="system/footer" element={<FooterManagement />} />
+          <Route path="system/news" element={<NewsManagement />} />
         </Route>
         <Route path="/" element={<ClientHome />} />
+        <Route path="/products" element={<ProductList />} />
+        <Route path="/products/:id" element={<ProductDetail />} />
+        <Route path="/maintenance" element={<Maintenance />} />
+        <Route path="/contact" element={<Contact />} />
       </Routes>
     </Router>
   );

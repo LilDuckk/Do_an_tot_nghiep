@@ -1,14 +1,38 @@
-# Watch Store Backend
+# Watch Store Project
 
-Dự án backend cho cửa hàng đồng hồ sử dụng Django REST Framework và PostgreSQL.
+Dự án cửa hàng đồng hồ trực tuyến với Django REST Framework (Backend) và React (Frontend).
+
+## Cấu trúc dự án
+
+```
+watch-store/
+├── BE_WatchStore/          # Backend Django
+│   ├── apps/              # Các ứng dụng Django
+│   ├── config/            # Cấu hình dự án
+│   ├── media/             # Media files
+│   ├── manage.py          # Django management script
+│   └── requirements.txt   # Python dependencies
+│
+└── fe-watches/            # Frontend React
+    ├── src/              # Source code React
+    ├── public/           # Static files
+    └── package.json      # Node.js dependencies
+```
 
 ## Yêu cầu hệ thống
 
+### Backend
 - Python 3.10.2
 - PostgreSQL
 - pip (Python package manager)
 
-## Các bước cài đặt
+### Frontend
+- Node.js (phiên bản LTS mới nhất)
+- npm hoặc yarn
+
+## Cài đặt và Chạy
+
+### Backend
 
 1. Tạo môi trường ảo và kích hoạt:
 ```bash
@@ -24,21 +48,22 @@ source venv/bin/activate
 
 2. Cài đặt các package cần thiết:
 ```bash
-pip install django djangorestframework psycopg2-binary python-dotenv
+cd BE_WatchStore
+pip install -r requirements.txt
 ```
 
-3. Tạo file .env trong thư mục gốc của dự án với nội dung:
+3. Tạo file .env trong thư mục BE_WatchStore:
 ```
 DEBUG=True
 SECRET_KEY=django-insecure-your-secret-key-here
 DB_NAME=watchesstore
 DB_USER=postgres
-DB_PASSWORD=ngocviet@123
+DB_PASSWORD=your-password
 DB_HOST=localhost
 DB_PORT=5432
 ```
 
-4. Tạo cơ sở dữ liệu PostgreSQL:
+4. Tạo và cấu hình database:
 ```sql
 CREATE DATABASE watchesstore;
 ```
@@ -59,40 +84,49 @@ python manage.py createsuperuser
 python manage.py runserver
 ```
 
-## Cấu trúc dự án
+### Frontend
 
-```
-BE_WatchStore/
-├── venv/                  # Môi trường ảo Python
-├── watchstore/           # Thư mục chứa cấu hình chính của dự án
-│   ├── __init__.py
-│   ├── settings.py      # Cấu hình dự án
-│   ├── urls.py         # Cấu hình URL
-│   ├── asgi.py
-│   └── wsgi.py
-├── manage.py            # Script quản lý Django
-├── .env                 # File chứa biến môi trường
-└── requirements.txt     # Danh sách các package cần thiết
+1. Cài đặt dependencies:
+```bash
+cd fe-watches
+npm install
 ```
 
-## Cấu hình Database
+2. Tạo file .env:
+```
+REACT_APP_API_URL=http://localhost:8000/api
+```
 
-Dự án sử dụng PostgreSQL với các thông tin kết nối:
-- Database: watchesstore
-- User: postgres
-- Password: ngocviet@123
-- Host: localhost
-- Port: 5432
+3. Chạy development server:
+```bash
+npm start
+```
 
 ## API Endpoints
 
-Sau khi chạy server, bạn có thể truy cập các endpoint sau:
+Backend API có sẵn tại:
 - Admin interface: http://localhost:8000/admin/
 - API Root: http://localhost:8000/api/
 
-## Lưu ý
+Frontend chạy tại:
+- http://localhost:3000
+
+## Lưu ý quan trọng
 
 - Đảm bảo PostgreSQL đã được cài đặt và đang chạy
 - Kiểm tra kết nối database trước khi chạy migrations
 - Không commit file .env lên git
 - Thay đổi SECRET_KEY trong môi trường production
+- Đảm bảo các biến môi trường được cấu hình đúng ở cả frontend và backend
+
+## Đóng góp
+
+1. Fork dự án
+2. Tạo branch mới (`git checkout -b feature/AmazingFeature`)
+3. Commit thay đổi (`git commit -m 'Add some AmazingFeature'`)
+4. Push lên branch (`git push origin feature/AmazingFeature`)
+5. Tạo Pull Request
+
+## License
+
+Dự án này được phân phối dưới giấy phép MIT. Xem file `LICENSE` để biết thêm chi tiết.
