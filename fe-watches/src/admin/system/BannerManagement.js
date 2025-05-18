@@ -29,7 +29,7 @@ export default function BannerManagement() {
     try {
       setLoading(true);
       const token = localStorage.getItem('accessToken');
-      const response = await fetch('http://localhost:8000/api/content/banners', {
+      const response = await fetch('http://localhost:8000/api/content/banners/', {
         headers: {
           'Authorization': `Bearer ${token}`,
         }
@@ -60,7 +60,7 @@ export default function BannerManagement() {
       formData.append('display_order', newBanner.display_order);
       formData.append('is_active', newBanner.is_active);
       formData.append('banner_location', newBanner.banner_location);
-      const response = await fetch('http://localhost:8000/api/content/banners', {
+      const response = await fetch('http://localhost:8000/api/content/banners/', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

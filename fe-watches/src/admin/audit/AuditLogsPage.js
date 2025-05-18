@@ -9,6 +9,7 @@ export default function AuditLogs() {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [userMap, setUserMap] = useState({});
 
   const ITEMS_PER_PAGE = 10;
   const DEBOUNCE_DELAY = 500;
@@ -55,6 +56,28 @@ export default function AuditLogs() {
   useEffect(() => {
     fetchLogs(currentPage, debouncedSearchTerm);
   }, [currentPage, debouncedSearchTerm]);
+
+  useEffect(() => {
+    const fetchAndMapUsers = async (logs) => {
+      const userIds = Array.from(new Set(logs.map(l => l.user_id).filter(Boolean)));
+      if (userIds.length === 0) return setUserMap({});
+      const token = localStorage.getItem('accessToken');
+      const users = {};
+      await Promise.all(userIds.map(async (id) => {
+        try {
+          const res = await fetch(`http://localhost:8000/api/account/users/${id}/`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            users[id] = data.username;
+          }
+        } catch {}
+      }));
+      setUserMap(users);
+    };
+    if (logs.length > 0) fetchAndMapUsers(logs);
+  }, [logs]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -205,7 +228,7 @@ export default function AuditLogs() {
                 </td>
                 <td>{log.model_name}</td>
                 <td>{log.object_id}</td>
-                <td>{log.user || 'Hệ thống'}</td>
+                <td>{log.user_id ? (userMap[log.user_id] || log.user_id) : 'Hệ thống'}</td>
                 <td>{log.ip_address || '-'}</td>
               </tr>
             ))}

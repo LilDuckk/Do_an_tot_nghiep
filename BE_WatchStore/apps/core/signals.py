@@ -10,7 +10,7 @@ from datetime import date, datetime
 from decimal import Decimal
 
 from apps.core.models.audit_log import AuditLog
-from apps.core.middleware import UserMiddleware
+from apps.core.middleware import CurrentUserMiddleware
 from apps.users.models import UserAccount
 
 
@@ -43,15 +43,39 @@ def serialize_fields(instance, exclude_fields=None):
     }
 
 
+@receiver([post_save, post_delete])
+def log_model_changes(sender, instance, **kwargs):
+    """
+    Signal handler để lưu audit log khi model thay đổi
+    """
+    if not hasattr(instance, 'AuditLogMixin'):
+        return
+
+    action = 'CREATE' if kwargs.get('created', False) else 'UPDATE'
+    if kwargs.get('signal') == post_delete:
+        action = 'DELETE'
+
+    user = CurrentUserMiddleware.get_current_user()
+    user_id = user.id if user else None
+
+    AuditLog.objects.create(
+        action=action,
+        model_name=sender.__name__,
+        object_id=str(instance.pk),
+        user_id=user_id
+    )
+
+
 @receiver(post_save)
 def log_save(sender, instance, created, **kwargs):
     if sender._meta.app_label == 'core' and sender._meta.model_name == 'auditlog':
         return
 
     try:
-        user = UserMiddleware.get_current_user() or UserAccount.objects.filter(username="Anonymous").first()
+        user = CurrentUserMiddleware.get_current_user() or UserAccount.objects.filter(username="Anonymous").first()
+        user_id = user.id if user else None
     except ProgrammingError:
-        user = None
+        user_id = None
 
     try:
         old_values = None
@@ -66,7 +90,7 @@ def log_save(sender, instance, created, **kwargs):
             object_id=str(instance.pk),
             old_values=new_values if created else old_values,
             new_values=new_values,
-            user=user,
+            user_id=user_id,
             ip_address=get_request_ip(),
             action_date=timezone.now()
         )
@@ -81,9 +105,10 @@ def log_delete(sender, instance, **kwargs):
         return
 
     try:
-        user = UserMiddleware.get_current_user() or UserAccount.objects.filter(username="Anonymous").first()
+        user = CurrentUserMiddleware.get_current_user() or UserAccount.objects.filter(username="Anonymous").first()
+        user_id = user.id if user else None
     except ProgrammingError:
-        user = None
+        user_id = None
 
     try:
         old_values = serialize_fields(instance, exclude_fields=['created_at', 'updated_at'])
@@ -94,7 +119,7 @@ def log_delete(sender, instance, **kwargs):
             object_id=str(instance.pk),
             old_values=old_values,
             new_values=None,
-            user=user,
+            user_id=user_id,
             ip_address=get_request_ip(),
             action_date=timezone.now()
         )

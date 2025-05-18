@@ -1,6 +1,5 @@
 from django.db import models
 from apps.core.models.base import BaseModel
-from apps.users.models import UserAccount
 
 class AuditLog(BaseModel):
     action = models.CharField(max_length=10, choices=[
@@ -12,7 +11,7 @@ class AuditLog(BaseModel):
     object_id = models.CharField(max_length=255)
     old_values = models.JSONField(null=True, blank=True)
     new_values = models.JSONField(null=True, blank=True)
-    user = models.ForeignKey(UserAccount, on_delete=models.SET_NULL, null=True)
+    user_id = models.IntegerField(null=True)
     ip_address = models.GenericIPAddressField(null=True, blank=True)
     action_date = models.DateTimeField(auto_now_add=True)
 

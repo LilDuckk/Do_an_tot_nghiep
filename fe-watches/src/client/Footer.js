@@ -1,67 +1,103 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import './static/Footer.css';
 
 export default function Footer() {
+  const [categories, setCategories] = useState([]);
+  const [links, setLinks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [linkRes, catRes] = await Promise.all([
+          fetch('http://localhost:8000/api/content/footer-links/all/'),
+          fetch('http://localhost:8000/api/content/footer-categories/all/')
+        ]);
+        if (!linkRes.ok || !catRes.ok) throw new Error('API trả về lỗi');
+        const linkData = await linkRes.json();
+        const catData = await catRes.json();
+        console.log('catData:', catData);
+        console.log('linkData:', linkData);
+        setCategories(Array.isArray(catData) ? catData : (catData.results || []));
+        setLinks(Array.isArray(linkData) ? linkData : (linkData.results || []));
+      } catch (err) {
+        console.error('Footer fetch error:', err);
+        setError('Lỗi khi tải dữ liệu footer');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  if (loading) return <div className="loading">Đang tải footer...</div>;
+  if (error) return <div className="admin-error">{error}</div>;
+
+  // Lọc và sắp xếp category
+  const activeCategories = categories.filter(c => c.is_active).sort((a, b) => a.display_order - b.display_order);
+  // Lọc và sắp xếp link
+  const activeLinks = links.filter(l => l.is_active).sort((a, b) => a.display_order - b.display_order);
+
+  // Tách các category cửa hàng (display_order 3,4,5)
+  const storeCategories = activeCategories.filter(c => [3,4,5].includes(c.display_order));
+  const infoCategories = activeCategories.filter(c => ![3,4,5,6,7].includes(c.display_order));
+  const contactCategories = activeCategories.filter(c => [6,7].includes(c.display_order));
+
+  // Render cột thông tin
+  const renderInfoCols = () => infoCategories.map(cat => (
+    <div className="footer__col" key={cat.id}>
+      <div className="footer__col-title">{cat.name}</div>
+      <ul>
+        {activeLinks.filter(l => l.category && l.category.id === cat.id).map(link => (
+          <li key={link.id}>
+            {link.url ? <a href={link.url} target="_blank" rel="noopener noreferrer">{link.title}</a> : link.title}
+          </li>
+        ))}
+      </ul>
+    </div>
+  ));
+
+  // Render cột cửa hàng
+  const renderStoreCol = () => (
+    <div className="footer__col footer__col--region">
+      {storeCategories.map(cat => (
+        <React.Fragment key={cat.id}>
+          <div className="footer__col-title">{cat.name}</div>
+          <ul>
+            {activeLinks.filter(l => l.category && l.category.id === cat.id).map(link => (
+              <li key={link.id}>
+                <span className="footer__icon">📍</span> {link.title}
+                {link.url && <><br /><span className="footer__sub">{link.url}</span></>}
+              </li>
+            ))}
+          </ul>
+        </React.Fragment>
+      ))}
+    </div>
+  );
+
+  // Render cột liên hệ và mạng xã hội động
+  const renderContactCols = () => contactCategories.map(cat => (
+    <div className="footer__col" key={cat.id}>
+      <div className="footer__col-title">{cat.name}</div>
+      <ul>
+        {activeLinks.filter(l => l.category && l.category.id === cat.id).map(link => (
+          <li key={link.id}>
+            {link.url ? <a href={link.url} target="_blank" rel="noopener noreferrer">{link.title}</a> : link.title}
+          </li>
+        ))}
+      </ul>
+    </div>
+  ));
+
   return (
     <footer className="footer">
       <div className="footer__main">
         <div className="footer__col-group">
-          <div className="footer__col">
-            <div className="footer__col-title">VỀ WATCHSTORE.VN</div>
-            <ul>
-              <li>Giới thiệu về WatchStore</li>
-              <li>Phản ánh - Khiếu nại</li>
-              <li>Chứng nhận đại lý</li>
-              <li>Tin tức công ty</li>
-              <li>Top list đồng hồ</li>
-              <li>Kiến thức đồng hồ</li>
-            </ul>
-          </div>
-          <div className="footer__col">
-            <div className="footer__col-title">CHÍNH SÁCH CHUNG</div>
-            <ul>
-              <li>Điều khoản thanh toán</li>
-              <li>Chính sách bảo hành</li>
-              <li>Chính sách bảo mật</li>
-              <li>Chính sách vận chuyển</li>
-              <li>Chính sách đổi trả</li>
-              <li>Thông tin các trang TMĐT</li>
-            </ul>
-          </div>
-          <div className="footer__col footer__col--region">
-            <div className="footer__col-title">CỬA HÀNG MIỀN BẮC</div>
-            <ul>
-              <li><span className="footer__icon">📍</span> 97 Trần Đại Nghĩa, HBT, Hà Nội<br /><span className="footer__sub">Mở cửa: 8h30 - 22h30 | chỉ đường</span></li>
-              <li><span className="footer__icon">📍</span> 58 Trần Đăng Ninh, Cầu Giấy, Hà Nội<br /><span className="footer__sub">Mở cửa: 8h30 - 22h00 | chỉ đường</span></li>
-            </ul>
-            <div className="footer__col-title">CỬA HÀNG MIỀN TRUNG</div>
-            <ul>
-              <li><span className="footer__icon">📍</span> 339 Lê Duẩn, Thanh Khê, Đà Nẵng<br /><span className="footer__sub">Mở cửa: 8h30 - 22h00 | chỉ đường</span></li>
-            </ul>
-            <div className="footer__col-title">CỬA HÀNG MIỀN NAM</div>
-            <ul>
-              <li><span className="footer__icon">📍</span> 642 CMT8, Thủ Dầu Một, Bình Dương<br /><span className="footer__sub">Mở cửa: 8h30 - 22h00 | chỉ đường</span></li>
-              <li><span className="footer__icon">📍</span> 90 Lê Văn Sỹ, P11, Phú Nhuận, TP.HCM<br /><span className="footer__sub">Mở cửa: 8h30 - 22h00 | chỉ đường</span></li>
-              <li><span className="footer__icon">📍</span> 61 Quang Trung, P10, Gò Vấp, TP.HCM<br /><span className="footer__sub">Mở cửa: 8h30 - 22h00 | chỉ đường</span></li>
-            </ul>
-          </div>
-          <div className="footer__col footer__col--contact">
-            <div className="footer__col-title">LIÊN HỆ HỖ TRỢ</div>
-            <ul>
-              <li>Hotline 1: <a href="tel:0931892222">093 189 2222</a></li>
-              <li>Hotline 2: <a href="tel:0971893333">097 189 3333</a></li>
-              <li>Hotline 3: <a href="tel:0961395555">096 139 5555</a></li>
-              <li>Email: <a href="mailto:watchstore.donghothat@gmail.com">watchstore.donghothat@gmail.com</a></li>
-            </ul>
-            <div className="footer__col-title">THEO DÕI CHÚNG TÔI TẠI</div>
-            <div className="footer__socials">
-              <a href="#" className="footer__social"><i className="fa-brands fa-facebook-f"></i></a>
-              <a href="#" className="footer__social"><i className="fa-brands fa-youtube"></i></a>
-              <a href="#" className="footer__social"><i className="fa-brands fa-tiktok"></i></a>
-              <a href="#" className="footer__social"><i className="fa-brands fa-zalo"></i></a>
-              <a href="#" className="footer__social"><i className="fa-brands fa-instagram"></i></a>
-            </div>
-          </div>
+          {renderInfoCols()}
+          {renderStoreCol()}
+          {renderContactCols()}
         </div>
       </div>
       <div className="footer__copyright">
