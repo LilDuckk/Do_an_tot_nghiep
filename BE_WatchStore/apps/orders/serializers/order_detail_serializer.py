@@ -1,11 +1,11 @@
 from rest_framework import serializers
 from apps.orders.models.order_detail import OrderDetail
-from apps.products.serializers.product_serializer import ProductSerializer
-from apps.products.serializers.variant_serializer import VariantSerializer
+from apps.products.serializers.product_serializer import ProductSerializer, ProductVariantSerializer
+# from apps.products.serializers.variant_serializer import VariantSerializer
 
 class OrderDetailSerializer(serializers.ModelSerializer):
     product = ProductSerializer(read_only=True)
-    variant = VariantSerializer(read_only=True)
+    variant = ProductVariantSerializer(read_only=True)
     
     class Meta:
         model = OrderDetail

@@ -1,10 +1,13 @@
 from rest_framework import serializers
 from apps.products.models.product import Product
 from apps.products.models.product_image import ProductImage
+from apps.products.models.variant import ProductVariant, ProductVariantAttribute
 from apps.products.serializers.product_serializer import ProductSerializer
 from apps.products.serializers.product_image_serializer import ProductImageSerializer
 from django.db import IntegrityError
 from rest_framework.exceptions import ValidationError
+import json
+from apps.products.models.attribute import AttributeValuePriceAdjustment
 
 class ProductCreateSerializer(serializers.Serializer):
     # Product fields
@@ -27,6 +30,18 @@ class ProductCreateSerializer(serializers.Serializer):
     )
     primary_image_index = serializers.IntegerField(required=False, min_value=0)
 
+    # Variants data as JSON string
+    variants_data = serializers.CharField(required=True)
+
+    def validate_variants_data(self, value):
+        try:
+            variants = json.loads(value)
+            if not isinstance(variants, list):
+                raise ValidationError("Variants data must be a list")
+            return variants
+        except json.JSONDecodeError:
+            raise ValidationError("Invalid JSON format for variants data")
+
     def validate_slug(self, value):
         if not value:
             return value
@@ -40,6 +55,11 @@ class ProductCreateSerializer(serializers.Serializer):
 
     def create(self, validated_data):
         try:
+            # Extract variants data
+            variants_data = validated_data.pop('variants_data', [])
+            if isinstance(variants_data, str):
+                variants_data = json.loads(variants_data)
+
             # Extract images data
             images = validated_data.pop('images', [])
             primary_image_index = validated_data.pop('primary_image_index', 0)
@@ -56,6 +76,20 @@ class ProductCreateSerializer(serializers.Serializer):
                     is_primary=is_primary
                 )
 
+            # Create variants
+            for variant_data in variants_data:
+                attributes_data = variant_data.pop('attributes', [])
+                variant = ProductVariant.objects.create(product=product, **variant_data)
+                for attr_data in attributes_data:
+                    price_adjustment = attr_data.pop('price_adjustment', None)
+                    pva = ProductVariantAttribute.objects.create(product_variant=variant, **attr_data)
+                    # Lưu price_adjustment nếu có
+                    if price_adjustment is not None:
+                        AttributeValuePriceAdjustment.objects.update_or_create(
+                            product=product,
+                            attribute_value=pva.attribute_value,
+                            defaults={'price_adjustment': price_adjustment}
+                        )
             return product
         except IntegrityError as e:
             if 'product_slug_key' in str(e):
@@ -66,6 +100,11 @@ class ProductCreateSerializer(serializers.Serializer):
 
     def update(self, instance, validated_data):
         try:
+            # Extract variants data
+            variants_data = validated_data.pop('variants_data', None)
+            if variants_data and isinstance(variants_data, str):
+                variants_data = json.loads(variants_data)
+
             # Extract images data
             images = validated_data.pop('images', [])
             primary_image_index = validated_data.pop('primary_image_index', None)
@@ -79,7 +118,6 @@ class ProductCreateSerializer(serializers.Serializer):
             if images:
                 # Delete existing images if new ones are provided
                 instance.images.all().delete()
-                
                 # Create new images
                 for index, image in enumerate(images):
                     is_primary = index == primary_image_index if primary_image_index is not None else False
@@ -89,6 +127,24 @@ class ProductCreateSerializer(serializers.Serializer):
                         is_primary=is_primary
                     )
 
+            # Handle variants if provided
+            if variants_data is not None:
+                # Delete existing variants
+                instance.variants.all().delete()
+                # Create new variants
+                for variant_data in variants_data:
+                    attributes_data = variant_data.pop('attributes', [])
+                    variant = ProductVariant.objects.create(product=instance, **variant_data)
+                    for attr_data in attributes_data:
+                        price_adjustment = attr_data.pop('price_adjustment', None)
+                        pva = ProductVariantAttribute.objects.create(product_variant=variant, **attr_data)
+                        # Lưu price_adjustment nếu có
+                        if price_adjustment is not None:
+                            AttributeValuePriceAdjustment.objects.update_or_create(
+                                product=instance,
+                                attribute_value=pva.attribute_value,
+                                defaults={'price_adjustment': price_adjustment}
+                            )
             return instance
         except IntegrityError as e:
             if 'product_slug_key' in str(e):
@@ -98,7 +154,7 @@ class ProductCreateSerializer(serializers.Serializer):
             raise ValidationError({"detail": str(e)})
 
     def to_representation(self, instance):
-        # Return product with its images
+        # Return product with its images and variants
         product_data = ProductSerializer(instance).data
         images = ProductImage.objects.filter(product=instance)
         product_data['images'] = ProductImageSerializer(images, many=True).data

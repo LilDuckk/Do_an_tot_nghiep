@@ -1,11 +1,11 @@
 from rest_framework import serializers
 from apps.orders.models.return_order_detail import ReturnOrderDetail
-from apps.products.serializers.product_serializer import ProductSerializer
-from apps.products.serializers.variant_serializer import VariantSerializer
+from apps.products.serializers.product_serializer import ProductSerializer, ProductVariantSerializer
+
 
 class ReturnOrderDetailSerializer(serializers.ModelSerializer):
     product = ProductSerializer(read_only=True)
-    variant = VariantSerializer(read_only=True)
+    variant = ProductVariantSerializer(read_only=True)
     
     class Meta:
         model = ReturnOrderDetail

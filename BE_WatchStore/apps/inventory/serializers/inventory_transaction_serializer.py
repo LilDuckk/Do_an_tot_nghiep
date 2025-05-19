@@ -1,11 +1,10 @@
 from rest_framework import serializers
 from apps.inventory.models.inventory_transaction import InventoryTransaction
-from apps.products.serializers.product_serializer import ProductSerializer
-from apps.products.serializers.variant_serializer import VariantSerializer
+from apps.products.serializers.product_serializer import ProductSerializer, ProductVariantSerializer
 
 class InventoryTransactionSerializer(serializers.ModelSerializer):
     product = ProductSerializer(read_only=True)
-    variant = VariantSerializer(read_only=True)
+    variant = ProductVariantSerializer(read_only=True)
     
     class Meta:
         model = InventoryTransaction

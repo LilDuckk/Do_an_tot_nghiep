@@ -50,7 +50,7 @@ export default function AttributesPage() {
       const queryParams = new URLSearchParams({
         search: search
       });
-      const response = await fetch(`http://localhost:8000/api/products/attributestype/?${queryParams}`, {
+      const response = await fetch(`http://localhost:8000/api/products/attribute-types/?${queryParams}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         }
@@ -70,7 +70,7 @@ export default function AttributesPage() {
       const queryParams = new URLSearchParams({
         search: search
       });
-      const response = await fetch(`http://localhost:8000/api/products/attributesvalue/?${queryParams}`, {
+      const response = await fetch(`http://localhost:8000/api/products/attribute-values/?${queryParams}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         }

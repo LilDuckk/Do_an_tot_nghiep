@@ -17,45 +17,38 @@ export default function ProductViewPage() {
       try {
         const token = localStorage.getItem('accessToken');
         
-        // Fetch product
+        // Fetch product với đầy đủ thông tin
         const productRes = await fetch(`http://localhost:8000/api/products/products/${id}/`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (productRes.ok) {
           const data = await productRes.json();
           setProduct(data);
+          
+          // Lấy thông tin variants và attributes từ response
+          if (data.variants) {
+            setVariants(data.variants);
+            
+            // Lấy thông tin attributes từ variants
+            const allAttributes = [];
+            data.variants.forEach(variant => {
+              if (variant.attributes) {
+                variant.attributes.forEach(attr => {
+                  allAttributes.push({
+                    ...attr,
+                    variant_id: variant.id
+                  });
+                });
+              }
+            });
+            setAttributes(allAttributes);
+          }
         } else {
           setError('Không tìm thấy sản phẩm');
         }
 
-        // Fetch variants
-        const variantsRes = await fetch(`http://localhost:8000/api/products/product-variants/?product=${id}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (variantsRes.ok) {
-          const variantsData = await variantsRes.json();
-          setVariants(variantsData.results || variantsData);
-
-          // Fetch attributes for each variant
-          const allAttributes = [];
-          for (const variant of (variantsData.results || variantsData)) {
-            const attributesRes = await fetch(`http://localhost:8000/api/products/product-variant-attributes/?product_variant=${variant.id}`, {
-              headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (attributesRes.ok) {
-              const attributesData = await attributesRes.json();
-              const variantAttributes = attributesData.results || attributesData;
-              allAttributes.push(...variantAttributes.map(attr => ({
-                ...attr,
-                variant_id: variant.id
-              })));
-            }
-          }
-          setAttributes(allAttributes);
-        }
-
         // Fetch product attributes
-        const attributesRes = await fetch(`http://localhost:8000/api/products/product-variant-attributes/?product_variant__product=${id}`, {
+        const attributesRes = await fetch(`http://localhost:8000/api/variant-attributes/?product_variant__product=${id}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (attributesRes.ok) {

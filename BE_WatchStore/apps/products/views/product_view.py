@@ -1,72 +1,152 @@
-from rest_framework import viewsets
+from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.parsers import MultiPartParser, FormParser
-from rest_framework.permissions import DjangoModelPermissions, AllowAny
+from django.db import transaction
+from django.core.cache import cache
+from django.db.models import Q
 from apps.products.models.product import Product
-from apps.products.serializers.product_serializer import ProductSerializer
-from apps.products.serializers.product_create_serializer import ProductCreateSerializer
-from apps.products.filters import ProductFilter
-import os
+from apps.products.models.variant import ProductVariant, ProductVariantAttribute
+from apps.products.serializers.product_serializer import (
+    ProductSerializer, ProductDetailSerializer,
+    ProductVariantSerializer, ProductVariantAttributeSerializer
+)
 
 class ProductViewSet(viewsets.ModelViewSet):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
-    parser_classes = [MultiPartParser, FormParser]
-    filterset_class = ProductFilter
-    search_fields = ['name', 'description']
-    ordering_fields = ['name', 'base_price', 'created_at']
-    ordering = ['-created_at']
+    
+    def get_serializer_class(self):
+        if self.action == 'retrieve':
+            return ProductDetailSerializer
+        return self.serializer_class
+    
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        
+        # Filter by category
+        category = self.request.query_params.get('category', None)
+        if category:
+            queryset = queryset.filter(category_id=category)
+            
+        # Filter by brand
+        brand = self.request.query_params.get('brand', None)
+        if brand:
+            queryset = queryset.filter(brand_id=brand)
+            
+        # Filter by price range
+        min_price = self.request.query_params.get('min_price', None)
+        max_price = self.request.query_params.get('max_price', None)
+        if min_price:
+            queryset = queryset.filter(base_price__gte=min_price)
+        if max_price:
+            queryset = queryset.filter(base_price__lte=max_price)
+            
+        # Search by name or description
+        search = self.request.query_params.get('search', None)
+        if search:
+            queryset = queryset.filter(
+                Q(name__icontains=search) | 
+                Q(description__icontains=search)
+            )
+            
+        # Filter by featured
+        featured = self.request.query_params.get('featured', None)
+        if featured:
+            queryset = queryset.filter(is_featured=True)
+            
+        # Filter by active status
+        active = self.request.query_params.get('active', None)
+        if active:
+            queryset = queryset.filter(is_active=True)
+            
+        # Add caching for frequently accessed products
+        cache_key = f'product_list_{self.request.query_params}'
+        cached_queryset = cache.get(cache_key)
+        
+        if cached_queryset is None:
+            cached_queryset = queryset.select_related(
+                'category', 'brand', 'default_variant'
+            ).prefetch_related(
+                'variants', 'variants__attributes', 'variants__attributes__attribute_value',
+                'images'
+            )
+            cache.set(cache_key, cached_queryset, timeout=300)  # Cache for 5 minutes
+            
+        return cached_queryset
 
-    def get_permissions(self):
-        """
-        Cho phép truy cập public cho các action GET
-        Yêu cầu quyền admin cho các action thay đổi dữ liệu
-        """
-        if self.action in ['list', 'retrieve', 'list_all']:
-            return [AllowAny()]
-        return [DjangoModelPermissions()]
+    @transaction.atomic
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-    def get_parsers(self):
-        if hasattr(self, 'action') and self.action in ['create_with_images', 'update_with_images']:
-            return [MultiPartParser(), FormParser()]
-        return super().get_parsers()
-
-    @action(detail=False, methods=['get'])
-    def list_all(self, request):
-        queryset = self.filter_queryset(self.get_queryset())
-        serializer = self.get_serializer(queryset, many=True)
+    @transaction.atomic
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
         return Response(serializer.data)
 
-    @action(detail=False, methods=['post'], url_path='create_with_images', url_name='create_with_images')
-    def create_with_images(self, request):
-        serializer = ProductCreateSerializer(data=request.data)
-        if serializer.is_valid():
-            product = serializer.save()
-            return Response(ProductCreateSerializer(product).data, status=201)
-        return Response(serializer.errors, status=400)
-
-    @action(detail=True, methods=['put', 'patch'], url_path='update_with_images', url_name='update_with_images')
-    def update_with_images(self, request, pk=None):
-        instance = self.get_object()
-        serializer = ProductCreateSerializer(instance, data=request.data, partial=True)
-        if serializer.is_valid():
-            product = serializer.save()
-            return Response(ProductCreateSerializer(product).data)
-        return Response(serializer.errors, status=400)
-
-    def destroy(self, request, *args, **kwargs):
-        instance = self.get_object()
+    @action(detail=True, methods=['post'])
+    def bulk_update_variants(self, request, pk=None):
+        product = self.get_object()
+        variants_data = request.data.get('variants', [])
         
-        # Xóa tất cả ảnh của sản phẩm
-        for image in instance.images.all():
-            # Xóa file ảnh từ storage
-            if image.image:
-                if os.path.isfile(image.image.path):
-                    os.remove(image.image.path)
-            # Xóa record ảnh từ database
-            image.delete()
-        
-        # Xóa sản phẩm
-        self.perform_destroy(instance)
-        return Response(status=204) 
+        with transaction.atomic():
+            # Delete existing variants
+            product.variants.all().delete()
+            
+            # Create new variants
+            for variant_data in variants_data:
+                attributes_data = variant_data.pop('attributes', [])
+                variant = ProductVariant.objects.create(product=product, **variant_data)
+                
+                for attr_data in attributes_data:
+                    ProductVariantAttribute.objects.create(product_variant=variant, **attr_data)
+                    
+        return Response({'status': 'variants updated'})
+
+    @action(detail=False, methods=['get'])
+    def featured(self, request):
+        featured_products = self.get_queryset().filter(is_featured=True)
+        serializer = self.get_serializer(featured_products, many=True)
+        return Response(serializer.data)
+
+class ProductVariantViewSet(viewsets.ModelViewSet):
+    queryset = ProductVariant.objects.all()
+    serializer_class = ProductVariantSerializer
+    
+    def get_queryset(self):
+        return super().get_queryset().select_related(
+            'product'
+        ).prefetch_related(
+            'attributes', 'attributes__attribute_value'
+        )
+
+    @transaction.atomic
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @transaction.atomic
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        return Response(serializer.data)
+
+class ProductVariantAttributeViewSet(viewsets.ModelViewSet):
+    queryset = ProductVariantAttribute.objects.all()
+    serializer_class = ProductVariantAttributeSerializer
+    
+    def get_queryset(self):
+        return super().get_queryset().select_related(
+            'product_variant', 'attribute_value'
+        ) 

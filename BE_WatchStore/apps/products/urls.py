@@ -2,20 +2,24 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from apps.products.views.category_view import CategoryViewSet
 from apps.products.views.brand_view import BrandViewSet
-from apps.products.views.product_view import ProductViewSet
-from apps.products.views.variant_view import ProductVariantViewSet, VariantViewSet, ProductVariantAttributeViewSet
-from apps.products.views.attribute_view import AttributeValueViewSet, AttributeTypeViewSet
+from apps.products.views.product_view import (
+    ProductViewSet, ProductVariantViewSet, ProductVariantAttributeViewSet
+)
+from apps.products.views.attribute_view import (
+    AttributeTypeViewSet, AttributeValueViewSet,
+    AttributeValuePriceAdjustmentViewSet
+)
 from apps.products.views.product_image_view import ProductImageViewSet
 
 router = DefaultRouter()
 router.register(r'categories', CategoryViewSet)
 router.register(r'brands', BrandViewSet)
-router.register(r'products', ProductViewSet, basename='product')
-router.register(r'product-variants', ProductVariantViewSet)
-router.register(r'variants', VariantViewSet)
-router.register(r'product-variant-attributes', ProductVariantAttributeViewSet)
-router.register(r'attributesvalue', AttributeValueViewSet)
-router.register(r'attributestype', AttributeTypeViewSet)
+router.register(r'products', ProductViewSet)
+router.register(r'variants', ProductVariantViewSet)
+router.register(r'variant-attributes', ProductVariantAttributeViewSet)
+router.register(r'attribute-types', AttributeTypeViewSet)
+router.register(r'attribute-values', AttributeValueViewSet)
+router.register(r'attribute-price-adjustments', AttributeValuePriceAdjustmentViewSet)
 router.register(r'product-images', ProductImageViewSet)
 
 urlpatterns = [
