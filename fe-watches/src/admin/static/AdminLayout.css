@@ -1,11 +1,11 @@
 /* Admin Layout Base Styles */
 :root {
   /* Light Theme Variables */
-  --light-bg: #f8f9fa;
-  --light-sidebar-bg: #ffffff;
-  --light-header-bg: #ffffff;
+  --light-bg: #ffffff;
+  --light-sidebar-bg: #dbdbdb;
+  --light-header-bg: #d8d8d8;
   --light-text: #333333;
-  --light-border: #e0e0e0;
+  --light-border: #2e2e2e;
   --light-hover: #f0f0f0;
   --light-active: #e9ecef;
   --light-shadow: rgba(0, 0, 0, 0.1);
@@ -17,7 +17,7 @@
   --dark-sidebar-bg: #2c2c2c;
   --dark-header-bg: #2c2c2c;
   --dark-text: #e0e0e0;
-  --dark-border: #444444;
+  --dark-border: #c4c4c4;
   --dark-hover: #3a3a3a;
   --dark-active: #3f3f3f;
   --dark-shadow: rgba(0, 0, 0, 0.3);

@@ -22,7 +22,7 @@ export default function AttributeCreatePage() {
 
   const handleSubmit = async e => {
     e.preventDefault();
-    setError('');
+    setError(''); 
     try {
       const token = localStorage.getItem('accessToken');
       const res = await fetch('http://localhost:8000/api/products/attributesvalue/', {

@@ -19,6 +19,22 @@ export default function ProductEditPage() {
     is_featured: false,
     is_active: true
   });
+
+  // States cho thuộc tính và biến thể
+  const [attributeTypes, setAttributeTypes] = useState([]);
+  const [attributeValues, setAttributeValues] = useState([]);
+  const [selectedAttributes, setSelectedAttributes] = useState([]);
+  const [variants, setVariants] = useState([]);
+  const [newVariant, setNewVariant] = useState({
+    sku: '',
+    price_adjustment: '',
+    stock_alert_threshold: '',
+    barcode: '',
+    is_active: true,
+    attributes: []
+  });
+  const [productAttributes, setProductAttributes] = useState([]);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [imageFiles, setImageFiles] = useState([]);
@@ -29,14 +45,16 @@ export default function ProductEditPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchProduct = async () => {
+    const fetchData = async () => {
       try {
         const token = localStorage.getItem('accessToken');
-        const res = await fetch(`http://localhost:8000/api/products/products/${id}/`, {
+        
+        // Fetch product
+        const productRes = await fetch(`http://localhost:8000/api/products/products/${id}/`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
-        if (res.ok) {
-          const data = await res.json();
+        if (productRes.ok) {
+          const data = await productRes.json();
           setForm({
             name: data.name || '',
             description: data.description || '',
@@ -55,39 +73,78 @@ export default function ProductEditPage() {
         } else {
           setError('Không tìm thấy sản phẩm');
         }
-      } catch {
-        setError('Lỗi kết nối');
+
+        // Fetch brands
+        const brandsRes = await fetch('http://localhost:8000/api/products/brands/list_all/', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (brandsRes.ok) {
+          setBrands(await brandsRes.json());
+        }
+
+        // Fetch categories
+        const categoriesRes = await fetch('http://localhost:8000/api/products/categories/list_all/', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (categoriesRes.ok) {
+          setCategories(await categoriesRes.json());
+        }
+
+        // Fetch attribute types
+        const typesRes = await fetch('http://localhost:8000/api/products/attributestype/list_all/', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (typesRes.ok) {
+          setAttributeTypes(await typesRes.json());
+        }
+
+        // Fetch attribute values
+        const valuesRes = await fetch('http://localhost:8000/api/products/attributesvalue/list_all/', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (valuesRes.ok) {
+          setAttributeValues(await valuesRes.json());
+        }
+
+        // Fetch variants
+        const variantsRes = await fetch(`http://localhost:8000/api/products/product-variants/?product=${id}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (variantsRes.ok) {
+          const variantsData = await variantsRes.json();
+          setVariants(variantsData.results || variantsData);
+
+          // Fetch attributes for each variant
+          for (const variant of (variantsData.results || variantsData)) {
+            const attributesRes = await fetch(`http://localhost:8000/api/products/product-variant-attributes/?product_variant=${variant.id}`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (attributesRes.ok) {
+              const attributesData = await attributesRes.json();
+              const attributes = attributesData.results || attributesData;
+              setSelectedAttributes(prev => [...prev, ...attributes.map(attr => ({
+                typeId: attr.attribute_value.attribute_type,
+                valueId: attr.attribute_value.id
+              }))]);
+            }
+          }
+        }
+
+        // Fetch product attributes
+        const attributesRes = await fetch(`http://localhost:8000/api/products/product-variant-attributes/?product_variant__product=${id}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (attributesRes.ok) {
+          const attributesData = await attributesRes.json();
+          setProductAttributes(attributesData.results || attributesData);
+        }
+      } catch (error) {
+        setError('Lỗi khi tải dữ liệu');
       }
       setLoading(false);
     };
 
-    const fetchBrands = async () => {
-      try {
-        const token = localStorage.getItem('accessToken');
-        const res = await fetch('http://localhost:8000/api/products/brands/list_all/', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (res.ok) {
-          setBrands(await res.json());
-        }
-      } catch {}
-    };
-
-    const fetchCategories = async () => {
-      try {
-        const token = localStorage.getItem('accessToken');
-        const res = await fetch('http://localhost:8000/api/products/categories/list_all/', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (res.ok) {
-          setCategories(await res.json());
-        }
-      } catch {}
-    };
-
-    fetchProduct();
-    fetchBrands();
-    fetchCategories();
+    fetchData();
   }, [id]);
 
   if (!hasModulePermission('product', 'edit')) {
@@ -149,16 +206,91 @@ export default function ProductEditPage() {
     }
   };
 
+  // Xử lý thuộc tính
+  const handleAttributeSelect = (typeId, valueId) => {
+    const existingIndex = selectedAttributes.findIndex(attr => attr.typeId === typeId);
+    if (existingIndex >= 0) {
+      const newAttributes = [...selectedAttributes];
+      newAttributes[existingIndex].valueId = valueId;
+      setSelectedAttributes(newAttributes);
+    } else {
+      setSelectedAttributes([...selectedAttributes, { typeId, valueId }]);
+    }
+  };
+
+  // Xử lý biến thể
+  const handleVariantChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setNewVariant(v => ({ ...v, [name]: type === 'checkbox' ? checked : value }));
+  };
+
+  const handleAddVariant = () => {
+    if (!newVariant.sku) {
+      setError('Vui lòng nhập SKU cho biến thể');
+      return;
+    }
+    setVariants([...variants, { ...newVariant }]);
+    setNewVariant({
+      sku: '',
+      price_adjustment: '',
+      stock_alert_threshold: '',
+      barcode: '',
+      is_active: true,
+      attributes: []
+    });
+  };
+
+  const handleRemoveVariant = async (variantId) => {
+    if (!window.confirm('Bạn có chắc muốn xóa biến thể này?')) return;
+
+    try {
+      const token = localStorage.getItem('accessToken');
+      const res = await fetch(`http://localhost:8000/api/products/product-variants/${variantId}/`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setVariants(variants.filter(v => v.id !== variantId));
+      } else {
+        setError('Xóa biến thể thất bại');
+      }
+    } catch (err) {
+      setError('Lỗi kết nối');
+    }
+  };
+
+  const handleRemoveAttribute = async (attributeId) => {
+    if (!window.confirm('Bạn có chắc muốn xóa thuộc tính này?')) return;
+
+    try {
+      const token = localStorage.getItem('accessToken');
+      const res = await fetch(`http://localhost:8000/api/products/product-variant-attributes/${attributeId}/`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setProductAttributes(prev => prev.filter(attr => attr.id !== attributeId));
+      } else {
+        setError('Xóa thuộc tính thất bại');
+      }
+    } catch (err) {
+      setError('Lỗi kết nối');
+    }
+  };
+
   const handleSubmit = async e => {
     e.preventDefault();
     setError('');
-    // Validate các trường bắt buộc
+    
     if (!form.name || !form.brand || !form.category || !form.base_price || !form.slug) {
       setError('Vui lòng nhập đầy đủ các trường bắt buộc: Tên, Thương hiệu, Danh mục, Giá gốc, Slug.');
       return;
     }
+
     try {
       const token = localStorage.getItem('accessToken');
+      
+      // 1. Cập nhật sản phẩm
       const formData = new FormData();
       const safeForm = {
         ...form,
@@ -178,24 +310,90 @@ export default function ProductEditPage() {
         });
         formData.append('primary_image_index', primaryImageIndex);
       }
-      const res = await fetch(`http://localhost:8000/api/products/products/${id}/update_with_images/`, {
+
+      const productRes = await fetch(`http://localhost:8000/api/products/products/${id}/update_with_images/`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`
         },
         body: formData,
       });
-      if (res.ok) {
-        if (imageFiles.length > 0) {
-          setImageFiles([]);
-        }
-        navigate('/admin/products');
-      } else {
-        const data = await res.json();
-        setError(data.error || 'Cập nhật sản phẩm thất bại');
+
+      if (!productRes.ok) {
+        const data = await productRes.json();
+        throw new Error(data.error || 'Cập nhật sản phẩm thất bại');
       }
+
+      // 2. Cập nhật các biến thể
+      for (const variant of variants) {
+        if (variant.id) {
+          // Cập nhật biến thể hiện có
+          const variantRes = await fetch(`http://localhost:8000/api/products/product-variants/${variant.id}/`, {
+            method: 'PUT',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              product_id: id,
+              sku: variant.sku,
+              price_adjustment: variant.price_adjustment,
+              stock_alert_threshold: variant.stock_alert_threshold,
+              barcode: variant.barcode,
+              is_active: variant.is_active
+            })
+          });
+
+          if (!variantRes.ok) {
+            throw new Error('Cập nhật biến thể thất bại');
+          }
+        } else {
+          // Tạo biến thể mới
+          const variantRes = await fetch('http://localhost:8000/api/products/product-variants/', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              product_id: id,
+              sku: variant.sku,
+              price_adjustment: variant.price_adjustment,
+              stock_alert_threshold: variant.stock_alert_threshold,
+              barcode: variant.barcode,
+              is_active: variant.is_active
+            })
+          });
+
+          if (!variantRes.ok) {
+            throw new Error('Tạo biến thể thất bại');
+          }
+
+          const variantData = await variantRes.json();
+
+          // Tạo các thuộc tính cho biến thể mới
+          for (const attr of selectedAttributes) {
+            await fetch('http://localhost:8000/api/products/product-variant-attributes/', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                product_variant: variantData.id,
+                attribute_value: attr.valueId
+              })
+            });
+          }
+        }
+      }
+
+      if (imageFiles.length > 0) {
+        setImageFiles([]);
+      }
+      navigate('/admin/products');
     } catch (err) {
-      setError('Lỗi kết nối');
+      setError(err.message || 'Lỗi kết nối');
     }
   };
 
@@ -213,30 +411,35 @@ export default function ProductEditPage() {
     <div className="admin-form-container">
       <h2>Chỉnh sửa sản phẩm</h2>
       <form className="admin-form" onSubmit={handleSubmit} encType="multipart/form-data">
-        <input name="name" value={form.name} onChange={handleChange} placeholder="Tên sản phẩm" required />
-        <textarea name="description" value={form.description} onChange={handleChange} placeholder="Mô tả" />
-        <select name="brand" value={form.brand} onChange={handleChange} required>
-          <option value="">-- Chọn thương hiệu --</option>
-          {brands.map(b => (
-            <option key={b.id} value={b.id}>{b.name}</option>
-          ))}
-        </select>
-        <select name="category" value={form.category} onChange={handleChange} required>
-          <option value="">-- Chọn danh mục --</option>
-          {categories.map(c => (
-            <option key={c.id} value={c.id}>{c.name}</option>
-          ))}
-        </select>
-        <input name="base_price" value={form.base_price} onChange={handleChange} placeholder="Giá gốc (VND)" type="number" min="0" required />
-        <input name="warranty_period" value={form.warranty_period} onChange={handleChange} placeholder="Bảo hành (tháng)" type="number" min="0" />
-        <input name="slug" value={form.slug} onChange={handleChange} placeholder="Slug (không dấu, cách nhau bởi -)" />
-        <input name="meta_title" value={form.meta_title} onChange={handleChange} placeholder="Meta title" />
-        <input name="meta_description" value={form.meta_description} onChange={handleChange} placeholder="Meta description" />
-        <input name="sku" value={form.sku} onChange={handleChange} placeholder="SKU" />
-        <label><input type="checkbox" name="is_featured" checked={form.is_featured} onChange={handleChange} /> Sản phẩm nổi bật</label>
-        <label><input type="checkbox" name="is_active" checked={form.is_active} onChange={handleChange} /> Hiển thị</label>
-        
-        <div className="product-images-section">
+        {/* Thông tin cơ bản */}
+        <div className="form-section">
+          <h3>Thông tin cơ bản</h3>
+          <input name="name" value={form.name} onChange={handleChange} placeholder="Tên sản phẩm" required />
+          <textarea name="description" value={form.description} onChange={handleChange} placeholder="Mô tả" />
+          <select name="brand" value={form.brand} onChange={handleChange} required>
+            <option value="">-- Chọn thương hiệu --</option>
+            {brands.map(b => (
+              <option key={b.id} value={b.id}>{b.name}</option>
+            ))}
+          </select>
+          <select name="category" value={form.category} onChange={handleChange} required>
+            <option value="">-- Chọn danh mục --</option>
+            {categories.map(c => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+          <input name="base_price" value={form.base_price} onChange={handleChange} placeholder="Giá gốc (VND)" type="number" min="0" required />
+          <input name="warranty_period" value={form.warranty_period} onChange={handleChange} placeholder="Bảo hành (tháng)" type="number" min="0" />
+          <input name="slug" value={form.slug} onChange={handleChange} placeholder="Slug (không dấu, cách nhau bởi -)" />
+          <input name="meta_title" value={form.meta_title} onChange={handleChange} placeholder="Meta title" />
+          <input name="meta_description" value={form.meta_description} onChange={handleChange} placeholder="Meta description" />
+          <input name="sku" value={form.sku} onChange={handleChange} placeholder="SKU" />
+          <label><input type="checkbox" name="is_featured" checked={form.is_featured} onChange={handleChange} /> Sản phẩm nổi bật</label>
+          <label><input type="checkbox" name="is_active" checked={form.is_active} onChange={handleChange} /> Hiển thị</label>
+        </div>
+
+        {/* Ảnh sản phẩm */}
+        <div className="form-section">
           <h3>Ảnh sản phẩm</h3>
           <input type="file" accept="image/*" multiple onChange={handleImageChange} />
           {imageFiles.length > 0 && (
@@ -283,6 +486,153 @@ export default function ProductEditPage() {
               );
             })}
           </div>
+        </div>
+
+        {/* Thuộc tính sản phẩm */}
+        <div className="form-section">
+          <h3>Thuộc tính sản phẩm</h3>
+          
+          {/* Hiển thị thuộc tính hiện tại */}
+          {productAttributes.length > 0 && (
+            <div className="current-attributes">
+              <h4>Thuộc tính hiện tại</h4>
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>Loại thuộc tính</th>
+                    <th>Giá trị</th>
+                    <th>Biến thể</th>
+                    <th>Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {productAttributes.map((attr, index) => (
+                    <tr key={index}>
+                      <td>{attr.attribute_value?.attribute_type_name || 'N/A'}</td>
+                      <td>{attr.attribute_value?.value || 'N/A'}</td>
+                      <td>{variants.find(v => v.id === attr.product_variant)?.sku || 'N/A'}</td>
+                      <td>
+                        <button
+                          type="button"
+                          className="admin-btn danger"
+                          onClick={() => handleRemoveAttribute(attr.id)}
+                        >
+                          Xóa
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Form thêm thuộc tính mới */}
+          <div className="add-attributes">
+            <h4>Thêm thuộc tính mới</h4>
+            {attributeTypes.map(type => (
+              <div key={type.id} className="attribute-group">
+                <label>{type.name}</label>
+                <select
+                  value={selectedAttributes.find(attr => attr.typeId === type.id)?.valueId || ''}
+                  onChange={(e) => handleAttributeSelect(type.id, e.target.value)}
+                >
+                  <option value="">-- Chọn giá trị --</option>
+                  {attributeValues
+                    .filter(value => value.attribute_type === type.id)
+                    .map(value => (
+                      <option key={value.id} value={value.id}>
+                        {value.value}
+                      </option>
+                    ))}
+                </select>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Biến thể sản phẩm */}
+        <div className="form-section">
+          <h3>Biến thể sản phẩm</h3>
+          <div className="variant-form">
+            <input
+              name="sku"
+              value={newVariant.sku}
+              onChange={handleVariantChange}
+              placeholder="SKU biến thể"
+              required
+            />
+            <input
+              name="price_adjustment"
+              value={newVariant.price_adjustment}
+              onChange={handleVariantChange}
+              placeholder="Giá điều chỉnh"
+              type="number"
+            />
+            <input
+              name="stock_alert_threshold"
+              value={newVariant.stock_alert_threshold}
+              onChange={handleVariantChange}
+              placeholder="Ngưỡng cảnh báo tồn kho"
+              type="number"
+            />
+            <input
+              name="barcode"
+              value={newVariant.barcode}
+              onChange={handleVariantChange}
+              placeholder="Mã vạch"
+            />
+            <label>
+              <input
+                type="checkbox"
+                name="is_active"
+                checked={newVariant.is_active}
+                onChange={handleVariantChange}
+              /> Hiển thị
+            </label>
+            <button type="button" className="admin-btn" onClick={handleAddVariant}>
+              Thêm biến thể
+            </button>
+          </div>
+
+          {/* Danh sách biến thể */}
+          {variants.length > 0 && (
+            <div className="variants-list">
+              <h4>Danh sách biến thể</h4>
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>SKU</th>
+                    <th>Giá điều chỉnh</th>
+                    <th>Ngưỡng cảnh báo</th>
+                    <th>Mã vạch</th>
+                    <th>Trạng thái</th>
+                    <th>Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {variants.map((variant, index) => (
+                    <tr key={variant.id || index}>
+                      <td>{variant.sku}</td>
+                      <td>{variant.price_adjustment}</td>
+                      <td>{variant.stock_alert_threshold}</td>
+                      <td>{variant.barcode}</td>
+                      <td>{variant.is_active ? 'Hiển thị' : 'Ẩn'}</td>
+                      <td>
+                        <button
+                          type="button"
+                          className="admin-btn danger"
+                          onClick={() => handleRemoveVariant(variant.id)}
+                        >
+                          Xóa
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
 
         <button type="submit" className="admin-btn primary">Cập nhật</button>

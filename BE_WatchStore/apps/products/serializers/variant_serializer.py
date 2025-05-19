@@ -1,8 +1,9 @@
 from rest_framework import serializers
-from apps.products.models.variant import ProductVariant
+from apps.products.models.variant import ProductVariant, ProductVariantAttribute
 from apps.products.models.product import Product
 from apps.core.serializers.base_serializer import BaseSerializer
-from apps.products.serializers.attribute_serializer import AttributeTypeSerializer
+from apps.products.serializers.attribute_serializer import AttributeTypeSerializer, AttributeValueSerializer
+from apps.products.serializers.product_serializer import ProductSerializer
 
 class ProductVariantSerializer(BaseSerializer):
     product = serializers.PrimaryKeyRelatedField(read_only=True)
@@ -21,9 +22,15 @@ class ProductVariantSerializer(BaseSerializer):
 
 class VariantSerializer(serializers.ModelSerializer):
     attributes = AttributeTypeSerializer(many=True, read_only=True)
+    product = ProductSerializer()
 
     class Meta:
         model = ProductVariant
         fields = ['id', 'product', 'sku', 'price_adjustment', 
                  'stock_alert_threshold', 'attributes', 'created_at', 'updated_at']
         read_only_fields = ('created_at', 'updated_at')
+
+class ProductVariantAttributeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductVariantAttribute
+        fields = '__all__'
