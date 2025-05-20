@@ -33,6 +33,31 @@ export default function ProductCreatePage() {
   const [primaryImageIndex, setPrimaryImageIndex] = useState(0);
   const navigate = useNavigate();
 
+  // Thêm các hàm tiện ích
+  const formatPrice = (price) => {
+    if (price === null || price === undefined) return "0.00";
+    return Number(price).toFixed(2);
+  };
+
+  const formatStockThreshold = (threshold) => {
+    if (threshold === null || threshold === undefined || threshold === "") return null;
+    return Number(threshold);
+  };
+
+  const validateVariantData = (variant) => {
+    return {
+      price_adjustment: formatPrice(variant.price_adjustment),
+      stock_alert_threshold: formatStockThreshold(variant.stock_alert_threshold),
+      barcode: variant.barcode || "",
+      is_active: Boolean(variant.is_active),
+      attributes: variant.attributes.map(attr => ({
+        attribute_value: Number(typeof attr.attribute_value === 'object' ? attr.attribute_value.id : attr.attribute_value),
+        required: Boolean(attr.required),
+        price_adjustment: formatPrice(attr.price_adjustment)
+      }))
+    };
+  };
+
   // Hàm tạo tổ hợp thuộc tính và cập nhật variants
   const updateVariantsFromAttributes = useCallback(() => {
     // Tạo các biến thể dựa trên các thuộc tính đã chọn
@@ -205,10 +230,11 @@ export default function ProductCreatePage() {
       // Thêm các trường cơ bản
       formData.append('name', form.name);
       formData.append('description', form.description);
-      formData.append('category', form.brand);
-      formData.append('brand', form.category);
-      formData.append('base_price', form.base_price);
+      formData.append('category', form.category);
+      formData.append('brand', form.brand);
+      formData.append('base_price', formatPrice(form.base_price));
       formData.append('warranty_period', form.warranty_period || '');
+      formData.append('slug', form.slug);
       formData.append('meta_title', form.meta_title);
       formData.append('meta_description', form.meta_description);
       formData.append('is_featured', form.is_featured);
@@ -220,18 +246,18 @@ export default function ProductCreatePage() {
       });
       formData.append('primary_image_index', primaryImageIndex);
 
-      // Chuẩn bị variants_data
-      const variantsData = variants.map(variant => ({
-        price_adjustment: variant.price_adjustment,
-        stock_alert_threshold: variant.stock_alert_threshold,
-        barcode: variant.barcode,
-        is_active: variant.is_active,
-        attributes: variant.attributes.map(attr => ({
-          attribute_value: attr.attribute_value,
-          required: attr.required,
-          price_adjustment: attr.price_adjustment
-        }))
-      }));
+      // Chuẩn bị variants_data với định dạng chính xác
+      const variantsData = variants.map(variant => {
+        const validatedVariant = validateVariantData(variant);
+        
+        // Thêm giá điều chỉnh cho từng thuộc tính
+        validatedVariant.attributes = validatedVariant.attributes.map(attr => ({
+          ...attr,
+          price_adjustment: formatPrice(attributePriceAdjustments[attr.attribute_value] || "0")
+        }));
+
+        return validatedVariant;
+      });
 
       // Thêm variants_data vào FormData
       formData.append('variants_data', JSON.stringify(variantsData));

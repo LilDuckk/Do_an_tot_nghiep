@@ -4,8 +4,10 @@ from rest_framework.response import Response
 from django.db import transaction
 from django.core.cache import cache
 from django.db.models import Q
+import itertools
 from apps.products.models.product import Product
 from apps.products.models.variant import ProductVariant, ProductVariantAttribute
+from apps.products.models.attribute import AttributeValue, AttributeValuePriceAdjustment
 from apps.products.serializers.product_serializer import (
     ProductSerializer, ProductDetailSerializer,
     ProductVariantSerializer, ProductVariantAttributeSerializer
@@ -59,8 +61,11 @@ class ProductViewSet(viewsets.ModelViewSet):
         if active:
             queryset = queryset.filter(is_active=True)
             
+        # Thêm order_by để tránh cảnh báo UnorderedObjectListWarning
+        queryset = queryset.order_by('id')
+        
         # Add caching for frequently accessed products
-        cache_key = f'product_list_{self.request.query_params}'
+        cache_key = f'product_list_{self.request.query_params.urlencode()}'
         cached_queryset = cache.get(cache_key)
         
         if cached_queryset is None:
@@ -149,4 +154,4 @@ class ProductVariantAttributeViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return super().get_queryset().select_related(
             'product_variant', 'attribute_value'
-        ) 
+        )

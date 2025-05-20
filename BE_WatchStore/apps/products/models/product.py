@@ -4,8 +4,26 @@ from apps.core.models.base import BaseModel
 from apps.users.models import UserAccount
 from apps.products.models.category import Category
 from apps.products.models.brand import Brand
+from apps.products.models.attribute import AttributeType
 
 class Product(BaseModel):
+    # Thêm phương thức để lấy các attributes của sản phẩm
+    def get_attributes(self):
+        """
+        Lấy các attribute types liên quan đến sản phẩm
+        """
+        from apps.products.models.attribute import AttributeType
+        
+        # Kiểm tra xem category có liên kết với product_type không
+        if not self.category:
+            return []
+        
+        # Thêm kiểm tra an toàn cho product_type
+        try:
+            return AttributeType.objects.filter(product_type=self.category.product_type)
+        except AttributeError:
+            # Nếu không có product_type, trả về danh sách rỗng
+            return []
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
     category = models.ForeignKey(Category, models.DO_NOTHING, blank=True, null=True)
@@ -37,4 +55,4 @@ class Product(BaseModel):
         if self.warranty_period and self.warranty_period < 0:
             raise ValidationError({'warranty_period': 'Warranty period cannot be negative'})
         if self.default_variant and self.default_variant.product != self:
-            raise ValidationError({'default_variant': 'Default variant must belong to this product'}) 
+            raise ValidationError({'default_variant': 'Default variant must belong to this product'})

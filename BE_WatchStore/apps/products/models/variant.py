@@ -47,8 +47,6 @@ class ProductVariant(BaseModel):
         return '-'.join(sku_parts).replace(' ', '-').upper()
 
     def save(self, *args, **kwargs):
-        if not self.sku:
-            self.sku = self.generate_sku()
         super().save(*args, **kwargs)
 
 class ProductVariantAttribute(BaseModel):

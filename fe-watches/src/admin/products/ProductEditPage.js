@@ -17,6 +17,7 @@ export default function ProductEditPage() {
     warranty_period: '',
     meta_title: '',
     meta_description: '',
+    slug: '',
     is_featured: false,
     is_active: true
   });
@@ -36,6 +37,33 @@ export default function ProductEditPage() {
   const [productImages, setProductImages] = useState([]);
   const [brands, setBrands] = useState([]);
   const [categories, setCategories] = useState([]);
+
+  // Thêm các hàm tiện ích
+  const formatPrice = (price) => {
+    if (price === null || price === undefined) return "0.00";
+    return Number(price).toFixed(2);
+  };
+
+  const formatStockThreshold = (threshold) => {
+    if (threshold === null || threshold === undefined || threshold === "") return null;
+    return Number(threshold);
+  };
+
+  const validateVariantData = (variant) => {
+    return {
+      price_adjustment: formatPrice(variant.price_adjustment),
+      stock_alert_threshold: formatStockThreshold(variant.stock_alert_threshold),
+      barcode: variant.barcode || "",
+      is_active: Boolean(variant.is_active),
+      attributes: variant.attributes
+        .map(attr => ({
+          attribute_value: Number(typeof attr.attribute_value === 'object' ? attr.attribute_value.id : attr.attribute_value),
+          required: Boolean(attr.required),
+          price_adjustment: formatPrice(attr.price_adjustment)
+        }))
+        .filter(attr => Number.isFinite(attr.attribute_value) && attr.attribute_value > 0) // chỉ giữ attribute_value hợp lệ
+    };
+  };
 
   // Hàm tạo tổ hợp thuộc tính và cập nhật variants
   const updateVariantsFromAttributes = useCallback(() => {
@@ -109,6 +137,7 @@ export default function ProductEditPage() {
             warranty_period: data.warranty_period || '',
             meta_title: data.meta_title || '',
             meta_description: data.meta_description || '',
+            slug: data.slug || '',
             is_featured: data.is_featured || false,
             is_active: data.is_active !== undefined ? data.is_active : true
           });
@@ -306,16 +335,17 @@ export default function ProductEditPage() {
       
       // Tạo FormData
       const formData = new FormData();
-
+      
       // Thêm các trường cơ bản
       formData.append('name', form.name);
       formData.append('description', form.description);
-      formData.append('category', form.brand);
-      formData.append('brand', form.category);
-      formData.append('base_price', form.base_price);
+      formData.append('category', form.category);
+      formData.append('brand', form.brand);
+      formData.append('base_price', formatPrice(form.base_price));
       formData.append('warranty_period', form.warranty_period || '');
       formData.append('meta_title', form.meta_title);
       formData.append('meta_description', form.meta_description);
+      formData.append('slug', form.slug);
       formData.append('is_featured', form.is_featured);
       formData.append('is_active', form.is_active);
 
@@ -327,25 +357,23 @@ export default function ProductEditPage() {
         formData.append('primary_image_index', primaryImageIndex);
       }
 
-      // Chuẩn bị variants_data
-      const variantsData = variants.map(variant => ({
-        id: variant.id, // Giữ lại id nếu có
-        product_id: id,
-        price_adjustment: variant.price_adjustment,
-        stock_alert_threshold: variant.stock_alert_threshold,
-        barcode: variant.barcode,
-        is_active: variant.is_active,
-        attributes: (variant.attributes || []).map(attr => ({
-          id: attr.id,
-          attribute_value: attr.attribute_value.id,
-          required: attr.required,
-          price_adjustment: attributePriceAdjustments[attr.attribute_value.id] || attr.price_adjustment || "0"
-        }))
-      }));
+      // Chuẩn bị variants_data với định dạng chính xác
+      const variantsData = variants.map(variant => {
+        const validatedVariant = validateVariantData(variant);
+        
+        // Thêm giá điều chỉnh cho từng thuộc tính
+        validatedVariant.attributes = validatedVariant.attributes.map(attr => ({
+          ...attr,
+          price_adjustment: formatPrice(attributePriceAdjustments[attr.attribute_value] || attr.price_adjustment || "0")
+        }));
+
+        return validatedVariant;
+      });
 
       // Thêm variants_data vào FormData
-      formData.append('variants', JSON.stringify(variantsData));
-
+      formData.append('variants_input', JSON.stringify(variantsData));
+      console.log('variantsData:', variantsData);
+      console.log('formData variants:', formData.get('variants'));
       const productRes = await fetch(`http://localhost:8000/api/products/products/${id}/`, {
         method: 'PUT',
         headers: {
@@ -398,6 +426,7 @@ export default function ProductEditPage() {
           </select>
           <input name="base_price" value={form.base_price} onChange={handleChange} placeholder="Giá gốc (VND)" type="number" min="0" required />
           <input name="warranty_period" value={form.warranty_period} onChange={handleChange} placeholder="Bảo hành (tháng)" type="number" min="0" />
+          <input name="slug" value={form.slug} onChange={handleChange} placeholder="Slug (không dấu, cách nhau bởi -)" />
           <input name="meta_title" value={form.meta_title} onChange={handleChange} placeholder="Meta title" />
           <input name="meta_description" value={form.meta_description} onChange={handleChange} placeholder="Meta description" />
           <label><input type="checkbox" name="is_featured" checked={form.is_featured} onChange={handleChange} /> Sản phẩm nổi bật</label>

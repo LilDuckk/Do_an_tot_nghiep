@@ -16,12 +16,12 @@ class CurrentUserMiddleware(MiddlewareMixin):
         """
         try:
             # Log request details for debugging
-            logger.info(f"Request path: {request.path}")
-            logger.info(f"Request method: {request.method}")
+            # logger.info(f"Request path: {request.path}")
+            # logger.info(f"Request method: {request.method}")
             
             # Check for Authorization header
             auth_header = request.META.get('HTTP_AUTHORIZATION', '')
-            logger.info(f"Authorization header: {auth_header}")
+            # logger.info(f"Authorization header: {auth_header}")
 
             # Attempt to authenticate using JWT
             jwt_auth = JWTAuthentication()
@@ -29,10 +29,10 @@ class CurrentUserMiddleware(MiddlewareMixin):
                 authenticated = jwt_auth.authenticate(request)
                 if authenticated:
                     user, token = authenticated
-                    logger.info(f"User authenticated: {user.username}")
+                    # logger.info(f"User authenticated: {user.username}")
                     _thread_locals.user = user
                 else:
-                    logger.warning("No user authenticated by JWT")
+                    # logger.warning("No user authenticated by JWT")
                     _thread_locals.user = None
             except Exception as jwt_error:
                 logger.error(f"JWT Authentication error: {jwt_error}")

@@ -78,9 +78,11 @@ class ProductCreateSerializer(serializers.Serializer):
 
             # Create variants
             for variant_data in variants_data:
+                print('DEBUG variant_data:', variant_data)  # In dữ liệu variant_data
                 attributes_data = variant_data.pop('attributes', [])
                 variant = ProductVariant.objects.create(product=product, **variant_data)
                 for attr_data in attributes_data:
+                    print('DEBUG attr_data:', attr_data)  # In dữ liệu attr_data
                     price_adjustment = attr_data.pop('price_adjustment', None)
                     pva = ProductVariantAttribute.objects.create(product_variant=variant, **attr_data)
                     # Lưu price_adjustment nếu có
@@ -129,6 +131,7 @@ class ProductCreateSerializer(serializers.Serializer):
 
             # Handle variants if provided
             if variants_data is not None:
+                print('DEBUG variant_data:', variant_data)  # In dữ liệu variant_data
                 # Delete existing variants
                 instance.variants.all().delete()
                 # Create new variants
@@ -136,6 +139,7 @@ class ProductCreateSerializer(serializers.Serializer):
                     attributes_data = variant_data.pop('attributes', [])
                     variant = ProductVariant.objects.create(product=instance, **variant_data)
                     for attr_data in attributes_data:
+                        print('DEBUG attr_data:', attr_data)  # In dữ liệu attr_data
                         price_adjustment = attr_data.pop('price_adjustment', None)
                         pva = ProductVariantAttribute.objects.create(product_variant=variant, **attr_data)
                         # Lưu price_adjustment nếu có
