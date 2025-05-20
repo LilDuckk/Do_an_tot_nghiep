@@ -1,21 +1,24 @@
 from rest_framework import serializers
+from django.db import transaction
+import itertools
+import uuid
 from apps.products.models.product import Product
-from apps.products.models.variant import ProductVariant, ProductVariantAttribute
-from apps.products.models.attribute import AttributeValue, AttributeValuePriceAdjustment
+from apps.products.models.variant import ProductVariant
+from apps.products.models.attribute import AttributeValue
 from apps.core.serializers.base_serializer import BaseSerializer
 from apps.products.serializers.attribute_serializer import AttributeTypeSerializer
 from apps.products.serializers.category_serializer import CategorySerializer
 from apps.products.serializers.brand_serializer import BrandSerializer
 from apps.products.serializers.product_image_serializer import ProductImageSerializer
 import json
-
-class ProductVariantAttributeSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ProductVariantAttribute
-        fields = ['id', 'attribute_value', 'required']
+import ast
 
 class ProductVariantSerializer(BaseSerializer):
-    attributes = ProductVariantAttributeSerializer(many=True, required=False)
+    attribute_values = serializers.PrimaryKeyRelatedField(
+        queryset=AttributeValue.objects.all(),
+        many=True,
+        required=False
+    )
     product = serializers.PrimaryKeyRelatedField(read_only=True)
     product_id = serializers.PrimaryKeyRelatedField(
         queryset=Product.objects.all(),
@@ -28,66 +31,34 @@ class ProductVariantSerializer(BaseSerializer):
         model = ProductVariant
         fields = BaseSerializer.Meta.fields + [
             'product', 'product_id', 'sku', 'price_adjustment',
-            'stock_alert_threshold', 'barcode', 'is_active', 'attributes'
+            'stock_alert_threshold', 'barcode', 'is_active', 'attribute_values'
         ]
 
     def create(self, validated_data):
-        attributes_data = validated_data.pop('attributes', [])
+        # Extract attribute values if present
+        attribute_values = validated_data.pop('attribute_values', [])
+        
+        # Create variant without attribute values
         variant = ProductVariant.objects.create(**validated_data)
         
-        for attr_data in attributes_data:
-            price_adjustment = attr_data.pop('price_adjustment', None)
-            # Lấy instance AttributeValue từ ID nếu cần
-            attr_value_id = attr_data.get('attribute_value')
-            if isinstance(attr_value_id, int):
-                attr_data['attribute_value'] = AttributeValue.objects.get(pk=attr_value_id)
-            pva = ProductVariantAttribute.objects.create(product_variant=variant, **attr_data)
-            # Lưu price_adjustment nếu có
-            if price_adjustment is not None:
-                AttributeValuePriceAdjustment.objects.update_or_create(
-                    product=variant.product,
-                    attribute_value=pva.attribute_value,
-                    defaults={'price_adjustment': price_adjustment}
-                )
-            
-        # Tạo SKU sau khi đã tạo variant và attributes
-        variant.sku = variant.generate_sku()
-        variant.save()
-            
+        # Set attribute values after creation
+        if attribute_values:
+            variant.attribute_values.set(attribute_values)
+        
         return variant
 
     def update(self, instance, validated_data):
-        print('DEBUG validated_data:', validated_data)
-        print('DEBUG raw data:', self.initial_data)
-        attributes_data = validated_data.pop('attributes', None)
+        attribute_values = validated_data.pop('attribute_values', None)
         
         # Update variant fields
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
-        instance.save()
         
-        # Update attributes if provided
-        if attributes_data is not None:
-            instance.attributes.all().delete()
-            for attr_data in attributes_data:
-                price_adjustment = attr_data.pop('price_adjustment', None)
-                # Lấy instance AttributeValue từ ID nếu cần
-                attr_value_id = attr_data.get('attribute_value')
-                if isinstance(attr_value_id, int):
-                    attr_data['attribute_value'] = AttributeValue.objects.get(pk=attr_value_id)
-                pva = ProductVariantAttribute.objects.create(product_variant=instance, **attr_data)
-                # Lưu price_adjustment nếu có
-                if price_adjustment is not None:
-                    AttributeValuePriceAdjustment.objects.update_or_create(
-                        product=instance.product,
-                        attribute_value=pva.attribute_value,
-                        defaults={'price_adjustment': price_adjustment}
-                    )
-            
-            # Cập nhật SKU sau khi cập nhật attributes
-            instance.sku = instance.generate_sku()
-            instance.save()
-                
+        # Update attribute values if provided
+        if attribute_values is not None:
+            instance.attribute_values.set(attribute_values)
+        
+        instance.save()
         return instance
 
 class ProductDetailSerializer(serializers.ModelSerializer):
@@ -114,7 +85,13 @@ class ProductDetailSerializer(serializers.ModelSerializer):
 
 class ProductSerializer(serializers.ModelSerializer):
     variants = ProductVariantSerializer(many=True, read_only=True)
-    variants_input = serializers.JSONField(write_only=True, required=False)
+    attribute_value_groups = serializers.ListField(
+        child=serializers.ListField(
+            child=serializers.IntegerField()
+        ),
+        write_only=True,
+        required=False
+    )
     category_detail = CategorySerializer(source='category', read_only=True)
     brand_detail = BrandSerializer(source='brand', read_only=True)
     images = ProductImageSerializer(many=True, read_only=True)
@@ -126,123 +103,163 @@ class ProductSerializer(serializers.ModelSerializer):
             'brand', 'brand_detail', 'base_price', 'warranty_period',
             'slug', 'meta_title', 'meta_description', 'is_featured',
             'is_active', 'default_variant', 'variants', 'images',
-            'variants_input'
+            'attribute_value_groups'
         ]
         extra_kwargs = {
             'id': {'read_only': True},
             'slug': {'read_only': True}
         }
 
+    def validate_attribute_value_groups(self, value):
+        # Validate attribute_value_groups with robust parsing
+        if isinstance(value, str):
+            try:
+                # Try multiple parsing methods
+                try:
+                    # First, try standard JSON parsing
+                    groups = json.loads(value)
+                except json.JSONDecodeError:
+                    try:
+                        # If JSON fails, try literal evaluation
+                        groups = ast.literal_eval(value)
+                    except (ValueError, SyntaxError):
+                        # If both fail, try removing extra quotes
+                        groups = json.loads(value.replace("'", '"'))
+                
+                # Validate and convert to list of lists of integers
+                if not isinstance(groups, list):
+                    raise serializers.ValidationError('Expected a list of lists of integers.')
+                
+                # Ensure each group is a list of integers
+                validated_groups = []
+                for group in groups:
+                    validated_group = []
+                    for item in group:
+                        try:
+                            validated_group.append(int(item))
+                        except (ValueError, TypeError):
+                            raise serializers.ValidationError('All items must be valid integers.')
+                    validated_groups.append(validated_group)
+                
+                return validated_groups
+            except Exception:
+                raise serializers.ValidationError('Invalid format. Expected list of lists of integers.')
+        
+        # If already a list, validate and convert
+        if isinstance(value, list):
+            validated_groups = []
+            for group in value:
+                validated_group = []
+                for item in group:
+                    try:
+                        validated_group.append(int(item))
+                    except (ValueError, TypeError):
+                        raise serializers.ValidationError('All items must be valid integers.')
+                validated_groups.append(validated_group)
+            return validated_groups
+        
+        raise serializers.ValidationError('Invalid format. Expected list of lists of integers.')
+
     def to_internal_value(self, data):
-        # Parse variants nếu là string hoặc list chứa string
-        if 'variants' in data:
-            variants_val = data['variants']
-            if isinstance(variants_val, list):
-                variants_val = variants_val[0]
-            if isinstance(variants_val, str):
+        # Custom method to handle form data parsing
+        if isinstance(data, dict):
+            # Check if attribute_value_groups is in request.data
+            attribute_value_groups = self.context['request'].data.get('attribute_value_groups', None)
+            
+            if attribute_value_groups:
                 try:
-                    data['variants'] = json.loads(variants_val)
-                except Exception:
-                    pass
-        if 'variants_data' in data:
-            variants_data_val = data['variants_data']
-            if isinstance(variants_data_val, list):
-                variants_data_val = variants_data_val[0]
-            if isinstance(variants_data_val, str):
-                try:
-                    data['variants_data'] = json.loads(variants_data_val)
-                except Exception:
-                    pass
+                    # Try parsing the attribute_value_groups
+                    parsed_groups = json.loads(attribute_value_groups)
+                    
+                    # Validate and convert to list of lists of integers
+                    validated_groups = []
+                    for group in parsed_groups:
+                        validated_group = []
+                        for item in group:
+                            try:
+                                validated_group.append(int(item))
+                            except (ValueError, TypeError):
+                                raise serializers.ValidationError({
+                                    'attribute_value_groups': ['All items must be valid integers.']
+                                })
+                        validated_groups.append(validated_group)
+                    
+                    data['attribute_value_groups'] = validated_groups
+                except json.JSONDecodeError:
+                    raise serializers.ValidationError({
+                        'attribute_value_groups': ['Invalid JSON format.']
+                    })
+        
         return super().to_internal_value(data)
 
+    @transaction.atomic
     def create(self, validated_data):
-        variants_data = validated_data.pop('variants_input', None)
-        # Hỗ trợ nhận cả 'variants' (array) hoặc 'variants_data' (string)
-        if not variants_data:
-            variants_data = validated_data.pop('variants_data', [])
-            if isinstance(variants_data, str):
-                import json
-                variants_data = json.loads(variants_data)
-        # Lấy category và brand từ validated_data
-        category = validated_data.pop('category', None)
-        brand = validated_data.pop('brand', None)
-
+        from apps.products.models.product_image import ProductImage
+        
+        # Extract images and attribute value groups
+        images = self.context['request'].FILES.getlist('images')
+        primary_image_index = int(self.context['request'].data.get('primary_image_index', 0))
+        attribute_value_groups = validated_data.pop('attribute_value_groups', [])
+        
         # Tạo product mới
         product = Product.objects.create(**validated_data)
-
-        # Gán category và brand nếu có
-        if category:
-            product.category_id = category.id if hasattr(category, 'id') else category
-        if brand:
-            product.brand_id = brand.id if hasattr(brand, 'id') else brand
-
-        product.save()
         
-        # Tạo variants nếu có
-        for variant_data in variants_data:
-            print('DEBUG variant_data:', variant_data)
-            attributes_data = variant_data.pop('attributes', [])
-            variant = ProductVariant.objects.create(product=product, **variant_data)
+        # Tạo tổ hợp tất cả biến thể
+        if attribute_value_groups:
+            # Chuyển đổi các ID thành các AttributeValue objects
+            attr_value_objects = [
+                [AttributeValue.objects.get(id=id) for id in group]
+                for group in attribute_value_groups
+            ]
             
-            for attr_data in attributes_data:
-                print('DEBUG attr_data:', attr_data)
-                price_adjustment = attr_data.pop('price_adjustment', None)
-                # Lấy instance AttributeValue từ ID nếu cần
-                attr_value_id = attr_data.get('attribute_value')
-                if isinstance(attr_value_id, int):
-                    from apps.products.models.attribute import AttributeValue
-                    attr_data['attribute_value'] = AttributeValue.objects.get(pk=attr_value_id)
-                pva = ProductVariantAttribute.objects.create(product_variant=variant, **attr_data)
-                # Lưu price_adjustment nếu có
-                if price_adjustment is not None:
-                    AttributeValuePriceAdjustment.objects.update_or_create(
-                        product=product,
-                        attribute_value=pva.attribute_value,
-                        defaults={'price_adjustment': price_adjustment}
-                    )
+            # Tạo tổ hợp tất cả biến thể
+            for combo in itertools.product(*attr_value_objects):
+                # Convert combo to list of IDs for variant creation
+                combo_ids = [av.id for av in combo]
+                
+                # Create variant and set attribute values
+                variant = ProductVariant.objects.create(product=product)
+                variant.attribute_values.set(combo_ids)
+        
+        # Tạo ảnh sản phẩm
+        for idx, image_file in enumerate(images):
+            ProductImage.objects.create(
+                product=product, 
+                image=image_file, 
+                is_primary=(idx == primary_image_index)
+            )
         
         return product
 
+    @transaction.atomic
     def update(self, instance, validated_data):
-        print('DEBUG validated_data:', validated_data)
-        print('DEBUG raw data:', self.initial_data)
-        variants_data = validated_data.pop('variants_input', None)
-        if not variants_data:
-            variants_data = validated_data.pop('variants_data', None)
-            if variants_data and isinstance(variants_data, str):
-                import json
-                variants_data = json.loads(variants_data)
-
+        attribute_value_groups = validated_data.pop('attribute_value_groups', None)
+        
         # Update product fields
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
-
-        # Xóa toàn bộ variants cũ trước khi tạo mới
-        if variants_data is not None:
-            # Xóa hết ProductVariantAttribute liên quan đến các variant cũ
-            from apps.products.models.variant import ProductVariantAttribute
-            ProductVariantAttribute.objects.filter(product_variant__in=instance.variants.all()).delete()
-            # Sau đó xóa variant cũ
+        
+        # Nếu có attribute_value_groups mới, xóa variants cũ và tạo mới
+        if attribute_value_groups is not None:
+            # Xóa variants cũ
             instance.variants.all().delete()
-            for variant_data in variants_data:
-                print('DEBUG variant_data:', variant_data)
-                attributes_data = variant_data.pop('attributes', [])
-                variant = ProductVariant.objects.create(product=instance, **variant_data)
-                for attr_data in attributes_data:
-                    print('DEBUG attr_data:', attr_data)
-                    price_adjustment = attr_data.pop('price_adjustment', None)
-                    attr_value_id = attr_data.get('attribute_value')
-                    if isinstance(attr_value_id, int):
-                        from apps.products.models.attribute import AttributeValue
-                        attr_data['attribute_value'] = AttributeValue.objects.get(pk=attr_value_id)
-                    pva = ProductVariantAttribute.objects.create(product_variant=variant, **attr_data)
-                    if price_adjustment is not None:
-                        AttributeValuePriceAdjustment.objects.update_or_create(
-                            product=instance,
-                            attribute_value=pva.attribute_value,
-                            defaults={'price_adjustment': price_adjustment}
-                        )
+            
+            # Chuyển đổi các ID thành các AttributeValue objects
+            attr_value_objects = [
+                [AttributeValue.objects.get(id=id) for id in group]
+                for group in attribute_value_groups
+            ]
+            
+            # Tạo tổ hợp tất cả biến thể
+            for combo in itertools.product(*attr_value_objects):
+                # Convert combo to list of IDs for variant creation
+                combo_ids = [av.id for av in combo]
+                
+                # Create variant and set attribute values
+                variant = ProductVariant.objects.create(product=instance)
+                variant.attribute_values.set(combo_ids)
+                
         return instance
 
     def get_variants(self, obj):

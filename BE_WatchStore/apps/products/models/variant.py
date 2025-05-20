@@ -1,5 +1,7 @@
 from django.db import models
 from django.core.exceptions import ValidationError
+import uuid
+from django.db.models import Max
 from apps.core.models.base import BaseModel
 from apps.users.models import UserAccount
 from apps.products.models.product import Product
@@ -7,6 +9,7 @@ from apps.products.models.attribute import AttributeValue
 
 class ProductVariant(BaseModel):
     product = models.ForeignKey(Product, models.DO_NOTHING, blank=True, null=True, related_name='variants')
+    attribute_values = models.ManyToManyField(AttributeValue, related_name='variants')
     sku = models.CharField(unique=True, max_length=100)
     price_adjustment = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     stock_alert_threshold = models.IntegerField(blank=True, null=True)
@@ -30,24 +33,76 @@ class ProductVariant(BaseModel):
         if self.stock_alert_threshold and self.stock_alert_threshold < 0:
             raise ValidationError({'stock_alert_threshold': 'Stock alert threshold cannot be negative'})
 
-    def generate_sku(self):
+    def generate_sku(self, attribute_values_list=None):
+        # Fallback SKU generation method
         if not self.product:
-            return None
-            
-        # Lấy tất cả attribute values của variant
-        attribute_values = self.attributes.values_list('attribute_value__value', flat=True)
-        if not attribute_values:
-            return None
-            
-        # Tạo SKU theo format: product_name-attribute_value_name-variant_id
-        sku_parts = [self.product.name]
-        sku_parts.extend(attribute_values)
-        sku_parts.append(str(self.id if self.id else 'new'))
+            return f"VAR-{str(uuid.uuid4())[:8]}".upper()
         
-        return '-'.join(sku_parts).replace(' ', '-').upper()
+        # Prepare SKU parts
+        sku_parts = [
+            # Normalize product name: remove spaces, convert to uppercase
+            self.product.name.replace(' ', '-').upper()
+        ]
+        
+        # Determine attribute values
+        if attribute_values_list:
+            # Use passed attribute values
+            attr_values = attribute_values_list
+        elif hasattr(self, '_attribute_values'):
+            # Use pre-set attribute values
+            attr_values = self._attribute_values
+        else:
+            # Try to get attribute values from the many-to-many relationship
+            try:
+                # Fetch attribute values with their details
+                attr_values_qs = self.attribute_values.select_related('attribute_type').all()
+                attr_values = [
+                    av.value 
+                    for av in attr_values_qs 
+                    if av.value
+                ]
+            except Exception:
+                attr_values = []
+        
+        # Add attribute values to SKU parts
+        if attr_values:
+            sku_parts.extend([
+                str(value).replace(' ', '-').upper() 
+                for value in attr_values
+            ])
+        
+        # Add variant identifier (use ID or a unique suffix)
+        unique_suffix = str(uuid.uuid4())[:8]
+        sku_parts.append(unique_suffix)
+        
+        # Create base SKU
+        base_sku = '-'.join(sku_parts)
+        
+        # Ensure uniqueness by appending a counter if needed
+        final_sku = base_sku
+        counter = 1
+        while ProductVariant.objects.filter(sku=final_sku).exists():
+            final_sku = f"{base_sku}-{counter}"
+            counter += 1
+        
+        return final_sku
 
     def save(self, *args, **kwargs):
+        # If attribute values are passed during creation, store them temporarily
+        if 'attribute_values' in kwargs:
+            self._attribute_values = kwargs.pop('attribute_values')
+        
+        # Generate SKU before saving if not already set
+        if not self.sku:
+            self.sku = self.generate_sku()
+        
+        # Save the instance first
         super().save(*args, **kwargs)
+        
+        # If attribute values were stored, set them after saving
+        if hasattr(self, '_attribute_values'):
+            self.attribute_values.set(self._attribute_values)
+            delattr(self, '_attribute_values')
 
 class ProductVariantAttribute(BaseModel):
     product_variant = models.ForeignKey(ProductVariant, models.DO_NOTHING, blank=True, null=True, related_name='attributes')
@@ -65,4 +120,4 @@ class ProductVariantAttribute(BaseModel):
 
     def clean(self):
         if self.required and not self.attribute_value:
-            raise ValidationError({'attribute_value': 'Attribute value is required when attribute is marked as required'}) 
+            raise ValidationError({'attribute_value': 'Attribute value is required when attribute is marked as required'})

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { hasModulePermission } from '../../services/permission';
 import '../static/AdminCommon.css';
@@ -14,7 +14,6 @@ export default function ProductCreatePage() {
     slug: '',
     meta_title: '',
     meta_description: '',
-    sku: '',
     is_featured: false,
     is_active: true
   });
@@ -23,8 +22,6 @@ export default function ProductCreatePage() {
   const [attributeTypes, setAttributeTypes] = useState([]);
   const [attributeValues, setAttributeValues] = useState([]);
   const [selectedAttributeValues, setSelectedAttributeValues] = useState({});
-  const [variants, setVariants] = useState([]);
-  const [attributePriceAdjustments, setAttributePriceAdjustments] = useState({});
 
   const [brands, setBrands] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -38,74 +35,6 @@ export default function ProductCreatePage() {
     if (price === null || price === undefined) return "0.00";
     return Number(price).toFixed(2);
   };
-
-  const formatStockThreshold = (threshold) => {
-    if (threshold === null || threshold === undefined || threshold === "") return null;
-    return Number(threshold);
-  };
-
-  const validateVariantData = (variant) => {
-    return {
-      price_adjustment: formatPrice(variant.price_adjustment),
-      stock_alert_threshold: formatStockThreshold(variant.stock_alert_threshold),
-      barcode: variant.barcode || "",
-      is_active: Boolean(variant.is_active),
-      attributes: variant.attributes.map(attr => ({
-        attribute_value: Number(typeof attr.attribute_value === 'object' ? attr.attribute_value.id : attr.attribute_value),
-        required: Boolean(attr.required),
-        price_adjustment: formatPrice(attr.price_adjustment)
-      }))
-    };
-  };
-
-  // Hàm tạo tổ hợp thuộc tính và cập nhật variants
-  const updateVariantsFromAttributes = useCallback(() => {
-    // Tạo các biến thể dựa trên các thuộc tính đã chọn
-    const selectedValues = Object.entries(selectedAttributeValues).map(([typeId, values]) => 
-      values.map(value => ({
-        attribute_value: value.id,
-        required: true,
-        price_adjustment: attributePriceAdjustments[value.id] || "0"
-      }))
-    );
-
-    // Tạo các tổ hợp thuộc tính
-    const combinations = selectedValues.reduce((acc, curr) => {
-      if (acc.length === 0) {
-        return curr.map(item => [item]);
-      }
-      return acc.flatMap(combo => 
-        curr.map(item => [...combo, item])
-      );
-    }, []);
-
-    // Tạo biến thể cho mỗi tổ hợp
-    const newVariants = combinations.map(combo => ({
-      price_adjustment: "0.00",
-      stock_alert_threshold: null,
-      barcode: "",
-      is_active: true,
-      attributes: combo
-    }));
-
-    // Nếu không có thuộc tính nào được chọn, tạo một biến thể mặc định
-    if (newVariants.length === 0) {
-      newVariants.push({
-        price_adjustment: "0.00",
-        stock_alert_threshold: null,
-        barcode: "",
-        is_active: true,
-        attributes: []
-      });
-    }
-
-    setVariants(newVariants);
-  }, [selectedAttributeValues, attributePriceAdjustments]);
-
-  // Cập nhật variants khi thay đổi thuộc tính hoặc giá điều chỉnh
-  useEffect(() => {
-    updateVariantsFromAttributes();
-  }, [updateVariantsFromAttributes]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -167,28 +96,19 @@ export default function ProductCreatePage() {
     setPrimaryImageIndex(0);
   };
 
-  // Cập nhật hàm xử lý thuộc tính
+  // Hàm chọn thuộc tính
   const handleAttributeSelect = (typeId, valueId) => {
     if (!valueId) return;
-    
     const value = attributeValues.find(v => v.id === Number(valueId));
     if (!value) return;
-
     setSelectedAttributeValues(prev => {
       const currentValues = prev[typeId] || [];
       if (currentValues.some(v => v.id === value.id)) return prev;
-      
       return {
         ...prev,
         [typeId]: [...currentValues, value]
       };
     });
-
-    // Khởi tạo giá điều chỉnh mặc định là 0
-    setAttributePriceAdjustments(prev => ({
-      ...prev,
-      [value.id]: "0"
-    }));
   };
 
   const handleRemoveAttributeValue = (typeId, valueId) => {
@@ -196,38 +116,18 @@ export default function ProductCreatePage() {
       ...prev,
       [typeId]: (prev[typeId] || []).filter(v => v.id !== valueId)
     }));
-
-    // Xóa giá điều chỉnh khi xóa thuộc tính
-    setAttributePriceAdjustments(prev => {
-      const newAdjustments = { ...prev };
-      delete newAdjustments[valueId];
-      return newAdjustments;
-    });
-  };
-
-  const handlePriceAdjustmentChange = (valueId, price) => {
-    setAttributePriceAdjustments(prev => ({
-      ...prev,
-      [valueId]: price
-    }));
   };
 
   const handleSubmit = async e => {
     e.preventDefault();
     setError('');
-    
     if (!form.name || !form.brand || !form.category || !form.base_price) {
       setError('Vui lòng nhập đầy đủ các trường bắt buộc: Tên, Thương hiệu, Danh mục, Giá gốc.');
       return;
     }
-
     try {
       const token = localStorage.getItem('accessToken');
-      
-      // Tạo FormData
       const formData = new FormData();
-
-      // Thêm các trường cơ bản
       formData.append('name', form.name);
       formData.append('description', form.description);
       formData.append('category', form.category);
@@ -239,28 +139,18 @@ export default function ProductCreatePage() {
       formData.append('meta_description', form.meta_description);
       formData.append('is_featured', form.is_featured);
       formData.append('is_active', form.is_active);
-
-      // Thêm ảnh
       imageFiles.forEach((file, idx) => {
         formData.append(`images[${idx}]`, file);
       });
       formData.append('primary_image_index', primaryImageIndex);
 
-      // Chuẩn bị variants_data với định dạng chính xác
-      const variantsData = variants.map(variant => {
-        const validatedVariant = validateVariantData(variant);
-        
-        // Thêm giá điều chỉnh cho từng thuộc tính
-        validatedVariant.attributes = validatedVariant.attributes.map(attr => ({
-          ...attr,
-          price_adjustment: formatPrice(attributePriceAdjustments[attr.attribute_value] || "0")
-        }));
-
-        return validatedVariant;
-      });
-
-      // Thêm variants_data vào FormData
-      formData.append('variants_data', JSON.stringify(variantsData));
+      // Prepare payload with attribute_value_groups
+      const attributeValueGroups = Object.entries(selectedAttributeValues).map(
+        ([typeId, values]) => values.map(v => v.id)  // Use v.id directly
+      );
+      
+      // Convert to a JSON string that can be parsed by Python
+      formData.append('attribute_value_groups', JSON.stringify(attributeValueGroups));
 
       const productRes = await fetch('http://localhost:8000/api/products/products/', {
         method: 'POST',
@@ -269,12 +159,10 @@ export default function ProductCreatePage() {
         },
         body: formData,
       });
-
       if (!productRes.ok) {
         const data = await productRes.json();
         throw new Error(data.error || 'Tạo sản phẩm thất bại');
       }
-
       navigate('/admin/products');
     } catch (err) {
       setError(err.message || 'Lỗi kết nối');
@@ -307,7 +195,6 @@ export default function ProductCreatePage() {
           <input name="slug" value={form.slug} onChange={handleChange} placeholder="Slug (không dấu, cách nhau bởi -)" />
           <input name="meta_title" value={form.meta_title} onChange={handleChange} placeholder="Meta title" />
           <input name="meta_description" value={form.meta_description} onChange={handleChange} placeholder="Meta description" />
-          <input name="sku" value={form.sku} onChange={handleChange} placeholder="SKU" />
           <label><input type="checkbox" name="is_featured" checked={form.is_featured} onChange={handleChange} /> Sản phẩm nổi bật</label>
           <label><input type="checkbox" name="is_active" checked={form.is_active} onChange={handleChange} /> Hiển thị</label>
         </div>
@@ -391,7 +278,6 @@ export default function ProductCreatePage() {
                     <tr>
                       <th>Loại thuộc tính</th>
                       <th>Giá trị</th>
-                      <th>Giá tiền điều chỉnh</th>
                       <th>Thao tác</th>
                     </tr>
                   </thead>
@@ -401,14 +287,6 @@ export default function ProductCreatePage() {
                         <tr key={`${typeId}-${value.id}`}>
                           <td>{attributeTypes.find(t => t.id === Number(typeId))?.name}</td>
                           <td>{value.value}</td>
-                          <td>
-                            <input
-                              type="number"
-                              value={attributePriceAdjustments[value.id] || "0"}
-                              onChange={(e) => handlePriceAdjustmentChange(value.id, e.target.value)}
-                              placeholder="Giá điều chỉnh"
-                            />
-                          </td>
                           <td>
                             <button
                               type="button"
@@ -436,4 +314,4 @@ export default function ProductCreatePage() {
       </form>
     </div>
   );
-} 
+}

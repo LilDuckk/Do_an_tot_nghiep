@@ -4,13 +4,11 @@ from rest_framework.response import Response
 from django.db import transaction
 from django.core.cache import cache
 from django.db.models import Q
-import itertools
 from apps.products.models.product import Product
-from apps.products.models.variant import ProductVariant, ProductVariantAttribute
-from apps.products.models.attribute import AttributeValue, AttributeValuePriceAdjustment
+from apps.products.models.variant import ProductVariant
 from apps.products.serializers.product_serializer import (
     ProductSerializer, ProductDetailSerializer,
-    ProductVariantSerializer, ProductVariantAttributeSerializer
+    ProductVariantSerializer
 )
 
 class ProductViewSet(viewsets.ModelViewSet):
@@ -72,7 +70,7 @@ class ProductViewSet(viewsets.ModelViewSet):
             cached_queryset = queryset.select_related(
                 'category', 'brand', 'default_variant'
             ).prefetch_related(
-                'variants', 'variants__attributes', 'variants__attributes__attribute_value',
+                'variants', 'variants__attribute_values',
                 'images'
             )
             cache.set(cache_key, cached_queryset, timeout=300)  # Cache for 5 minutes
@@ -106,11 +104,11 @@ class ProductViewSet(viewsets.ModelViewSet):
             
             # Create new variants
             for variant_data in variants_data:
-                attributes_data = variant_data.pop('attributes', [])
+                attribute_values = variant_data.pop('attribute_values', [])
                 variant = ProductVariant.objects.create(product=product, **variant_data)
-                
-                for attr_data in attributes_data:
-                    ProductVariantAttribute.objects.create(product_variant=variant, **attr_data)
+                variant.attribute_values.set(attribute_values)
+                variant.sku = variant.generate_sku()
+                variant.save()
                     
         return Response({'status': 'variants updated'})
 
@@ -128,7 +126,7 @@ class ProductVariantViewSet(viewsets.ModelViewSet):
         return super().get_queryset().select_related(
             'product'
         ).prefetch_related(
-            'attributes', 'attributes__attribute_value'
+            'attribute_values'
         )
 
     @transaction.atomic
@@ -146,12 +144,3 @@ class ProductVariantViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
         return Response(serializer.data)
-
-class ProductVariantAttributeViewSet(viewsets.ModelViewSet):
-    queryset = ProductVariantAttribute.objects.all()
-    serializer_class = ProductVariantAttributeSerializer
-    
-    def get_queryset(self):
-        return super().get_queryset().select_related(
-            'product_variant', 'attribute_value'
-        )

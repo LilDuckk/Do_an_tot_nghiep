@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { hasModulePermission } from '../../services/permission';
 import '../static/AdminCommon.css';
@@ -26,8 +26,9 @@ export default function ProductEditPage() {
   const [attributeTypes, setAttributeTypes] = useState([]);
   const [attributeValues, setAttributeValues] = useState([]);
   const [selectedAttributeValues, setSelectedAttributeValues] = useState({});
-  const [variants, setVariants] = useState([]);
   const [attributePriceAdjustments, setAttributePriceAdjustments] = useState({});
+  const [variants, setVariants] = useState([]);
+  const [filteredVariants, setFilteredVariants] = useState([]);
 
   // States cho UI và data khác
   const [loading, setLoading] = useState(true);
@@ -38,83 +39,19 @@ export default function ProductEditPage() {
   const [brands, setBrands] = useState([]);
   const [categories, setCategories] = useState([]);
 
+  // States cho bộ lọc biến thể
+  const [variantFilters, setVariantFilters] = useState({
+    attribute_values: [],
+    min_price: '',
+    max_price: '',
+    is_active: true
+  });
+
   // Thêm các hàm tiện ích
   const formatPrice = (price) => {
     if (price === null || price === undefined) return "0.00";
     return Number(price).toFixed(2);
   };
-
-  const formatStockThreshold = (threshold) => {
-    if (threshold === null || threshold === undefined || threshold === "") return null;
-    return Number(threshold);
-  };
-
-  const validateVariantData = (variant) => {
-    return {
-      price_adjustment: formatPrice(variant.price_adjustment),
-      stock_alert_threshold: formatStockThreshold(variant.stock_alert_threshold),
-      barcode: variant.barcode || "",
-      is_active: Boolean(variant.is_active),
-      attributes: variant.attributes
-        .map(attr => ({
-          attribute_value: Number(typeof attr.attribute_value === 'object' ? attr.attribute_value.id : attr.attribute_value),
-          required: Boolean(attr.required),
-          price_adjustment: formatPrice(attr.price_adjustment)
-        }))
-        .filter(attr => Number.isFinite(attr.attribute_value) && attr.attribute_value > 0) // chỉ giữ attribute_value hợp lệ
-    };
-  };
-
-  // Hàm tạo tổ hợp thuộc tính và cập nhật variants
-  const updateVariantsFromAttributes = useCallback(() => {
-    // Tạo các biến thể dựa trên các thuộc tính đã chọn
-    const selectedValues = Object.entries(selectedAttributeValues).map(([typeId, values]) => 
-      values.map(value => ({
-        attribute_value: value.id,
-        required: true,
-        price_adjustment: attributePriceAdjustments[value.id] || "0"
-      }))
-    );
-
-    // Tạo các tổ hợp thuộc tính
-    const combinations = selectedValues.reduce((acc, curr) => {
-      if (acc.length === 0) {
-        return curr.map(item => [item]);
-      }
-      return acc.flatMap(combo => 
-        curr.map(item => [...combo, item])
-      );
-    }, []);
-
-    // Tạo biến thể cho mỗi tổ hợp
-    const newVariants = combinations.map(combo => ({
-      product_id: id,
-      price_adjustment: "0.00",
-      stock_alert_threshold: null,
-      barcode: "",
-      is_active: true,
-      attributes: combo
-    }));
-
-    // Nếu không có thuộc tính nào được chọn, tạo một biến thể mặc định
-    if (newVariants.length === 0) {
-      newVariants.push({
-        product_id: id,
-        price_adjustment: "0.00",
-        stock_alert_threshold: null,
-        barcode: "",
-        is_active: true,
-        attributes: []
-      });
-    }
-
-    setVariants(newVariants);
-  }, [selectedAttributeValues, attributePriceAdjustments, id]);
-
-  // Cập nhật variants khi thay đổi thuộc tính hoặc giá điều chỉnh
-  useEffect(() => {
-    updateVariantsFromAttributes();
-  }, [updateVariantsFromAttributes]);
 
   // Fetch data khi component mount
   useEffect(() => {
@@ -144,32 +81,38 @@ export default function ProductEditPage() {
           setProductImages(Array.isArray(data.images) ? data.images : []);
           
           // Lấy thông tin variants từ response
-          if (data.variants) {
+          if (Array.isArray(data.variants)) {
             setVariants(data.variants);
+            setFilteredVariants(data.variants);
             
             // Map lại selectedAttributeValues từ variants
             const attrValues = {};
             const priceAdjustments = {};
             data.variants.forEach(variant => {
-              if (variant.attributes) {
+              if (Array.isArray(variant.attributes)) {
                 variant.attributes.forEach(attr => {
-                  const typeId = attr.attribute_value.attribute_type;
-                  if (!attrValues[typeId]) attrValues[typeId] = [];
-                  // Tránh trùng lặp value
-                  if (!attrValues[typeId].some(v => v.id === attr.attribute_value.id)) {
-                    attrValues[typeId].push({
-                      ...attr.attribute_value
-                    });
-                  }
-                  // Lưu giá điều chỉnh
-                  if (attr.price_adjustment) {
-                    priceAdjustments[attr.attribute_value.id] = attr.price_adjustment;
+                  if (attr.attribute_value) {
+                    const typeId = attr.attribute_value.attribute_type;
+                    if (!attrValues[typeId]) attrValues[typeId] = [];
+                    // Tránh trùng lặp value
+                    if (!attrValues[typeId].some(v => v.id === attr.attribute_value.id)) {
+                      attrValues[typeId].push({
+                        ...attr.attribute_value
+                      });
+                    }
+                    // Lưu giá điều chỉnh
+                    if (attr.price_adjustment) {
+                      priceAdjustments[attr.attribute_value.id] = attr.price_adjustment;
+                    }
                   }
                 });
               }
             });
             setSelectedAttributeValues(attrValues);
             setAttributePriceAdjustments(priceAdjustments);
+          } else {
+            setVariants([]);
+            setFilteredVariants([]);
           }
         } else {
           setError('Không tìm thấy sản phẩm');
@@ -216,6 +159,53 @@ export default function ProductEditPage() {
 
     fetchData();
   }, [id]);
+
+  // Hàm lọc biến thể
+  const filterVariants = () => {
+    if (!Array.isArray(variants)) {
+      setFilteredVariants([]);
+      return;
+    }
+
+    let filtered = [...variants];
+
+    // Lọc theo thuộc tính
+    if (Array.isArray(variantFilters.attribute_values) && variantFilters.attribute_values.length > 0) {
+      filtered = filtered.filter(variant => 
+        variantFilters.attribute_values.every(filterValue => 
+          Array.isArray(variant.attributes) && variant.attributes.some(attr => 
+            attr.attribute_value?.id === filterValue
+          )
+        )
+      );
+    }
+
+    // Lọc theo giá
+    if (variantFilters.min_price) {
+      filtered = filtered.filter(variant => 
+        Number(variant.price_adjustment || 0) >= Number(variantFilters.min_price)
+      );
+    }
+    if (variantFilters.max_price) {
+      filtered = filtered.filter(variant => 
+        Number(variant.price_adjustment || 0) <= Number(variantFilters.max_price)
+      );
+    }
+
+    // Lọc theo trạng thái
+    if (variantFilters.is_active !== undefined) {
+      filtered = filtered.filter(variant => 
+        variant.is_active === variantFilters.is_active
+      );
+    }
+
+    setFilteredVariants(filtered);
+  };
+
+  // Cập nhật bộ lọc
+  useEffect(() => {
+    filterVariants();
+  }, [variantFilters]);
 
   if (!hasModulePermission('product', 'edit')) {
     return <div className="admin-error">Bạn không có quyền sửa sản phẩm.</div>;
@@ -321,6 +311,96 @@ export default function ProductEditPage() {
     }));
   };
 
+  // Hàm cập nhật thuộc tính
+  const handleUpdateAttributes = async () => {
+    try {
+      const token = localStorage.getItem('accessToken');
+      
+      // Tạo FormData
+      const formData = new FormData();
+      
+      // Thêm các trường cơ bản
+      formData.append('name', form.name);
+      formData.append('description', form.description);
+      formData.append('category', form.category);
+      formData.append('brand', form.brand);
+      formData.append('base_price', formatPrice(form.base_price));
+      formData.append('warranty_period', form.warranty_period || '');
+      formData.append('meta_title', form.meta_title);
+      formData.append('meta_description', form.meta_description);
+      formData.append('slug', form.slug);
+      formData.append('is_featured', form.is_featured);
+      formData.append('is_active', form.is_active);
+
+      // Chuẩn bị attribute_value_groups đúng chuẩn API
+      const attributeValueGroups = Object.entries(selectedAttributeValues).map(([typeId, values]) => values.map(v => v.id));
+      formData.append('attribute_value_groups', JSON.stringify(attributeValueGroups));
+
+      const res = await fetch(`http://localhost:8000/api/products/products/${id}/`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      if (!res.ok) {
+        throw new Error('Cập nhật thuộc tính thất bại');
+      }
+
+      // Refresh lại danh sách biến thể
+      const variantsRes = await fetch(`http://localhost:8000/api/products/products/${id}/`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (variantsRes.ok) {
+        const data = await variantsRes.json();
+        if (Array.isArray(data.variants)) {
+          setVariants(data.variants);
+          setFilteredVariants(data.variants);
+        }
+      }
+
+      alert('Cập nhật thuộc tính thành công');
+    } catch (err) {
+      setError(err.message || 'Lỗi kết nối');
+    }
+  };
+
+  // Hàm cập nhật biến thể
+  const handleUpdateVariant = async (variantId, data) => {
+    try {
+      const token = localStorage.getItem('accessToken');
+      const res = await fetch(`http://localhost:8000/api/products/variants/${variantId}/`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+      });
+
+      if (!res.ok) {
+        throw new Error('Cập nhật biến thể thất bại');
+      }
+
+      // Refresh lại danh sách biến thể
+      const variantsRes = await fetch(`http://localhost:8000/api/products/products/${id}/`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (variantsRes.ok) {
+        const data = await variantsRes.json();
+        if (data.variants) {
+          setVariants(data.variants);
+          setFilteredVariants(data.variants);
+        }
+      }
+
+      alert('Cập nhật biến thể thành công');
+    } catch (err) {
+      setError(err.message || 'Lỗi kết nối');
+    }
+  };
+
   const handleSubmit = async e => {
     e.preventDefault();
     setError('');
@@ -357,23 +437,6 @@ export default function ProductEditPage() {
         formData.append('primary_image_index', primaryImageIndex);
       }
 
-      // Chuẩn bị variants_data với định dạng chính xác
-      const variantsData = variants.map(variant => {
-        const validatedVariant = validateVariantData(variant);
-        
-        // Thêm giá điều chỉnh cho từng thuộc tính
-        validatedVariant.attributes = validatedVariant.attributes.map(attr => ({
-          ...attr,
-          price_adjustment: formatPrice(attributePriceAdjustments[attr.attribute_value] || attr.price_adjustment || "0")
-        }));
-
-        return validatedVariant;
-      });
-
-      // Thêm variants_data vào FormData
-      formData.append('variants_input', JSON.stringify(variantsData));
-      console.log('variantsData:', variantsData);
-      console.log('formData variants:', formData.get('variants'));
       const productRes = await fetch(`http://localhost:8000/api/products/products/${id}/`, {
         method: 'PUT',
         headers: {
@@ -575,10 +638,171 @@ export default function ProductEditPage() {
                   </tbody>
                 </table>
               </div>
+
+              {/* Nút lưu thuộc tính */}
+              <div className="attributes-actions">
+                <button
+                  type="button"
+                  className="admin-btn primary"
+                  onClick={handleUpdateAttributes}
+                >
+                  Lưu thuộc tính
+                </button>
+              </div>
             </div>
           ) : (
             <p>Không có loại thuộc tính nào</p>
           )}
+        </div>
+
+        {/* Bảng biến thể */}
+        <div className="form-section">
+          <h3>Biến thể sản phẩm</h3>
+          
+          {/* Bộ lọc biến thể */}
+          <div className="variant-filters">
+            <h4>Bộ lọc</h4>
+            <div className="filter-group">
+              <label>Thuộc tính:</label>
+              <select
+                multiple
+                value={variantFilters.attribute_values}
+                onChange={(e) => {
+                  const values = Array.from(e.target.selectedOptions, option => Number(option.value));
+                  setVariantFilters(prev => ({
+                    ...prev,
+                    attribute_values: values
+                  }));
+                }}
+              >
+                {Array.isArray(attributeValues) && attributeValues.map(value => (
+                  <option key={value.id} value={value.id}>
+                    {value.value}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="filter-group">
+              <label>Giá từ:</label>
+              <input
+                type="number"
+                value={variantFilters.min_price}
+                onChange={(e) => setVariantFilters(prev => ({
+                  ...prev,
+                  min_price: e.target.value
+                }))}
+                placeholder="Giá tối thiểu"
+              />
+            </div>
+            <div className="filter-group">
+              <label>Giá đến:</label>
+              <input
+                type="number"
+                value={variantFilters.max_price}
+                onChange={(e) => setVariantFilters(prev => ({
+                  ...prev,
+                  max_price: e.target.value
+                }))}
+                placeholder="Giá tối đa"
+              />
+            </div>
+            <div className="filter-group">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={variantFilters.is_active}
+                  onChange={(e) => setVariantFilters(prev => ({
+                    ...prev,
+                    is_active: e.target.checked
+                  }))}
+                />
+                Chỉ hiện biến thể đang active
+              </label>
+            </div>
+          </div>
+
+          {/* Bảng biến thể */}
+          <div className="variants-table">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>SKU</th>
+                  <th>Thuộc tính</th>
+                  <th>Giá điều chỉnh</th>
+                  <th>Ngưỡng cảnh báo</th>
+                  <th>Mã vạch</th>
+                  <th>Trạng thái</th>
+                  <th>Thao tác</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Array.isArray(filteredVariants) && filteredVariants.map(variant => (
+                  <tr key={variant.id}>
+                    <td>{variant.sku}</td>
+                    <td>
+                      {Array.isArray(variant.attributes) && variant.attributes.map(attr => (
+                        <span key={attr.attribute_value?.id} className="attribute-tag">
+                          {attr.attribute_value?.value}
+                        </span>
+                      ))}
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        value={variant.price_adjustment || ''}
+                        onChange={(e) => handleUpdateVariant(variant.id, {
+                          ...variant,
+                          price_adjustment: e.target.value
+                        })}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        value={variant.stock_alert_threshold || ''}
+                        onChange={(e) => handleUpdateVariant(variant.id, {
+                          ...variant,
+                          stock_alert_threshold: e.target.value
+                        })}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="text"
+                        value={variant.barcode || ''}
+                        onChange={(e) => handleUpdateVariant(variant.id, {
+                          ...variant,
+                          barcode: e.target.value
+                        })}
+                      />
+                    </td>
+                    <td>
+                      <label>
+                        <input
+                          type="checkbox"
+                          checked={variant.is_active || false}
+                          onChange={(e) => handleUpdateVariant(variant.id, {
+                            ...variant,
+                            is_active: e.target.checked
+                          })}
+                        />
+                        Active
+                      </label>
+                    </td>
+                    <td>
+                      <button
+                        type="button"
+                        className="admin-btn"
+                        onClick={() => handleUpdateVariant(variant.id, variant)}
+                      >
+                        Lưu
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         <button type="submit" className="admin-btn primary">Cập nhật</button>
