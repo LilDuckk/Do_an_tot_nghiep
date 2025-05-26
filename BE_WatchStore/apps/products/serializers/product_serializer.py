@@ -66,7 +66,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
     attributes = serializers.SerializerMethodField()
     category_detail = CategorySerializer(source='category', read_only=True)
     brand_detail = BrandSerializer(source='brand', read_only=True)
-    images = ProductImageSerializer(many=True, read_only=True)
+    images = serializers.SerializerMethodField()
     
     class Meta:
         model = Product
@@ -83,18 +83,16 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         """
         return AttributeTypeSerializer(obj.get_attributes(), many=True).data
 
+    def get_images(self, obj):
+        images_qs = obj.images.filter(is_deleted=False)
+        return ProductImageSerializer(images_qs, many=True).data
+
 class ProductSerializer(serializers.ModelSerializer):
     variants = ProductVariantSerializer(many=True, read_only=True)
-    attribute_value_groups = serializers.ListField(
-        child=serializers.ListField(
-            child=serializers.IntegerField()
-        ),
-        write_only=True,
-        required=False
-    )
+    attribute_value_groups = serializers.JSONField(write_only=True, required=False)
     category_detail = CategorySerializer(source='category', read_only=True)
     brand_detail = BrandSerializer(source='brand', read_only=True)
-    images = ProductImageSerializer(many=True, read_only=True)
+    images = serializers.SerializerMethodField()
     
     class Meta:
         model = Product
@@ -111,6 +109,7 @@ class ProductSerializer(serializers.ModelSerializer):
         }
 
     def validate_attribute_value_groups(self, value):
+        print("DEBUG validate_attribute_value_groups input:", value)
         # Validate attribute_value_groups with robust parsing
         if isinstance(value, str):
             try:
@@ -161,6 +160,7 @@ class ProductSerializer(serializers.ModelSerializer):
         raise serializers.ValidationError('Invalid format. Expected list of lists of integers.')
 
     def to_internal_value(self, data):
+        print("DEBUG to_internal_value input:", data.get('attribute_value_groups'))
         # Custom method to handle form data parsing
         if isinstance(data, dict):
             # Check if attribute_value_groups is in request.data
@@ -192,76 +192,89 @@ class ProductSerializer(serializers.ModelSerializer):
         
         return super().to_internal_value(data)
 
-    @transaction.atomic
     def create(self, validated_data):
         from apps.products.models.product import ProductImage
-        
-        # Extract images and attribute value groups
+
         images = self.context['request'].FILES.getlist('images')
         primary_image_index = int(self.context['request'].data.get('primary_image_index', 0))
         attribute_value_groups = validated_data.pop('attribute_value_groups', [])
-        
-        # Tạo product mới
-        product = Product.objects.create(**validated_data)
-        
-        # Tạo tổ hợp tất cả biến thể
+
+        # Validate và lấy attr_value_objects TRƯỚC khi vào transaction.atomic
+        attr_value_objects = []
         if attribute_value_groups:
-            # Chuyển đổi các ID thành các AttributeValue objects
-            attr_value_objects = [
-                [AttributeValue.objects.get(id=id) for id in group]
-                for group in attribute_value_groups
-            ]
-            
+            try:
+                attr_value_objects = [
+                    [AttributeValue.objects.get(id=id) for id in group]
+                    for group in attribute_value_groups
+                ]
+            except AttributeValue.DoesNotExist:
+                raise serializers.ValidationError("Một hoặc nhiều AttributeValue không tồn tại.")
+
+        # Tạo product và các đối tượng liên quan trong block atomic
+        with transaction.atomic():
+            product = Product.objects.create(**validated_data)
+
             # Tạo tổ hợp tất cả biến thể
-            for combo in itertools.product(*attr_value_objects):
-                # Convert combo to list of IDs for variant creation
-                combo_ids = [av.id for av in combo]
-                
-                # Create variant and set attribute values
-                variant = ProductVariant.objects.create(product=product)
-                variant.attribute_values.set(combo_ids)
-        
-        # Tạo ảnh sản phẩm
-        for idx, image_file in enumerate(images):
-            ProductImage.objects.create(
-                product=product, 
-                image=image_file, 
-                is_primary=(idx == primary_image_index)
-            )
-        
+            if attr_value_objects:
+                for combo in itertools.product(*attr_value_objects):
+                    combo_ids = [av.id for av in combo]
+                    variant = ProductVariant.objects.create(product=product)
+                    variant.attribute_values.set(combo_ids)
+
+            # Tạo ảnh sản phẩm
+            for idx, image_file in enumerate(images):
+                ProductImage.objects.create(
+                    product=product,
+                    image=image_file,
+                    is_primary=(idx == primary_image_index)
+                )
+
         return product
 
     @transaction.atomic
     def update(self, instance, validated_data):
+        from apps.products.models.product import ProductImage
         attribute_value_groups = validated_data.pop('attribute_value_groups', None)
-        
+
         # Update product fields
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
-        
+
         # Nếu có attribute_value_groups mới, xóa variants cũ và tạo mới
         if attribute_value_groups is not None:
             # Xóa variants cũ
             instance.variants.all().delete()
-            
             # Chuyển đổi các ID thành các AttributeValue objects
             attr_value_objects = [
                 [AttributeValue.objects.get(id=id) for id in group]
                 for group in attribute_value_groups
             ]
-            
             # Tạo tổ hợp tất cả biến thể
             for combo in itertools.product(*attr_value_objects):
-                # Convert combo to list of IDs for variant creation
                 combo_ids = [av.id for av in combo]
-                
-                # Create variant and set attribute values
                 variant = ProductVariant.objects.create(product=instance)
                 variant.attribute_values.set(combo_ids)
-                
+
+        # XỬ LÝ ẢNH MỚI (nếu có)
+        images = self.context['request'].FILES.getlist('images')
+        primary_image_index = int(self.context['request'].data.get('primary_image_index', 0))
+        if images:
+            # Nếu muốn xóa hết ảnh cũ, bỏ comment dòng dưới
+            # instance.images.all().delete()
+            for idx, image_file in enumerate(images):
+                ProductImage.objects.create(
+                    product=instance,
+                    image=image_file,
+                    is_primary=(idx == primary_image_index)
+                )
+
         return instance
 
     def get_variants(self, obj):
         # Lấy tất cả các variants của sản phẩm và serialize chúng
         return ProductVariantSerializer(obj.variants.all(), many=True).data
+
+    def get_images(self, obj):
+        images_qs = obj.images.filter(is_deleted=False)
+        return ProductImageSerializer(images_qs, many=True).data

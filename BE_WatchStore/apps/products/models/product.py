@@ -8,18 +8,17 @@ from apps.users.models import UserAccount
 from apps.products.models.category import Category
 from apps.products.models.brand import Brand
 from apps.products.models.attribute import AttributeType
+import uuid
 
 def product_image_upload_path(instance, filename):
     """Generate unique filename for product images."""
-    # Get product or variant name for path
-    base_name = instance.product.name if instance.product else \
-                instance.product_variant.name if instance.product_variant else 'unknown'
-    
-    # Slugify the base name and add timestamp to ensure uniqueness
+    # Get product name for path
+    base_name = instance.product.name if instance.product else 'unknown'
     slug_name = slugify(base_name)
     name, ext = os.path.splitext(filename)
-    unique_filename = f"{slug_name}_{instance.id}{ext}"
-    
+    # Nếu instance đã có id (đã lưu), dùng id, nếu chưa có thì dùng uuid4
+    image_id = instance.id if instance.id else uuid.uuid4().hex[:8]
+    unique_filename = f"{slug_name}-{image_id}{ext}"
     return f"products/{unique_filename}"
 
 class ProductImage(BaseModel):
@@ -37,6 +36,11 @@ class ProductImage(BaseModel):
     created_by = models.ForeignKey(UserAccount, models.DO_NOTHING, db_column='created_by', blank=True, null=True)
     updated_by = models.ForeignKey(UserAccount, models.DO_NOTHING, db_column='updated_by', related_name='productimage_updated_by_set', blank=True, null=True)
 
+    objects = models.Manager()  # Mặc định
+    active = models.Manager.from_queryset(type('ActiveQuerySet', (models.QuerySet,), {
+        '__init__': lambda self, *a, **kw: super(type(self), self).__init__(*a, **kw).filter(is_deleted=False)
+    }))()
+
     class Meta:
         managed = True
         db_table = 'productimage'
@@ -44,7 +48,7 @@ class ProductImage(BaseModel):
     def save(self, *args, **kwargs):
         # Ensure only one primary image per product/variant
         if self.is_primary:
-            model_class = self.product if self.product else self.product_variant
+            model_class = self.product
             model_class.images.filter(is_primary=True).update(is_primary=False)
         super().save(*args, **kwargs)
 
@@ -67,12 +71,12 @@ class Product(BaseModel):
             return []
 
     def delete(self, *args, **kwargs):
-        # Xóa tất cả các biến thể liên quan trước
+        # Xóa mềm tất cả các biến thể liên quan trước
         from apps.products.models.variant import ProductVariant
-        ProductVariant.objects.filter(product=self).delete()
-        # Xóa tất cả các ảnh liên quan
-        self.images.all().delete()
-        # Gọi phương thức delete của lớp cha
+        ProductVariant.objects.filter(product=self).update(is_deleted=True)
+        # Xóa mềm tất cả các ảnh liên quan
+        self.images.update(is_deleted=True)
+        # Gọi phương thức delete của lớp cha (soft delete chính product)
         super().delete(*args, **kwargs)
 
     name = models.CharField(max_length=255)

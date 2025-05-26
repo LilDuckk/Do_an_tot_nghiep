@@ -35,12 +35,26 @@ def safe_serialize(obj):
 
 
 def serialize_fields(instance, exclude_fields=None):
+    """
+    Chuyển instance về dict, chuyển các trường FieldFile thành string (name hoặc url),
+    các trường ForeignKey thành id hoặc str, Decimal thành float.
+    """
+    from django.db.models.fields.files import FieldFile
+    data = {}
     exclude_fields = exclude_fields or []
-    return {
-        field.name: safe_serialize(getattr(instance, field.name))
-        for field in instance._meta.fields
-        if field.name not in exclude_fields
-    }
+    for field in instance._meta.fields:
+        if field.name in exclude_fields:
+            continue
+        value = getattr(instance, field.name)
+        if isinstance(value, FieldFile):
+            data[field.name] = value.url if hasattr(value, 'url') and value.url else value.name
+        elif isinstance(value, models.Model):
+            data[field.name] = value.pk if hasattr(value, 'pk') else str(value)
+        elif isinstance(value, Decimal):
+            data[field.name] = float(value)
+        else:
+            data[field.name] = value
+    return data
 
 
 @receiver([post_save, post_delete])

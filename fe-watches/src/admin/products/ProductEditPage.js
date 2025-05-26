@@ -22,14 +22,6 @@ export default function ProductEditPage() {
     is_active: true
   });
 
-  // States cho thuộc tính và biến thể
-  const [attributeTypes, setAttributeTypes] = useState([]);
-  const [attributeValues, setAttributeValues] = useState([]);
-  const [selectedAttributeValues, setSelectedAttributeValues] = useState({});
-  const [attributePriceAdjustments, setAttributePriceAdjustments] = useState({});
-  const [variants, setVariants] = useState([]);
-  const [filteredVariants, setFilteredVariants] = useState([]);
-
   // States cho UI và data khác
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -38,14 +30,6 @@ export default function ProductEditPage() {
   const [productImages, setProductImages] = useState([]);
   const [brands, setBrands] = useState([]);
   const [categories, setCategories] = useState([]);
-
-  // States cho bộ lọc biến thể
-  const [variantFilters, setVariantFilters] = useState({
-    attribute_values: [],
-    min_price: '',
-    max_price: '',
-    is_active: true
-  });
 
   // Thêm các hàm tiện ích
   const formatPrice = (price) => {
@@ -79,41 +63,6 @@ export default function ProductEditPage() {
             is_active: data.is_active !== undefined ? data.is_active : true
           });
           setProductImages(Array.isArray(data.images) ? data.images : []);
-          
-          // Lấy thông tin variants từ response
-          if (Array.isArray(data.variants)) {
-            setVariants(data.variants);
-            setFilteredVariants(data.variants);
-            
-            // Map lại selectedAttributeValues từ variants
-            const attrValues = {};
-            const priceAdjustments = {};
-            data.variants.forEach(variant => {
-              if (Array.isArray(variant.attributes)) {
-                variant.attributes.forEach(attr => {
-                  if (attr.attribute_value) {
-                    const typeId = attr.attribute_value.attribute_type;
-                    if (!attrValues[typeId]) attrValues[typeId] = [];
-                    // Tránh trùng lặp value
-                    if (!attrValues[typeId].some(v => v.id === attr.attribute_value.id)) {
-                      attrValues[typeId].push({
-                        ...attr.attribute_value
-                      });
-                    }
-                    // Lưu giá điều chỉnh
-                    if (attr.price_adjustment) {
-                      priceAdjustments[attr.attribute_value.id] = attr.price_adjustment;
-                    }
-                  }
-                });
-              }
-            });
-            setSelectedAttributeValues(attrValues);
-            setAttributePriceAdjustments(priceAdjustments);
-          } else {
-            setVariants([]);
-            setFilteredVariants([]);
-          }
         } else {
           setError('Không tìm thấy sản phẩm');
         }
@@ -133,24 +82,6 @@ export default function ProductEditPage() {
         if (categoriesRes.ok) {
           setCategories(await categoriesRes.json());
         }
-
-        // Fetch attribute types
-        const typesRes = await fetch('http://localhost:8000/api/products/attribute-types/list_all/', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (typesRes.ok) {
-          const data = await typesRes.json();
-          setAttributeTypes(Array.isArray(data) ? data : data.results || []);
-        }
-
-        // Fetch attribute values
-        const valuesRes = await fetch('http://localhost:8000/api/products/attribute-values/list_all/', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (valuesRes.ok) {
-          const data = await valuesRes.json();
-          setAttributeValues(Array.isArray(data) ? data : data.results || []);
-        }
       } catch (error) {
         setError('Lỗi khi tải dữ liệu');
       }
@@ -159,53 +90,6 @@ export default function ProductEditPage() {
 
     fetchData();
   }, [id]);
-
-  // Hàm lọc biến thể
-  const filterVariants = () => {
-    if (!Array.isArray(variants)) {
-      setFilteredVariants([]);
-      return;
-    }
-
-    let filtered = [...variants];
-
-    // Lọc theo thuộc tính
-    if (Array.isArray(variantFilters.attribute_values) && variantFilters.attribute_values.length > 0) {
-      filtered = filtered.filter(variant => 
-        variantFilters.attribute_values.every(filterValue => 
-          Array.isArray(variant.attributes) && variant.attributes.some(attr => 
-            attr.attribute_value?.id === filterValue
-          )
-        )
-      );
-    }
-
-    // Lọc theo giá
-    if (variantFilters.min_price) {
-      filtered = filtered.filter(variant => 
-        Number(variant.price_adjustment || 0) >= Number(variantFilters.min_price)
-      );
-    }
-    if (variantFilters.max_price) {
-      filtered = filtered.filter(variant => 
-        Number(variant.price_adjustment || 0) <= Number(variantFilters.max_price)
-      );
-    }
-
-    // Lọc theo trạng thái
-    if (variantFilters.is_active !== undefined) {
-      filtered = filtered.filter(variant => 
-        variant.is_active === variantFilters.is_active
-      );
-    }
-
-    setFilteredVariants(filtered);
-  };
-
-  // Cập nhật bộ lọc
-  useEffect(() => {
-    filterVariants();
-  }, [variantFilters]);
 
   if (!hasModulePermission('product', 'edit')) {
     return <div className="admin-error">Bạn không có quyền sửa sản phẩm.</div>;
@@ -266,139 +150,12 @@ export default function ProductEditPage() {
     }
   };
 
-  // Cập nhật hàm xử lý thuộc tính
-  const handleAttributeSelect = (typeId, valueId) => {
-    if (!valueId) return;
-    
-    const value = attributeValues.find(v => v.id === Number(valueId));
-    if (!value) return;
-
-    setSelectedAttributeValues(prev => {
-      const currentValues = prev[typeId] || [];
-      if (currentValues.some(v => v.id === value.id)) return prev;
-      
-      return {
-        ...prev,
-        [typeId]: [...currentValues, value]
-      };
-    });
-
-    // Khởi tạo giá điều chỉnh mặc định là 0
-    setAttributePriceAdjustments(prev => ({
-      ...prev,
-      [value.id]: "0"
-    }));
-  };
-
-  const handleRemoveAttributeValue = (typeId, valueId) => {
-    setSelectedAttributeValues(prev => ({
-      ...prev,
-      [typeId]: (prev[typeId] || []).filter(v => v.id !== valueId)
-    }));
-
-    // Xóa giá điều chỉnh khi xóa thuộc tính
-    setAttributePriceAdjustments(prev => {
-      const newAdjustments = { ...prev };
-      delete newAdjustments[valueId];
-      return newAdjustments;
-    });
-  };
-
-  const handlePriceAdjustmentChange = (valueId, price) => {
-    setAttributePriceAdjustments(prev => ({
-      ...prev,
-      [valueId]: price
-    }));
-  };
-
-  // Hàm cập nhật thuộc tính
-  const handleUpdateAttributes = async () => {
-    try {
-      const token = localStorage.getItem('accessToken');
-      
-      // Tạo FormData
-      const formData = new FormData();
-      
-      // Thêm các trường cơ bản
-      formData.append('name', form.name);
-      formData.append('description', form.description);
-      formData.append('category', form.category);
-      formData.append('brand', form.brand);
-      formData.append('base_price', formatPrice(form.base_price));
-      formData.append('warranty_period', form.warranty_period || '');
-      formData.append('meta_title', form.meta_title);
-      formData.append('meta_description', form.meta_description);
-      formData.append('slug', form.slug);
-      formData.append('is_featured', form.is_featured);
-      formData.append('is_active', form.is_active);
-
-      // Chuẩn bị attribute_value_groups đúng chuẩn API
-      const attributeValueGroups = Object.entries(selectedAttributeValues).map(([typeId, values]) => values.map(v => v.id));
-      formData.append('attribute_value_groups', JSON.stringify(attributeValueGroups));
-
-      const res = await fetch(`http://localhost:8000/api/products/products/${id}/`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: formData
-      });
-
-      if (!res.ok) {
-        throw new Error('Cập nhật thuộc tính thất bại');
-      }
-
-      // Refresh lại danh sách biến thể
-      const variantsRes = await fetch(`http://localhost:8000/api/products/products/${id}/`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (variantsRes.ok) {
-        const data = await variantsRes.json();
-        if (Array.isArray(data.variants)) {
-          setVariants(data.variants);
-          setFilteredVariants(data.variants);
-        }
-      }
-
-      alert('Cập nhật thuộc tính thành công');
-    } catch (err) {
-      setError(err.message || 'Lỗi kết nối');
-    }
-  };
-
-  // Hàm cập nhật biến thể
-  const handleUpdateVariant = async (variantId, data) => {
-    try {
-      const token = localStorage.getItem('accessToken');
-      const res = await fetch(`http://localhost:8000/api/products/variants/${variantId}/`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(data)
-      });
-
-      if (!res.ok) {
-        throw new Error('Cập nhật biến thể thất bại');
-      }
-
-      // Refresh lại danh sách biến thể
-      const variantsRes = await fetch(`http://localhost:8000/api/products/products/${id}/`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (variantsRes.ok) {
-        const data = await variantsRes.json();
-        if (data.variants) {
-          setVariants(data.variants);
-          setFilteredVariants(data.variants);
-        }
-      }
-
-      alert('Cập nhật biến thể thành công');
-    } catch (err) {
-      setError(err.message || 'Lỗi kết nối');
-    }
+  // Hàm lấy url ảnh đúng
+  const getImageUrl = (img) => {
+    const url = img.image_url || img.image || '';
+    if (!url) return '';
+    if (url.startsWith('http')) return url;
+    return `http://localhost:8000${url}`;
   };
 
   const handleSubmit = async e => {
@@ -432,7 +189,7 @@ export default function ProductEditPage() {
       // Thêm ảnh mới nếu có
       if (imageFiles.length > 0) {
         imageFiles.forEach((file, idx) => {
-          formData.append(`images[${idx}]`, file);
+          formData.append(`images`, file);
         });
         formData.append('primary_image_index', primaryImageIndex);
       }
@@ -454,14 +211,6 @@ export default function ProductEditPage() {
     } catch (err) {
       setError(err.message || 'Lỗi kết nối');
     }
-  };
-
-  // Hàm lấy url ảnh đúng
-  const getImageUrl = (img) => {
-    const url = img.image_url || img.image || '';
-    if (!url) return '';
-    if (url.startsWith('http')) return url;
-    return `http://localhost:8000${url}`;
   };
 
   if (loading) return <div>Đang tải...</div>;
@@ -543,265 +292,6 @@ export default function ProductEditPage() {
                 </div>
               );
             })}
-          </div>
-        </div>
-
-        {/* Thuộc tính sản phẩm */}
-        <div className="form-section">
-          <h3>Thuộc tính sản phẩm</h3>
-          {Array.isArray(attributeTypes) && attributeTypes.length > 0 ? (
-            <div className="attributes-container">
-              {/* Bảng chọn giá trị thuộc tính */}
-              <div className="attributes-selection">
-                <h4>Chọn giá trị thuộc tính</h4>
-                <table className="admin-table">
-                  <thead>
-                    <tr>
-                      <th>Loại thuộc tính</th>
-                      <th>Giá trị</th>
-                      <th>Thao tác</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {attributeTypes.map(type => (
-                      <tr key={type.id}>
-                        <td>{type.name}</td>
-                        <td>
-                          <select
-                            value=""
-                            onChange={(e) => handleAttributeSelect(type.id, e.target.value)}
-                          >
-                            <option value="">-- Chọn giá trị --</option>
-                            {Array.isArray(attributeValues) && attributeValues
-                              .filter(value => value.attribute_type === type.id)
-                              .filter(value => !selectedAttributeValues[type.id]?.some(v => v.id === value.id))
-                              .map(value => (
-                                <option key={value.id} value={value.id}>
-                                  {value.value}
-                                </option>
-                              ))}
-                          </select>
-                        </td>
-                        <td>
-                          <button
-                            type="button"
-                            className="admin-btn"
-                            onClick={() => handleAttributeSelect(type.id, document.querySelector(`select[data-type-id="${type.id}"]`).value)}
-                          >
-                            Thêm
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Bảng giá trị đã chọn */}
-              <div className="selected-attributes">
-                <h4>Giá trị thuộc tính đã chọn</h4>
-                <table className="admin-table">
-                  <thead>
-                    <tr>
-                      <th>Loại thuộc tính</th>
-                      <th>Giá trị</th>
-                      <th>Giá tiền điều chỉnh</th>
-                      <th>Thao tác</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {Object.entries(selectedAttributeValues).map(([typeId, values]) => (
-                      values.map(value => (
-                        <tr key={`${typeId}-${value.id}`}>
-                          <td>{attributeTypes.find(t => t.id === Number(typeId))?.name}</td>
-                          <td>{value.value}</td>
-                          <td>
-                            <input
-                              type="number"
-                              value={attributePriceAdjustments[value.id] || "0"}
-                              onChange={(e) => handlePriceAdjustmentChange(value.id, e.target.value)}
-                              placeholder="Giá điều chỉnh"
-                            />
-                          </td>
-                          <td>
-                            <button
-                              type="button"
-                              className="admin-btn danger"
-                              onClick={() => handleRemoveAttributeValue(Number(typeId), value.id)}
-                            >
-                              Xóa
-                            </button>
-                          </td>
-                        </tr>
-                      ))
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Nút lưu thuộc tính */}
-              <div className="attributes-actions">
-                <button
-                  type="button"
-                  className="admin-btn primary"
-                  onClick={handleUpdateAttributes}
-                >
-                  Lưu thuộc tính
-                </button>
-              </div>
-            </div>
-          ) : (
-            <p>Không có loại thuộc tính nào</p>
-          )}
-        </div>
-
-        {/* Bảng biến thể */}
-        <div className="form-section">
-          <h3>Biến thể sản phẩm</h3>
-          
-          {/* Bộ lọc biến thể */}
-          <div className="variant-filters">
-            <h4>Bộ lọc</h4>
-            <div className="filter-group">
-              <label>Thuộc tính:</label>
-              <select
-                multiple
-                value={variantFilters.attribute_values}
-                onChange={(e) => {
-                  const values = Array.from(e.target.selectedOptions, option => Number(option.value));
-                  setVariantFilters(prev => ({
-                    ...prev,
-                    attribute_values: values
-                  }));
-                }}
-              >
-                {Array.isArray(attributeValues) && attributeValues.map(value => (
-                  <option key={value.id} value={value.id}>
-                    {value.value}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="filter-group">
-              <label>Giá từ:</label>
-              <input
-                type="number"
-                value={variantFilters.min_price}
-                onChange={(e) => setVariantFilters(prev => ({
-                  ...prev,
-                  min_price: e.target.value
-                }))}
-                placeholder="Giá tối thiểu"
-              />
-            </div>
-            <div className="filter-group">
-              <label>Giá đến:</label>
-              <input
-                type="number"
-                value={variantFilters.max_price}
-                onChange={(e) => setVariantFilters(prev => ({
-                  ...prev,
-                  max_price: e.target.value
-                }))}
-                placeholder="Giá tối đa"
-              />
-            </div>
-            <div className="filter-group">
-              <label>
-                <input
-                  type="checkbox"
-                  checked={variantFilters.is_active}
-                  onChange={(e) => setVariantFilters(prev => ({
-                    ...prev,
-                    is_active: e.target.checked
-                  }))}
-                />
-                Chỉ hiện biến thể đang active
-              </label>
-            </div>
-          </div>
-
-          {/* Bảng biến thể */}
-          <div className="variants-table">
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>SKU</th>
-                  <th>Thuộc tính</th>
-                  <th>Giá điều chỉnh</th>
-                  <th>Ngưỡng cảnh báo</th>
-                  <th>Mã vạch</th>
-                  <th>Trạng thái</th>
-                  <th>Thao tác</th>
-                </tr>
-              </thead>
-              <tbody>
-                {Array.isArray(filteredVariants) && filteredVariants.map(variant => (
-                  <tr key={variant.id}>
-                    <td>{variant.sku}</td>
-                    <td>
-                      {Array.isArray(variant.attributes) && variant.attributes.map(attr => (
-                        <span key={attr.attribute_value?.id} className="attribute-tag">
-                          {attr.attribute_value?.value}
-                        </span>
-                      ))}
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        value={variant.price_adjustment || ''}
-                        onChange={(e) => handleUpdateVariant(variant.id, {
-                          ...variant,
-                          price_adjustment: e.target.value
-                        })}
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        value={variant.stock_alert_threshold || ''}
-                        onChange={(e) => handleUpdateVariant(variant.id, {
-                          ...variant,
-                          stock_alert_threshold: e.target.value
-                        })}
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="text"
-                        value={variant.barcode || ''}
-                        onChange={(e) => handleUpdateVariant(variant.id, {
-                          ...variant,
-                          barcode: e.target.value
-                        })}
-                      />
-                    </td>
-                    <td>
-                      <label>
-                        <input
-                          type="checkbox"
-                          checked={variant.is_active || false}
-                          onChange={(e) => handleUpdateVariant(variant.id, {
-                            ...variant,
-                            is_active: e.target.checked
-                          })}
-                        />
-                        Active
-                      </label>
-                    </td>
-                    <td>
-                      <button
-                        type="button"
-                        className="admin-btn"
-                        onClick={() => handleUpdateVariant(variant.id, variant)}
-                      >
-                        Lưu
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
           </div>
         </div>
 

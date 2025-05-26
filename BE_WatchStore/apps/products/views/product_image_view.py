@@ -6,7 +6,7 @@ from apps.products.serializers.product_image_serializer import ProductImageSeria
 class ProductImageViewSet(viewsets.ModelViewSet):
     queryset = ProductImage.objects.all()
     serializer_class = ProductImageSerializer
-    filterset_fields = ['product', 'product_variant', 'is_primary']
+    filterset_fields = ['product', 'is_primary']
     search_fields = ['image_url', 'alt_text']
     ordering_fields = ['display_order', 'created_at']
     ordering = ['-created_at']

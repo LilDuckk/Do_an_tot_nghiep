@@ -67,17 +67,34 @@ export default function ProductsPage() {
       const res = await fetch(`http://localhost:8000/api/products/products/${id}/`, {
         method: 'DELETE',
         headers: { 
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${token}`
         },
       });
-      console.log('Delete response status:', res.status);
+  
       if (res.status === 403) {
         alert('Bạn không có quyền xóa mục này.');
         return;
       }
+  
       if (res.status === 204) {
-        await new Promise(resolve => setTimeout(resolve, 500));
-        await fetchProducts(currentPage, searchTerm);
+        // Xóa sản phẩm trong danh sách hiện tại
+        setProducts(prevProducts => {
+          const updatedProducts = prevProducts.filter(product => product.id !== id);
+          
+          // Nếu sau khi xóa, danh sách rỗng và không phải trang 1 -> về trang trước
+          if (updatedProducts.length === 0 && currentPage > 1) {
+            setCurrentPage(prev => prev - 1);
+          }
+  
+          return updatedProducts;
+        });
+  
+        // Cập nhật lại tổng số trang nếu cần
+        setTotalPages(prevTotal => {
+          const newCount = (products.length - 1);
+          return Math.max(1, Math.ceil(newCount / ITEMS_PER_PAGE));
+        });
+  
         alert('Đã xóa sản phẩm thành công');
       } else {
         console.error('Delete failed with status:', res.status);
@@ -88,6 +105,7 @@ export default function ProductsPage() {
       alert(err.message);
     }
   };
+  
 
   const renderPagination = () => {
     const pages = [];

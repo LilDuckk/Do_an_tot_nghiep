@@ -1,16 +1,10 @@
 from rest_framework import serializers
 from apps.products.models.product import Product, ProductImage
-from apps.products.models.variant import ProductVariant
 from apps.core.serializers.base_serializer import BaseSerializer
 
 class ProductImageSerializer(BaseSerializer):
     product_id = serializers.PrimaryKeyRelatedField(
         queryset=Product.objects.all(), 
-        required=False, 
-        write_only=True
-    )
-    product_variant_id = serializers.PrimaryKeyRelatedField(
-        queryset=ProductVariant.objects.all(), 
         required=False, 
         write_only=True
     )
@@ -20,7 +14,6 @@ class ProductImageSerializer(BaseSerializer):
         model = ProductImage
         fields = BaseSerializer.Meta.fields + [
             'product_id', 
-            'product_variant_id', 
             'image', 
             'image_url', 
             'is_primary', 
@@ -36,18 +29,11 @@ class ProductImageSerializer(BaseSerializer):
         return obj.image.url if obj.image else None
 
     def create(self, validated_data):
-        """Custom create method to handle product or variant association."""
+        """Custom create method to handle product association."""
         product_id = validated_data.pop('product_id', None)
-        product_variant_id = validated_data.pop('product_variant_id', None)
-
-        if not product_id and not product_variant_id:
-            raise serializers.ValidationError("Either product_id or product_variant_id must be provided.")
-
-        if product_id:
-            validated_data['product'] = product_id  # product_id đã là object Product
-        if product_variant_id:
-            validated_data['product_variant'] = product_variant_id  # product_variant_id đã là object ProductVariant
-
+        if not product_id:
+            raise serializers.ValidationError("product_id must be provided.")
+        validated_data['product'] = product_id
         return super().create(validated_data)
 
     def validate_image(self, value):
