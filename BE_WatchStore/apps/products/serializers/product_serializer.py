@@ -194,7 +194,7 @@ class ProductSerializer(serializers.ModelSerializer):
 
     @transaction.atomic
     def create(self, validated_data):
-        from apps.products.models.product_image import ProductImage
+        from apps.products.models.product import ProductImage
         
         # Extract images and attribute value groups
         images = self.context['request'].FILES.getlist('images')

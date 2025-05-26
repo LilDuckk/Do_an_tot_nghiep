@@ -10,15 +10,31 @@ from apps.products.serializers.product_serializer import (
     ProductSerializer, ProductDetailSerializer,
     ProductVariantSerializer
 )
+from django.http import Http404
 
 class ProductViewSet(viewsets.ModelViewSet):
-    queryset = Product.objects.all()
+    queryset = Product.objects.filter(is_deleted=False)
     serializer_class = ProductSerializer
     
     def get_serializer_class(self):
         if self.action == 'retrieve':
             return ProductDetailSerializer
         return self.serializer_class
+    
+    def get_object(self):
+        """
+        Override để chỉ lấy object chưa bị xóa
+        """
+        obj = super().get_object()
+        if obj.is_deleted:
+            raise Http404("Không tìm thấy sản phẩm")
+        return obj
+    
+    @action(detail=False, methods=['get'])
+    def list_all(self, request):
+        queryset = self.filter_queryset(self.get_queryset())
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
     
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -76,6 +92,12 @@ class ProductViewSet(viewsets.ModelViewSet):
             cache.set(cache_key, cached_queryset, timeout=300)  # Cache for 5 minutes
             
         return cached_queryset
+
+    def perform_destroy(self, instance):
+        """
+        Override phương thức perform_destroy để thực hiện soft delete
+        """
+        instance.delete()  # Sẽ gọi phương thức delete() của BaseModel
 
     @transaction.atomic
     def create(self, request, *args, **kwargs):

@@ -1,13 +1,54 @@
 from django.db import models
 from django.core.exceptions import ValidationError
+from django.utils.text import slugify
+from django.core.validators import FileExtensionValidator
+import os
 from apps.core.models.base import BaseModel
 from apps.users.models import UserAccount
 from apps.products.models.category import Category
 from apps.products.models.brand import Brand
 from apps.products.models.attribute import AttributeType
 
+def product_image_upload_path(instance, filename):
+    """Generate unique filename for product images."""
+    # Get product or variant name for path
+    base_name = instance.product.name if instance.product else \
+                instance.product_variant.name if instance.product_variant else 'unknown'
+    
+    # Slugify the base name and add timestamp to ensure uniqueness
+    slug_name = slugify(base_name)
+    name, ext = os.path.splitext(filename)
+    unique_filename = f"{slug_name}_{instance.id}{ext}"
+    
+    return f"products/{unique_filename}"
+
+class ProductImage(BaseModel):
+    product = models.ForeignKey('Product', models.DO_NOTHING, blank=True, null=True, related_name='images')
+    image = models.FileField(
+        upload_to=product_image_upload_path,
+        validators=[FileExtensionValidator(['png', 'jpg', 'jpeg', 'gif', 'webp'])],
+        max_length=255,
+        null=True,  # Allow null values for existing records
+        blank=True  # Allow blank in forms
+    )
+    is_primary = models.BooleanField(default=False)
+    alt_text = models.CharField(max_length=255, blank=True, null=True)
+    display_order = models.IntegerField(blank=True, null=True)
+    created_by = models.ForeignKey(UserAccount, models.DO_NOTHING, db_column='created_by', blank=True, null=True)
+    updated_by = models.ForeignKey(UserAccount, models.DO_NOTHING, db_column='updated_by', related_name='productimage_updated_by_set', blank=True, null=True)
+
+    class Meta:
+        managed = True
+        db_table = 'productimage'
+        
+    def save(self, *args, **kwargs):
+        # Ensure only one primary image per product/variant
+        if self.is_primary:
+            model_class = self.product if self.product else self.product_variant
+            model_class.images.filter(is_primary=True).update(is_primary=False)
+        super().save(*args, **kwargs)
+
 class Product(BaseModel):
-    # Thêm phương thức để lấy các attributes của sản phẩm
     def get_attributes(self):
         """
         Lấy các attribute types liên quan đến sản phẩm
@@ -24,6 +65,16 @@ class Product(BaseModel):
         except AttributeError:
             # Nếu không có product_type, trả về danh sách rỗng
             return []
+
+    def delete(self, *args, **kwargs):
+        # Xóa tất cả các biến thể liên quan trước
+        from apps.products.models.variant import ProductVariant
+        ProductVariant.objects.filter(product=self).delete()
+        # Xóa tất cả các ảnh liên quan
+        self.images.all().delete()
+        # Gọi phương thức delete của lớp cha
+        super().delete(*args, **kwargs)
+
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
     category = models.ForeignKey(Category, models.DO_NOTHING, blank=True, null=True)

@@ -1,6 +1,6 @@
 from rest_framework import viewsets
 from rest_framework.permissions import DjangoModelPermissions, AllowAny
-from apps.products.models.product_image import ProductImage
+from apps.products.models.product import ProductImage
 from apps.products.serializers.product_image_serializer import ProductImageSerializer
 
 class ProductImageViewSet(viewsets.ModelViewSet):

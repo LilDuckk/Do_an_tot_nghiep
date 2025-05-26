@@ -121,3 +121,13 @@ class ProductVariantAttribute(BaseModel):
     def clean(self):
         if self.required and not self.attribute_value:
             raise ValidationError({'attribute_value': 'Attribute value is required when attribute is marked as required'})
+
+class VariantImage(BaseModel):
+    variant = models.ForeignKey(ProductVariant, on_delete=models.CASCADE, related_name='images')
+    image = models.ImageField(upload_to='variants/')
+    alt_text = models.CharField(max_length=255, blank=True)
+
+    class Meta:
+        managed = True
+        db_table = 'variantimage'
+    

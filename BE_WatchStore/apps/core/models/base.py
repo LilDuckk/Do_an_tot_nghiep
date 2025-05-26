@@ -12,11 +12,37 @@ class BaseModel(models.Model):
         self.updated_at = timezone.now()
         super().save(*args, **kwargs)
 
+    def delete(self, *args, **kwargs):
+        """
+        Soft delete - chỉ đánh dấu là đã xóa thay vì xóa thật
+        """
+        self.is_deleted = True
+        self.save()
+
+    def hard_delete(self, *args, **kwargs):
+        """
+        Hard delete - xóa thật khỏi database
+        """
+        super().delete(*args, **kwargs)
+
     class Meta:
         abstract = True
 
 class SoftDeleteMixin(models.Model):
     is_deleted = models.BooleanField(default=False)
+    
+    def delete(self, *args, **kwargs):
+        """
+        Soft delete - chỉ đánh dấu là đã xóa thay vì xóa thật
+        """
+        self.is_deleted = True
+        self.save()
+
+    def hard_delete(self, *args, **kwargs):
+        """
+        Hard delete - xóa thật khỏi database
+        """
+        super().delete(*args, **kwargs)
     
     class Meta:
         abstract = True

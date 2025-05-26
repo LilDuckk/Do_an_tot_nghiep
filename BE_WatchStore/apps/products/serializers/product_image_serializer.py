@@ -1,6 +1,5 @@
 from rest_framework import serializers
-from apps.products.models.product_image import ProductImage
-from apps.products.models.product import Product
+from apps.products.models.product import Product, ProductImage
 from apps.products.models.variant import ProductVariant
 from apps.core.serializers.base_serializer import BaseSerializer
 

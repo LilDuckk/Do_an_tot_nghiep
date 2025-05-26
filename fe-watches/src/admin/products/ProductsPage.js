@@ -24,10 +24,13 @@ export default function ProductsPage() {
       const queryParams = new URLSearchParams({
         page: page,
         page_size: ITEMS_PER_PAGE,
-        search: search
+        search: search,
+        timestamp: new Date().getTime()
       });
       const res = await fetch(`http://localhost:8000/api/products/products/?${queryParams}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+        }
       });
       if (res.status === 403) {
         setError('Bạn không có quyền xem danh sách này.');
@@ -63,15 +66,25 @@ export default function ProductsPage() {
       const token = localStorage.getItem('accessToken');
       const res = await fetch(`http://localhost:8000/api/products/products/${id}/`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+        },
       });
+      console.log('Delete response status:', res.status);
       if (res.status === 403) {
         alert('Bạn không có quyền xóa mục này.');
         return;
       }
-      if (res.status === 204) fetchProducts(currentPage, searchTerm);
-      else throw new Error('Xóa thất bại');
+      if (res.status === 204) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+        await fetchProducts(currentPage, searchTerm);
+        alert('Đã xóa sản phẩm thành công');
+      } else {
+        console.error('Delete failed with status:', res.status);
+        throw new Error('Xóa sản phẩm thất bại');
+      }
     } catch (err) {
+      console.error('Delete error:', err);
       alert(err.message);
     }
   };
