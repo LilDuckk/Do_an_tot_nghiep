@@ -38,12 +38,6 @@ import BrandViewPage from './admin/brands/BrandViewPage';
 import CategoryCreatePage from './admin/categories/CategoryCreatePage';
 import CategoryEditPage from './admin/categories/CategoryEditPage';
 import CategoryViewPage from './admin/categories/CategoryViewPage';
-import AttributeCreatePage from './admin/attributes/AttributeCreatePage';
-import AttributeEditPage from './admin/attributes/AttributeEditPage';
-import AttributeViewPage from './admin/attributes/AttributeViewPage';
-import VariantCreatePage from './admin/variants/VariantCreatePage';
-import VariantEditPage from './admin/variants/VariantEditPage';
-import VariantViewPage from './admin/variants/VariantViewPage';
 import ProductList from './client/ProductList';
 import ProductDetail from './client/ProductDetail';
 import Maintenance from './client/Maintenance';
@@ -92,13 +86,7 @@ function App() {
           <Route path="brands/:id" element={<BrandViewPage />} />
           <Route path="brands/:id/edit" element={<BrandEditPage />} />
           <Route path="variants" element={<VariantsPage />} />
-          <Route path="variants/create" element={<VariantCreatePage />} />
-          <Route path="variants/:id" element={<VariantViewPage />} />
-          <Route path="variants/:id/edit" element={<VariantEditPage />} />
           <Route path="attributes" element={<AttributesPage />} />
-          <Route path="attributes/create" element={<AttributeCreatePage />} />
-          <Route path="attributes/:id" element={<AttributeViewPage />} />
-          <Route path="attributes/:id/edit" element={<AttributeEditPage />} />
           <Route path="return-orders" element={<ReturnOrdersPage />} />
           <Route path="inventories" element={<InventoriesPage />} />
           <Route path="stock-takes" element={<StockTakesPage />} />

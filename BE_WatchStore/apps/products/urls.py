@@ -3,11 +3,10 @@ from rest_framework.routers import DefaultRouter
 from apps.products.views.category_view import CategoryViewSet
 from apps.products.views.brand_view import BrandViewSet
 from apps.products.views.product_view import (
-    ProductViewSet, ProductVariantViewSet
+    ProductViewSet, ProductVariantViewSet, VariantImageViewSet
 )
 from apps.products.views.attribute_view import (
-    AttributeTypeViewSet, AttributeValueViewSet,
-    AttributeValuePriceAdjustmentViewSet
+    AttributeTypeViewSet, AttributeValueViewSet
 )
 from apps.products.views.product_image_view import ProductImageViewSet
 
@@ -18,8 +17,8 @@ router.register(r'products', ProductViewSet)
 router.register(r'variants', ProductVariantViewSet)
 router.register(r'attribute-types', AttributeTypeViewSet)
 router.register(r'attribute-values', AttributeValueViewSet)
-router.register(r'attribute-price-adjustments', AttributeValuePriceAdjustmentViewSet)
 router.register(r'product-images', ProductImageViewSet)
+router.register(r'variant-images', VariantImageViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),

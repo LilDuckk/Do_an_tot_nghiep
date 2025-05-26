@@ -50,16 +50,16 @@ class ProductVariant(BaseModel):
             attr_values = attribute_values_list
         elif hasattr(self, '_attribute_values'):
             # Use pre-set attribute values
-            attr_values = self._attribute_values
+            attr_values = [av.value for av in self._attribute_values]
         else:
             # Try to get attribute values from the many-to-many relationship
             try:
                 # Fetch attribute values with their details
                 attr_values_qs = self.attribute_values.select_related('attribute_type').all()
+                # Sắp xếp theo attribute_type để đảm bảo thứ tự nhất quán
                 attr_values = [
-                    av.value 
-                    for av in attr_values_qs 
-                    if av.value
+                    f"{av.attribute_type.name}-{av.value}"
+                    for av in sorted(attr_values_qs, key=lambda x: x.attribute_type.name)
                 ]
             except Exception:
                 attr_values = []

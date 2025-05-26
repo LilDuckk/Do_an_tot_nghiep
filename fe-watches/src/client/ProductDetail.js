@@ -9,37 +9,325 @@ export default function ProductDetail() {
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [thumbnailStartIndex, setThumbnailStartIndex] = useState(0);
   const [showForm, setShowForm] = useState(false);
+  const [attributes, setAttributes] = useState([]);
+  const [variants, setVariants] = useState([]);
+  const [selectedAttributes, setSelectedAttributes] = useState({});
+  const [allImages, setAllImages] = useState([]);
+  const [variantImages, setVariantImages] = useState([]);
+  const [currentVariant, setCurrentVariant] = useState(null);
+  const THUMBNAILS_PER_PAGE = 6;
+
+  // Hàm lấy danh sách thuộc tính của sản phẩm
+  const fetchAttributes = useCallback(async () => {
+    try {
+      const response = await fetch(`http://localhost:8000/api/products/products/${id}/get_attributes/`);
+      if (!response.ok) throw new Error('Lỗi khi tải thuộc tính');
+      const data = await response.json();
+      setAttributes(data);
+    } catch (error) {
+      console.error('Lỗi khi tải thuộc tính:', error);
+    }
+  }, [id]);
+
+  // Hàm lấy danh sách biến thể
+  const fetchVariants = useCallback(async () => {
+    try {
+      const response = await fetch(`http://localhost:8000/api/products/variants/list_all/?product=${id}`);
+      if (!response.ok) throw new Error('Lỗi khi tải biến thể');
+      const data = await response.json();
+      console.log('API variants data:', data);
+      // API mới trả về mảng trực tiếp
+      setVariants(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Lỗi khi tải biến thể:', error);
+      setVariants([]);
+    }
+  }, [id]);
+
+  // Hàm lấy ảnh của biến thể
+  const fetchVariantImages = useCallback(async () => {
+    try {
+      const response = await fetch(`http://localhost:8000/api/products/variant-images/?product=${id}`);
+      if (!response.ok) throw new Error('Lỗi khi tải ảnh biến thể');
+      const data = await response.json();
+      // Lấy mảng ảnh từ data.results nếu có
+      const imagesArray = Array.isArray(data.results) ? data.results : [];
+      return imagesArray.map(img => ({
+        id: `variant_${img.id}`,
+        image: img.image,
+        alt_text: img.alt_text || '',
+        variant: img.variant,
+        is_variant: true
+      }));
+    } catch (error) {
+      console.error('Lỗi khi tải ảnh biến thể:', error);
+      return [];
+    }
+  }, [id]);
+
+  // Hàm tìm variant phù hợp với các thuộc tính đã chọn
+  const findMatchingVariant = useCallback((selectedAttrs) => {
+    if (!Array.isArray(variants)) return null;
+    
+    return variants.find(variant => 
+      variant.is_active && 
+      variant.attribute_values.every(attrValue => {
+        const attrType = attributes.find(type => 
+          type.values.some(val => val.id === attrValue)
+        );
+        if (!attrType) return true;
+        return selectedAttrs[attrType.id] === attrValue;
+      })
+    );
+  }, [variants, attributes]);
+
+  // Hàm lấy ảnh của một variant cụ thể
+  const getVariantImages = useCallback((variantId) => {
+    return variantImages.filter(img => img.variant === variantId);
+  }, [variantImages]);
+
+  // Hàm kiểm tra xem một attribute value có hợp lệ với các lựa chọn hiện tại không
+  const isAttributeValueValid = useCallback((typeId, valueId) => {
+    if (!Array.isArray(variants) || variants.length === 0) return true;
+    // Tạo tổ hợp selectedAttributes mới nếu chọn giá trị này
+    const testSelections = { ...selectedAttributes, [typeId]: valueId };
+    // Chỉ disable nếu không có variant nào chứa tổ hợp này
+    return variants.some(variant => {
+      if (!variant.is_active) return false;
+      return Object.entries(testSelections).every(([tid, vid]) =>
+        variant.attribute_values.includes(Number(vid))
+      );
+    });
+  }, [selectedAttributes, variants]);
+
+  // Hàm kiểm tra xem một attribute value có được chọn trong variant hiện tại không
+  const isAttributeValueSelected = useCallback((typeId, valueId) => {
+    return selectedAttributes[typeId] === valueId;
+  }, [selectedAttributes]);
+
+  // Hàm xử lý khi người dùng chọn một attribute value
+  const handleAttributeSelect = useCallback((typeId, valueId) => {
+    if (!Array.isArray(variants)) return;
+    
+    const newSelectedAttributes = { ...selectedAttributes };
+    if (newSelectedAttributes[typeId] === valueId) {
+      delete newSelectedAttributes[typeId];
+    } else {
+      newSelectedAttributes[typeId] = valueId;
+    }
+    setSelectedAttributes(newSelectedAttributes);
+    
+    // Tìm variant phù hợp CHÍNH XÁC với các thuộc tính đã chọn
+    const matchingVariant = variants.find(variant => {
+      if (!variant.is_active) return false;
+      // Kiểm tra xem variant có chứa tất cả các thuộc tính đã chọn không
+      return Object.entries(newSelectedAttributes).every(([selectedTypeId, selectedValueId]) => {
+        return variant.attribute_values.includes(Number(selectedValueId));
+      });
+    });
+    setCurrentVariant(matchingVariant || null);
+    
+    let variantImageIndex = -1;
+    if (matchingVariant) {
+      // Tìm ảnh đầu tiên của variant phù hợp
+      variantImageIndex = allImages.findIndex(img => 
+        img.is_variant && img.variant === matchingVariant.id
+      );
+      
+      if (variantImageIndex !== -1) {
+        setCurrentImageIndex(variantImageIndex);
+        
+        // Đảm bảo thumbnail list cuộn đến đúng vị trí
+        const newThumbnailStart = Math.max(0, 
+          Math.min(
+            variantImageIndex,
+            allImages.length - THUMBNAILS_PER_PAGE
+          )
+        );
+        
+        if (variantImageIndex < thumbnailStartIndex || 
+            variantImageIndex >= thumbnailStartIndex + THUMBNAILS_PER_PAGE) {
+          setThumbnailStartIndex(newThumbnailStart);
+        }
+      }
+    } else if (Object.keys(newSelectedAttributes).length === 0) {
+      // Nếu không có thuộc tính nào được chọn, quay về ảnh sản phẩm đầu tiên
+      const productImageIndex = allImages.findIndex(img => !img.is_variant);
+      if (productImageIndex !== -1) {
+        setCurrentImageIndex(productImageIndex);
+        setThumbnailStartIndex(0);
+      }
+    }
+
+    console.log('Selected attributes:', newSelectedAttributes);
+    console.log('Variants:', variants.map(v => ({id: v.id, attribute_values: v.attribute_values})));
+    console.log('Matching variant:', matchingVariant);
+    if (matchingVariant && variantImageIndex !== -1) {
+      console.log('Chuyển đến ảnh variant:', variantImageIndex, allImages[variantImageIndex]);
+    }
+  }, [selectedAttributes, variants, allImages, thumbnailStartIndex, THUMBNAILS_PER_PAGE]);
+  
+
+  // Hàm xử lý khi click vào thumbnail
+  const handleThumbnailClick = useCallback((index) => {
+    setCurrentImageIndex(index);
+    const image = allImages[index];
+    
+    if (image && image.is_variant) {
+      // Tìm variant tương ứng với ảnh được click
+      const variant = variants.find(v => v.id === image.variant);
+      if (variant) {
+        // Tự động cập nhật selectedAttributes theo variant
+        const newAttributes = {};
+        variant.attribute_values.forEach(attrValueId => {
+          // Tìm attribute type tương ứng với value này
+          const attrType = attributes.find(type => 
+            type.values.some(val => val.id === attrValueId)
+          );
+          if (attrType) {
+            newAttributes[attrType.id] = attrValueId;
+          }
+        });
+        setSelectedAttributes(newAttributes);
+
+        console.log('Click vào ảnh variant:', image.variant);
+        console.log('Variant attribute_values:', variant ? variant.attribute_values : null);
+        console.log('Set selectedAttributes:', newAttributes);
+      }
+    } else {
+      console.log('Click vào ảnh sản phẩm, reset selectedAttributes');
+      setSelectedAttributes({});
+    }
+  }, [allImages, variants, attributes]);
+  
 
   const fetchProductDetail = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(`http://localhost:8000/api/products/products/${id}/`);
+      if (!response.ok) throw new Error('Lỗi khi tải thông tin sản phẩm');
       const data = await response.json();
       setProduct(data);
-      // Tìm index ảnh chính hoặc lấy index 0
-      const primaryImageIndex = data.images.findIndex(img => img.is_primary);
-      setCurrentImageIndex(primaryImageIndex !== -1 ? primaryImageIndex : 0);
+
+      // Tải thêm dữ liệu
+      const [attributesData, variantsData, variantImagesData] = await Promise.all([
+        fetchAttributes(),
+        fetchVariants(),
+        fetchVariantImages()
+      ]);
+
+      console.log('Variant images loaded:', variantImagesData); // Debug log
+
+      // Đảm bảo dữ liệu là mảng và chuyển đổi cấu trúc ảnh sản phẩm
+      const allProductImages = Array.isArray(data.images) ? data.images.map(img => ({
+        ...img,
+        id: `product_${img.id}`,
+        image: img.image_url,
+        is_variant: false
+      })) : [];
+      
+      const allVariantImages = Array.isArray(variantImagesData) ? variantImagesData : [];
+      
+      // Gộp ảnh sản phẩm và ảnh variant
+      setVariantImages(allVariantImages);
+      const combinedImages = [...allProductImages, ...allVariantImages];
+      console.log('Combined images:', combinedImages); // Debug log
+      setAllImages(combinedImages);
+      
+      // Lấy index ảnh chính từ primary_image_index hoặc mặc định là 0
+      const primaryImageIndex = data.primary_image_index || 0;
+      setCurrentImageIndex(primaryImageIndex);
+
     } catch (error) {
       console.error('Lỗi khi tải thông tin sản phẩm:', error);
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [id, fetchAttributes, fetchVariants, fetchVariantImages]);
 
   useEffect(() => {
     fetchProductDetail();
   }, [fetchProductDetail]);
 
-  const handlePrevImage = () => {
-    if (!product?.images.length) return;
-    setCurrentImageIndex((prev) => (prev - 1 + product.images.length) % product.images.length);
+  // Hàm điều hướng thumbnail
+  const handleThumbnailScroll = (direction) => {
+    if (direction === 'prev') {
+      setThumbnailStartIndex(Math.max(0, thumbnailStartIndex - 1));
+    } else {
+      setThumbnailStartIndex(Math.min(
+        allImages.length - THUMBNAILS_PER_PAGE,
+        thumbnailStartIndex + 1
+      ));
+    }
   };
 
-  const handleNextImage = () => {
-    if (!product?.images.length) return;
-    setCurrentImageIndex((prev) => (prev + 1) % product.images.length);
-  };
+  // Hàm điều hướng ảnh chính
+  const handlePrevImage = useCallback(() => {
+    if (!allImages.length) return;
+    const newIndex = (currentImageIndex - 1 + allImages.length) % allImages.length;
+    setCurrentImageIndex(newIndex);
+    
+    // Cập nhật thumbnail scroll
+    if (newIndex < thumbnailStartIndex) {
+      setThumbnailStartIndex(Math.max(0, newIndex));
+    }
+    
+    // Cập nhật selected attributes nếu ảnh mới là variant
+    const image = allImages[newIndex];
+    if (image && image.is_variant) {
+      const variant = variants.find(v => v.id === image.variant);
+      if (variant) {
+        const newAttributes = {};
+        variant.attribute_values.forEach(attrValueId => {
+          const attrType = attributes.find(type => 
+            type.values.some(val => val.id === attrValueId)
+          );
+          if (attrType) {
+            newAttributes[attrType.id] = attrValueId;
+          }
+        });
+        setSelectedAttributes(newAttributes);
+      }
+    } else {
+      setSelectedAttributes({});
+    }
+  }, [allImages, currentImageIndex, thumbnailStartIndex, variants, attributes]);
+
+  const handleNextImage = useCallback(() => {
+    if (!allImages.length) return;
+    const newIndex = (currentImageIndex + 1) % allImages.length;
+    setCurrentImageIndex(newIndex);
+    
+    // Cập nhật thumbnail scroll
+    if (newIndex >= thumbnailStartIndex + THUMBNAILS_PER_PAGE) {
+      setThumbnailStartIndex(Math.min(
+        allImages.length - THUMBNAILS_PER_PAGE,
+        newIndex - THUMBNAILS_PER_PAGE + 1
+      ));
+    }
+    
+    // Cập nhật selected attributes nếu ảnh mới là variant
+    const image = allImages[newIndex];
+    if (image && image.is_variant) {
+      const variant = variants.find(v => v.id === image.variant);
+      if (variant) {
+        const newAttributes = {};
+        variant.attribute_values.forEach(attrValueId => {
+          const attrType = attributes.find(type => 
+            type.values.some(val => val.id === attrValueId)
+          );
+          if (attrType) {
+            newAttributes[attrType.id] = attrValueId;
+          }
+        });
+        setSelectedAttributes(newAttributes);
+      }
+    } else {
+      setSelectedAttributes({});
+    }
+  }, [allImages, currentImageIndex, thumbnailStartIndex, THUMBNAILS_PER_PAGE, variants, attributes]);
 
   if (loading) {
     return (
@@ -61,8 +349,7 @@ export default function ProductDetail() {
     );
   }
 
-  const images = product.images || [];
-  const currentImage = images[currentImageIndex] || { image: 'https://i.imgur.com/1Q9Z1Zm.png' };
+  const currentImage = allImages[currentImageIndex] || { image: 'https://i.imgur.com/1Q9Z1Zm.png' };
 
   return (
     <div>
@@ -71,10 +358,10 @@ export default function ProductDetail() {
         <div className="product-detail-gallery">
           <div className="main-image">
             <img 
-              src={currentImage.image || 'https://i.imgur.com/1Q9Z1Zm.png'} 
-              alt={product.name} 
+              src={currentImage.image ? currentImage.image : 'https://i.imgur.com/1Q9Z1Zm.png'} 
+              alt={currentImage.alt_text || product.name} 
             />
-            {images.length > 1 && (
+            {allImages.length > 1 && (
               <>
                 <button 
                   className="nav-button prev-button"
@@ -97,30 +384,91 @@ export default function ProductDetail() {
               </>
             )}
           </div>
-          <div className="thumbnail-list">
-            {images.map((image, index) => (
-              <div 
-                key={image.id} 
-                className={`thumbnail ${index === currentImageIndex ? 'active' : ''}`}
-                onClick={() => setCurrentImageIndex(index)}
-              >
-                <img src={image.image} alt={image.alt_text || product.name} />
+          {allImages.length > 0 && (
+            <div className="thumbnail-container">
+              {thumbnailStartIndex > 0 && (
+                <button 
+                  className="thumbnail-nav prev"
+                  onClick={() => handleThumbnailScroll('prev')}
+                  aria-label="Cuộn trái"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M15 18l-6-6 6-6" />
+                  </svg>
+                </button>
+              )}
+              <div className="thumbnail-list">
+                {allImages.slice(thumbnailStartIndex, thumbnailStartIndex + THUMBNAILS_PER_PAGE).map((image, index) => (
+                  <div 
+                    key={image.id} 
+                    className={`thumbnail ${thumbnailStartIndex + index === currentImageIndex ? 'active' : ''}`}
+                    onClick={() => handleThumbnailClick(thumbnailStartIndex + index)}
+                  >
+                    <img 
+                      src={image.image ? image.image : 'https://i.imgur.com/1Q9Z1Zm.png'} 
+                      alt={image.alt_text || `${product.name} - Ảnh ${thumbnailStartIndex + index + 1}`} 
+                    />
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+              {thumbnailStartIndex + THUMBNAILS_PER_PAGE < allImages.length && (
+                <button 
+                  className="thumbnail-nav next"
+                  onClick={() => handleThumbnailScroll('next')}
+                  aria-label="Cuộn phải"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M9 18l6-6-6-6" />
+                  </svg>
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="product-detail-info">
           <h2>{product.name}</h2>
           <div className="product-detail-price">
-            {new Intl.NumberFormat('vi-VN', {
-              style: 'currency',
-              currency: 'VND'
-            }).format(product.base_price)}
+            {(() => {
+              let price = product.base_price;
+              if (currentVariant && currentVariant.price_adjustment) {
+                // Cộng thêm price_adjustment nếu có
+                price = (parseFloat(product.base_price) + parseFloat(currentVariant.price_adjustment)).toString();
+              }
+              return new Intl.NumberFormat('vi-VN', {
+                style: 'currency',
+                currency: 'VND'
+              }).format(price);
+            })()}
           </div>
           
           <div className="product-detail-desc">
             {product.description || 'Chưa có mô tả chi tiết cho sản phẩm này.'}
+          </div>
+
+          {/* Phần thuộc tính sản phẩm */}
+          <div className="product-attributes">
+            {attributes.map(attrType => (
+              <div key={attrType.id} className="attribute-type">
+                <h3>{attrType.name}</h3>
+                <div className="attribute-values">
+                  {attrType.values.map(value => {
+                    const isValid = isAttributeValueValid(attrType.id, value.id);
+                    const isSelected = isAttributeValueSelected(attrType.id, value.id);
+                    return (
+                      <button
+                        key={value.id}
+                        className={`attribute-value-btn ${isSelected ? 'selected' : ''}`}
+                        onClick={() => isValid && handleAttributeSelect(attrType.id, value.id)}
+                        disabled={!isValid}
+                      >
+                        {value.value}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
 
           <ul className="product-detail-attrs">

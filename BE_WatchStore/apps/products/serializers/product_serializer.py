@@ -3,15 +3,22 @@ from django.db import transaction
 import itertools
 import uuid
 from apps.products.models.product import Product
-from apps.products.models.variant import ProductVariant
-from apps.products.models.attribute import AttributeValue
+from apps.products.models.variant import ProductVariant, VariantImage
+from apps.products.models.attribute import AttributeValue, AttributeType
 from apps.core.serializers.base_serializer import BaseSerializer
 from apps.products.serializers.attribute_serializer import AttributeTypeSerializer
 from apps.products.serializers.category_serializer import CategorySerializer
 from apps.products.serializers.brand_serializer import BrandSerializer
 from apps.products.serializers.product_image_serializer import ProductImageSerializer
+from apps.products.utils import convert_to_png
 import json
 import ast
+from rest_framework.reverse import reverse
+
+class VariantImageSerializer(BaseSerializer):
+    class Meta(BaseSerializer.Meta):
+        model = VariantImage
+        fields = BaseSerializer.Meta.fields + ['variant', 'image', 'alt_text']
 
 class ProductVariantSerializer(BaseSerializer):
     attribute_values = serializers.PrimaryKeyRelatedField(
@@ -25,13 +32,31 @@ class ProductVariantSerializer(BaseSerializer):
         source='product',
         write_only=True
     )
+    product_name = serializers.CharField(source='product.name', read_only=True)
+    attribute_values_detail = serializers.SerializerMethodField()
     sku = serializers.CharField(read_only=True)
+    images = VariantImageSerializer(many=True, read_only=True)
     
     class Meta(BaseSerializer.Meta):
         model = ProductVariant
         fields = BaseSerializer.Meta.fields + [
-            'product', 'product_id', 'sku', 'price_adjustment',
-            'stock_alert_threshold', 'barcode', 'is_active', 'attribute_values'
+            'product', 'product_id', 'product_name', 'sku', 'price_adjustment',
+            'stock_alert_threshold', 'barcode', 'is_active', 'attribute_values',
+            'attribute_values_detail', 'images'
+        ]
+
+    def get_attribute_values_detail(self, obj):
+        values = obj.attribute_values.select_related('attribute_type').all()
+        return [
+            {
+                'id': value.id,
+                'value': value.value,
+                'attribute_type': {
+                    'id': value.attribute_type.id,
+                    'name': value.attribute_type.name
+                }
+            }
+            for value in values
         ]
 
     def create(self, validated_data):
@@ -79,9 +104,38 @@ class ProductDetailSerializer(serializers.ModelSerializer):
 
     def get_attributes(self, obj):
         """
-        Lấy các attributes của sản phẩm
+        Lấy các attributes và values của sản phẩm
         """
-        return AttributeTypeSerializer(obj.get_attributes(), many=True).data
+        # Lấy tất cả variants của sản phẩm
+        variants = obj.variants.filter(is_deleted=False)
+        
+        # Lấy tất cả attribute values từ các variants
+        attribute_values = AttributeValue.objects.filter(
+            variants__in=variants,
+            is_deleted=False
+        ).distinct()
+        
+        # Nhóm các values theo attribute type
+        result = []
+        for attr_type in attribute_values.values_list('attribute_type', flat=True).distinct():
+            attr = AttributeType.objects.get(id=attr_type)
+            values = attribute_values.filter(attribute_type=attr)
+            
+            attr_data = {
+                'id': attr.id,
+                'name': attr.name,
+                'description': attr.description,
+                'values': [
+                    {
+                        'id': value.id,
+                        'value': value.value
+                    }
+                    for value in values
+                ]
+            }
+            result.append(attr_data)
+            
+        return result
 
     def get_images(self, obj):
         images_qs = obj.images.filter(is_deleted=False)
@@ -161,36 +215,37 @@ class ProductSerializer(serializers.ModelSerializer):
 
     def to_internal_value(self, data):
         print("DEBUG to_internal_value input:", data.get('attribute_value_groups'))
-        # Custom method to handle form data parsing
-        if isinstance(data, dict):
-            # Check if attribute_value_groups is in request.data
-            attribute_value_groups = self.context['request'].data.get('attribute_value_groups', None)
-            
-            if attribute_value_groups:
-                try:
-                    # Try parsing the attribute_value_groups
-                    parsed_groups = json.loads(attribute_value_groups)
-                    
-                    # Validate and convert to list of lists of integers
-                    validated_groups = []
-                    for group in parsed_groups:
-                        validated_group = []
-                        for item in group:
-                            try:
-                                validated_group.append(int(item))
-                            except (ValueError, TypeError):
-                                raise serializers.ValidationError({
-                                    'attribute_value_groups': ['All items must be valid integers.']
-                                })
-                        validated_groups.append(validated_group)
-                    
-                    data['attribute_value_groups'] = validated_groups
-                except json.JSONDecodeError:
-                    raise serializers.ValidationError({
-                        'attribute_value_groups': ['Invalid JSON format.']
-                    })
+        # Tạo một bản sao của data để tránh thay đổi trực tiếp
+        mutable_data = data.copy() if isinstance(data, dict) else {}
         
-        return super().to_internal_value(data)
+        # Check if attribute_value_groups is in request.data
+        attribute_value_groups = self.context['request'].data.get('attribute_value_groups', None)
+        
+        if attribute_value_groups:
+            try:
+                # Try parsing the attribute_value_groups
+                parsed_groups = json.loads(attribute_value_groups)
+                
+                # Validate and convert to list of lists of integers
+                validated_groups = []
+                for group in parsed_groups:
+                    validated_group = []
+                    for item in group:
+                        try:
+                            validated_group.append(int(item))
+                        except (ValueError, TypeError):
+                            raise serializers.ValidationError({
+                                'attribute_value_groups': ['All items must be valid integers.']
+                            })
+                    validated_groups.append(validated_group)
+                
+                mutable_data['attribute_value_groups'] = validated_groups
+            except json.JSONDecodeError:
+                raise serializers.ValidationError({
+                    'attribute_value_groups': ['Invalid JSON format.']
+                })
+        
+        return super().to_internal_value(mutable_data)
 
     def create(self, validated_data):
         from apps.products.models.product import ProductImage
@@ -217,15 +272,21 @@ class ProductSerializer(serializers.ModelSerializer):
             # Tạo tổ hợp tất cả biến thể
             if attr_value_objects:
                 for combo in itertools.product(*attr_value_objects):
-                    combo_ids = [av.id for av in combo]
+                    # Tạo variant trước
                     variant = ProductVariant.objects.create(product=product)
-                    variant.attribute_values.set(combo_ids)
+                    # Set attribute values sau
+                    variant.attribute_values.set(combo)
+                    # Generate SKU với attribute values
+                    variant.sku = variant.generate_sku(attribute_values_list=[av.value for av in combo])
+                    variant.save()
 
             # Tạo ảnh sản phẩm
             for idx, image_file in enumerate(images):
+                # Chuyển đổi ảnh sang PNG
+                png_image = convert_to_png(image_file)
                 ProductImage.objects.create(
                     product=product,
-                    image=image_file,
+                    image=png_image,
                     is_primary=(idx == primary_image_index)
                 )
 
@@ -263,9 +324,11 @@ class ProductSerializer(serializers.ModelSerializer):
             # Nếu muốn xóa hết ảnh cũ, bỏ comment dòng dưới
             # instance.images.all().delete()
             for idx, image_file in enumerate(images):
+                # Chuyển đổi ảnh sang PNG
+                png_image = convert_to_png(image_file)
                 ProductImage.objects.create(
                     product=instance,
-                    image=image_file,
+                    image=png_image,
                     is_primary=(idx == primary_image_index)
                 )
 
@@ -277,4 +340,4 @@ class ProductSerializer(serializers.ModelSerializer):
 
     def get_images(self, obj):
         images_qs = obj.images.filter(is_deleted=False)
-        return ProductImageSerializer(images_qs, many=True).data
+        return ProductImageSerializer(images_qs, many=True, context=self.context).data

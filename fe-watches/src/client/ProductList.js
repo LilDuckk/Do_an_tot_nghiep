@@ -78,28 +78,6 @@ export default function ProductList() {
     fetchBrandsAndCategories();
   }, []);
 
-  // Cập nhật filters từ URL parameters
-  useEffect(() => {
-    const searchParams = new URLSearchParams(location.search);
-    const brand = searchParams.get('brand');
-    const category = searchParams.get('category');
-    const min_price = searchParams.get('min_price');
-    const max_price = searchParams.get('max_price');
-    
-    // Xử lý category từ URL
-    const categoryParam = category ? category.split(',') : [];
-    setSelectedCategories(new Set(categoryParam));
-    
-    setFilters({
-      search: searchParams.get('search') || '',
-      brand: brand ? parseInt(brand, 10).toString() : '',
-      category: category || '',
-      min_price: min_price || '',
-      max_price: max_price || ''
-    });
-    setPage(1);
-  }, [location.search]);
-
   const fetchProducts = useCallback(async () => {
     try {
       setLoading(true);
@@ -112,13 +90,29 @@ export default function ProductList() {
       if (filters.min_price) queryParams.append('min_price', filters.min_price);
       if (filters.max_price) queryParams.append('max_price', filters.max_price);
       
+      // Thêm is_active=true để chỉ lấy sản phẩm đang hoạt động
+      queryParams.append('is_active', 'true');
+      
       queryParams.append('page', page);
       queryParams.append('page_size', pageSize);
 
       const response = await fetch(`http://localhost:8000/api/products/products/?${queryParams}`);
+      if (!response.ok) {
+        throw new Error('Lỗi khi tải dữ liệu sản phẩm');
+      }
       const data = await response.json();
-      setProducts(data.results || []);
-      setTotalCount(data.count || 0);
+      
+      // Kiểm tra và xử lý dữ liệu trả về
+      if (Array.isArray(data)) {
+        setProducts(data);
+        setTotalCount(data.length);
+      } else if (data.results && Array.isArray(data.results)) {
+        setProducts(data.results);
+        setTotalCount(data.count || data.results.length);
+      } else {
+        setProducts([]);
+        setTotalCount(0);
+      }
     } catch (error) {
       console.error('Lỗi khi tải sản phẩm:', error);
       setProducts([]);
@@ -128,9 +122,53 @@ export default function ProductList() {
     }
   }, [filters, page]);
 
+  // Gọi API khi component mount và khi filters/page thay đổi
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
+
+  // Cập nhật URL khi filters thay đổi
+  useEffect(() => {
+    const searchParams = new URLSearchParams();
+    
+    if (filters.search) searchParams.append('search', filters.search);
+    if (filters.brand) searchParams.append('brand', filters.brand);
+    if (filters.category) searchParams.append('category', filters.category);
+    if (filters.min_price) searchParams.append('min_price', filters.min_price);
+    if (filters.max_price) searchParams.append('max_price', filters.max_price);
+    if (page > 1) searchParams.append('page', page);
+
+    navigate(`/products?${searchParams.toString()}`);
+  }, [filters, page, navigate]);
+
+  // Cập nhật filters từ URL parameters khi component mount hoặc URL thay đổi
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const brand = searchParams.get('brand');
+    const category = searchParams.get('category');
+    const min_price = searchParams.get('min_price');
+    const max_price = searchParams.get('max_price');
+    const search = searchParams.get('search');
+    const pageParam = searchParams.get('page');
+    
+    // Xử lý category từ URL
+    const categoryParam = category ? category.split(',') : [];
+    setSelectedCategories(new Set(categoryParam));
+    
+    setFilters({
+      search: search || '',
+      brand: brand || '',
+      category: category || '',
+      min_price: min_price || '',
+      max_price: max_price || ''
+    });
+    
+    if (pageParam) {
+      setPage(parseInt(pageParam, 10));
+    } else {
+      setPage(1);
+    }
+  }, [location.search]);
 
   const handleFilterChange = (type, value) => {
     const newFilters = {
@@ -340,7 +378,9 @@ export default function ProductList() {
             <>
               <div className="product-list-grid">
                 {Array.isArray(products) && products.map(product => {
-                  const primaryImage = product.images?.find(img => img.is_primary) || product.images?.[0];
+                  // Lấy ảnh chính từ primary_image_index hoặc ảnh đầu tiên
+                  const primaryImageIndex = product.primary_image_index || 0;
+                  const primaryImage = product.images?.[primaryImageIndex] || product.images?.[0];
                   return (
                     <div 
                       className="product-card" 
@@ -349,8 +389,8 @@ export default function ProductList() {
                       style={{ cursor: 'pointer' }}
                     >
                       <img 
-                        src={primaryImage?.image || 'https://i.imgur.com/1Q9Z1Zm.png'} 
-                        alt={product.name} 
+                        src={primaryImage?.image ? `${primaryImage.image}` : 'https://i.imgur.com/1Q9Z1Zm.png'} 
+                        alt={primaryImage?.alt_text || product.name} 
                       />
                       <div className="product-card__name">{product.name}</div>
                       <div className="product-card__price">

@@ -1,14 +1,8 @@
 from rest_framework import serializers
-from apps.products.models.attribute import AttributeValue, AttributeType, AttributeValuePriceAdjustment
+from apps.products.models.attribute import AttributeValue, AttributeType
 
-class AttributeValuePriceAdjustmentSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = AttributeValuePriceAdjustment
-        fields = ['id', 'attribute_value', 'product', 'price_adjustment', 'created_at', 'updated_at']
-        read_only_fields = ('created_at', 'updated_at')
 
 class AttributeValueSerializer(serializers.ModelSerializer):
-    price_adjustments = AttributeValuePriceAdjustmentSerializer(many=True, read_only=True)
     
     class Meta:
         model = AttributeValue

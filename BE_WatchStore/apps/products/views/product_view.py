@@ -3,14 +3,18 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db import transaction
 from django.core.cache import cache
-from django.db.models import Q
+from django.db.models import Q, Count, Q
 from apps.products.models.product import Product
-from apps.products.models.variant import ProductVariant
+from apps.products.models.variant import ProductVariant, VariantImage
 from apps.products.serializers.product_serializer import (
     ProductSerializer, ProductDetailSerializer,
-    ProductVariantSerializer
+    ProductVariantSerializer, VariantImageSerializer
 )
+from apps.products.serializers.product_image_serializer import ProductImageSerializer
+from apps.products.utils import convert_to_png
 from django.http import Http404
+from apps.products.models.attribute import AttributeValue, AttributeType
+from django.db import models
 
 class ProductViewSet(viewsets.ModelViewSet):
     queryset = Product.objects.filter(is_deleted=False)
@@ -29,6 +33,44 @@ class ProductViewSet(viewsets.ModelViewSet):
         if obj.is_deleted:
             raise Http404("Không tìm thấy sản phẩm")
         return obj
+    
+    @action(detail=True, methods=['get'])
+    def get_attributes(self, request, pk=None):
+        """
+        Lấy danh sách attributes và values của sản phẩm
+        """
+        product = self.get_object()
+        
+        # Lấy tất cả variants của sản phẩm
+        variants = product.variants.filter(is_deleted=False)
+        
+        # Lấy tất cả attribute values từ các variants
+        attribute_values = AttributeValue.objects.filter(
+            variants__in=variants,
+            is_deleted=False
+        ).distinct()
+        
+        # Nhóm các values theo attribute type
+        result = []
+        for attr_type in attribute_values.values_list('attribute_type', flat=True).distinct():
+            attr = AttributeType.objects.get(id=attr_type)
+            values = attribute_values.filter(attribute_type=attr)
+            
+            attr_data = {
+                'id': attr.id,
+                'name': attr.name,
+                'description': attr.description,
+                'values': [
+                    {
+                        'id': value.id,
+                        'value': value.value
+                    }
+                    for value in values
+                ]
+            }
+            result.append(attr_data)
+            
+        return Response(result)
     
     @action(detail=False, methods=['get'])
     def list_all(self, request):
@@ -71,12 +113,14 @@ class ProductViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(is_featured=True)
             
         # Filter by active status
-        active = self.request.query_params.get('active', None)
-        if active:
-            queryset = queryset.filter(is_active=True)
+        is_active = self.request.query_params.get('is_active', None)
+        if is_active is not None:
+            # Chuyển đổi string 'true'/'false' thành boolean
+            is_active_bool = is_active.lower() == 'true'
+            queryset = queryset.filter(is_active=is_active_bool)
             
-        # Thêm order_by để tránh cảnh báo UnorderedObjectListWarning
-        queryset = queryset.order_by('id')
+        # Sắp xếp theo ngày tạo và cập nhật mới nhất
+        queryset = queryset.order_by('-updated_at', '-created_at')
         
         # Add caching for frequently accessed products
         cache_key = f'product_list_{self.request.query_params.urlencode()}'
@@ -140,16 +184,97 @@ class ProductViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(featured_products, many=True)
         return Response(serializer.data)
 
+    @action(detail=True, methods=['post'])
+    def set_primary_image(self, request, pk=None):
+        """
+        Đặt ảnh chính cho sản phẩm
+        """
+        product = self.get_object()
+        image_id = request.data.get('image_id')
+        
+        try:
+            # Lấy ảnh cần đặt làm ảnh chính
+            image = product.images.get(id=image_id)
+            
+            # Cập nhật tất cả ảnh của sản phẩm thành không phải ảnh chính
+            product.images.all().update(is_primary=False)
+            
+            # Đặt ảnh được chọn làm ảnh chính
+            image.is_primary = True
+            image.save()
+            
+            return Response({
+                'message': 'Đã đặt ảnh chính thành công',
+                'image': {
+                    'id': image.id,
+                    'product': image.product_id,
+                    'image': image.image.url if image.image else None,
+                    'is_primary': image.is_primary
+                }
+            })
+            
+        except product.images.model.DoesNotExist:
+            return Response(
+                {'error': 'Không tìm thấy ảnh'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+
 class ProductVariantViewSet(viewsets.ModelViewSet):
     queryset = ProductVariant.objects.all()
     serializer_class = ProductVariantSerializer
+
+    @action(detail=False, methods=['get'])
+    def list_all(self, request):
+        queryset = self.filter_queryset(self.get_queryset())
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data) 
     
     def get_queryset(self):
-        return super().get_queryset().select_related(
+        queryset = super().get_queryset().select_related(
             'product'
         ).prefetch_related(
-            'attribute_values'
-        )
+            'attribute_values',
+            'attribute_values__attribute_type',
+            'images'
+        ).order_by('-id')  # Sắp xếp theo ID giảm dần
+
+        # Tìm kiếm theo tên sản phẩm
+        search = self.request.query_params.get('search', None)
+        if search:
+            queryset = queryset.filter(
+                Q(product__name__icontains=search) |
+                Q(attribute_values__value__icontains=search)
+            ).distinct()
+
+        # Tìm kiếm theo nhiều thuộc tính
+        attr_values = self.request.query_params.getlist('attr_values', [])
+        if attr_values:
+            # Tạo subquery để lấy các variant có chứa tất cả các giá trị thuộc tính
+            for value in attr_values:
+                subquery = ProductVariant.objects.filter(
+                    attribute_values__value__icontains=value
+                ).values('id')
+                queryset = queryset.filter(id__in=subquery)
+
+        # Tìm kiếm theo loại thuộc tính
+        attr_type = self.request.query_params.get('attr_type', None)
+        if attr_type:
+            queryset = queryset.filter(attribute_values__attribute_type__name__icontains=attr_type)
+
+        # Sắp xếp theo product name
+        sort_by = self.request.query_params.get('sort_by', None)
+        if sort_by == 'product_name':
+            queryset = queryset.order_by('product__name', '-id')
+        elif sort_by == '-product_name':
+            queryset = queryset.order_by('-product__name', '-id')
+        
+        # Sắp xếp theo attribute value
+        attr_value = self.request.query_params.get('attr_value', None)
+        if attr_value:
+            queryset = queryset.filter(attribute_values__value__icontains=attr_value)
+            queryset = queryset.order_by('attribute_values__value', '-id')
+
+        return queryset.distinct()
 
     @transaction.atomic
     def create(self, request, *args, **kwargs):
@@ -166,3 +291,73 @@ class ProductVariantViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
         return Response(serializer.data)
+
+    @action(detail=True, methods=['post'])
+    def upload_images(self, request, pk=None):
+        """
+        Upload nhiều ảnh cho biến thể
+        """
+        variant = self.get_object()
+        images = request.FILES.getlist('images')
+        alt_texts = request.data.getlist('alt_texts', [])
+        
+        created_images = []
+        for idx, image in enumerate(images):
+            alt_text = alt_texts[idx] if idx < len(alt_texts) else ''
+            # Chuyển đổi ảnh sang PNG
+            png_image = convert_to_png(image)
+            variant_image = VariantImage.objects.create(
+                variant=variant,
+                image=png_image,
+                alt_text=alt_text
+            )
+            created_images.append(variant_image)
+            
+        serializer = VariantImageSerializer(created_images, many=True)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['delete'])
+    def delete_image(self, request, pk=None):
+        """
+        Xóa một ảnh của biến thể
+        """
+        variant = self.get_object()
+        image_id = request.data.get('image_id')
+        
+        try:
+            image = variant.images.get(id=image_id)
+            image.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except VariantImage.DoesNotExist:
+            return Response(
+                {'error': 'Image not found'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+class VariantImageViewSet(viewsets.ModelViewSet):
+    queryset = VariantImage.objects.all()
+    serializer_class = VariantImageSerializer
+    
+    def get_queryset(self):
+        queryset = super().get_queryset().select_related('variant', 'variant__product')
+        
+        # Lọc theo variant
+        variant_id = self.request.query_params.get('variant', None)
+        if variant_id:
+            queryset = queryset.filter(variant_id=variant_id)
+            
+        # Lọc theo product
+        product_id = self.request.query_params.get('product', None)
+        if product_id:
+            queryset = queryset.filter(variant__product_id=product_id)
+            
+        return queryset.order_by('-id')  # Sắp xếp theo ID giảm dần
+
+    def perform_create(self, serializer):
+        # Chuyển đổi ảnh sang PNG trước khi lưu
+        image = self.request.FILES.get('image')
+        if image:
+            png_image = convert_to_png(image)
+            serializer.save(image=png_image)
+        else:
+            serializer.save()

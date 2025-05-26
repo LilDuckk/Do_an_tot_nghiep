@@ -31,6 +31,11 @@ export default function ProductEditPage() {
   const [brands, setBrands] = useState([]);
   const [categories, setCategories] = useState([]);
 
+  // States cho thuộc tính sản phẩm
+  const [attributeTypes, setAttributeTypes] = useState([]);
+  const [attributeValues, setAttributeValues] = useState([]);
+  const [selectedAttributeValues, setSelectedAttributeValues] = useState({});
+
   // Thêm các hàm tiện ích
   const formatPrice = (price) => {
     if (price === null || price === undefined) return "0.00";
@@ -82,6 +87,22 @@ export default function ProductEditPage() {
         if (categoriesRes.ok) {
           setCategories(await categoriesRes.json());
         }
+
+        // Fetch current product attributes using new endpoint
+        const attributesRes = await fetch(`http://localhost:8000/api/products/products/${id}/get_attributes/`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (attributesRes.ok) {
+          const attributesData = await attributesRes.json();
+          setAttributeTypes(attributesData);
+          
+          // Chuyển đổi cấu trúc dữ liệu cho selectedAttributeValues
+          const groupedValues = {};
+          attributesData.forEach(type => {
+            groupedValues[type.id] = type.values;
+          });
+          setSelectedAttributeValues(groupedValues);
+        }
       } catch (error) {
         setError('Lỗi khi tải dữ liệu');
       }
@@ -127,15 +148,17 @@ export default function ProductEditPage() {
   const handleSetPrimaryImage = async (imageId) => {
     try {
       const token = localStorage.getItem('accessToken');
-      const res = await fetch(`http://localhost:8000/api/products/product-images/${imageId}/`, {
-        method: 'PUT',
+      const res = await fetch(`http://localhost:8000/api/products/products/${id}/set_primary_image/`, {
+        method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ is_primary: true })
+        body: JSON.stringify({ image_id: imageId })
       });
       if (res.ok) {
+        const data = await res.json();
+        // Cập nhật lại danh sách ảnh với ảnh chính mới
         setProductImages(images => 
           images.map(img => ({
             ...img,
@@ -156,6 +179,32 @@ export default function ProductEditPage() {
     if (!url) return '';
     if (url.startsWith('http')) return url;
     return `http://localhost:8000${url}`;
+  };
+
+  // Hàm xử lý thuộc tính
+  const handleAttributeSelect = (typeId, valueId) => {
+    if (!valueId) return;
+    const type = attributeTypes.find(t => t.id === Number(typeId));
+    if (!type) return;
+    
+    const value = type.values.find(v => v.id === Number(valueId));
+    if (!value) return;
+
+    setSelectedAttributeValues(prev => {
+      const currentValues = prev[typeId] || [];
+      if (currentValues.some(v => v.id === value.id)) return prev;
+      return {
+        ...prev,
+        [typeId]: [...currentValues, value]
+      };
+    });
+  };
+
+  const handleRemoveAttributeValue = (typeId, valueId) => {
+    setSelectedAttributeValues(prev => ({
+      ...prev,
+      [typeId]: (prev[typeId] || []).filter(v => v.id !== valueId)
+    }));
   };
 
   const handleSubmit = async e => {
@@ -193,6 +242,12 @@ export default function ProductEditPage() {
         });
         formData.append('primary_image_index', primaryImageIndex);
       }
+
+      // Prepare payload with attribute_value_groups
+      const attributeValueGroups = Object.entries(selectedAttributeValues).map(
+        ([typeId, values]) => values.map(v => Number(v.id))
+      );
+      formData.append('attribute_value_groups', JSON.stringify(attributeValueGroups));
 
       const productRes = await fetch(`http://localhost:8000/api/products/products/${id}/`, {
         method: 'PUT',
@@ -293,6 +348,94 @@ export default function ProductEditPage() {
               );
             })}
           </div>
+        </div>
+
+        {/* Thuộc tính sản phẩm */}
+        <div className="form-section">
+          <h3>Thuộc tính sản phẩm</h3>
+          {Array.isArray(attributeTypes) && attributeTypes.length > 0 ? (
+            <div className="attributes-container">
+              {/* Bảng chọn giá trị thuộc tính */}
+              <div className="attributes-selection">
+                <h4>Chọn giá trị thuộc tính</h4>
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Loại thuộc tính</th>
+                      <th>Giá trị</th>
+                      <th>Thao tác</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {attributeTypes.map(type => (
+                      <tr key={type.id}>
+                        <td>{type.name}</td>
+                        <td>
+                          <select
+                            value=""
+                            onChange={(e) => handleAttributeSelect(type.id, e.target.value)}
+                          >
+                            <option value="">-- Chọn giá trị --</option>
+                            {type.values
+                              .filter(value => !selectedAttributeValues[type.id]?.some(v => v.id === value.id))
+                              .map(value => (
+                                <option key={value.id} value={value.id}>
+                                  {value.value}
+                                </option>
+                              ))}
+                          </select>
+                        </td>
+                        <td>
+                          <button
+                            type="button"
+                            className="admin-btn"
+                            onClick={() => handleAttributeSelect(type.id, document.querySelector(`select[data-type-id="${type.id}"]`).value)}
+                          >
+                            Thêm
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Bảng giá trị đã chọn */}
+              <div className="selected-attributes">
+                <h4>Giá trị thuộc tính đã chọn</h4>
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Loại thuộc tính</th>
+                      <th>Giá trị</th>
+                      <th>Thao tác</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Object.entries(selectedAttributeValues).map(([typeId, values]) => (
+                      values.map(value => (
+                        <tr key={`${typeId}-${value.id}`}>
+                          <td>{attributeTypes.find(t => t.id === Number(typeId))?.name}</td>
+                          <td>{value.value}</td>
+                          <td>
+                            <button
+                              type="button"
+                              className="admin-btn danger"
+                              onClick={() => handleRemoveAttributeValue(Number(typeId), value.id)}
+                            >
+                              Xóa
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : (
+            <p>Không có loại thuộc tính nào</p>
+          )}
         </div>
 
         <button type="submit" className="admin-btn primary">Cập nhật</button>

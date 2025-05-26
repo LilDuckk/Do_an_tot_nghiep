@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from apps.products.models.product import Product, ProductImage
 from apps.core.serializers.base_serializer import BaseSerializer
+from django.conf import settings
 
 class ProductImageSerializer(BaseSerializer):
     product_id = serializers.PrimaryKeyRelatedField(
@@ -26,7 +27,14 @@ class ProductImageSerializer(BaseSerializer):
 
     def get_image_url(self, obj):
         """Return the URL of the uploaded image."""
-        return obj.image.url if obj.image else None
+        if obj.image:
+            # Lấy đường dẫn đầy đủ của ảnh
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+            # Nếu không có request, trả về đường dẫn với localhost
+            return f"http://localhost:8000{obj.image.url}"
+        return None
 
     def create(self, validated_data):
         """Custom create method to handle product association."""

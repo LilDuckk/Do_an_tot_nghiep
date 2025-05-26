@@ -1,356 +1,257 @@
-API Endpoints cho Products, Attributes và Variants
+# PRODUCT API
 
-1. Products API:
-Base URL: localhost:8000/api/products/products/
-
-GET:
+## 1. GET /api/products/products/
+- Lấy danh sách sản phẩm
+- Query params:
+  - category: ID danh mục
+  - brand: ID thương hiệu
+  - min_price: Giá tối thiểu
+  - max_price: Giá tối đa
+  - search: Tìm kiếm theo tên/mô tả
+  - featured: true/false (sản phẩm nổi bật)
+  - is_active: true/false (trạng thái hoạt động của sản phẩm)
+- Response:
+```json
 [
-    {
-        "id": 1,
-        "name": "Product Name",
-        "description": "Product Description",
-        "category": 1,
-        "category_detail": {
-            "id": 1,
-            "name": "Category Name",
-            "description": "Category Description"
-        },
-        "brand": 1,
-        "brand_detail": {
-            "id": 1,
-            "name": "Brand Name",
-            "description": "Brand Description"
-        },
-        "base_price": "1000.00",
-        "warranty_period": 12,
-        "slug": "product-name",
-        "meta_title": "Meta Title",
-        "meta_description": "Meta Description",
-        "is_featured": true,
-        "is_active": true,
-        "default_variant": 1,
-        "variants": [
-            {
-                "id": 1,
-                "sku": "PRODUCT-NAME-VARIANT-1",
-                "price_adjustment": "10.00",
-                "stock_alert_threshold": 5,
-                "barcode": "123456789",
-                "is_active": true,
-                "attribute_values": [1, 2, 3]
-            }
-        ],
-        "images": [
-            {
-                "id": 1,
-                "image": "path/to/image.jpg",
-                "is_primary": true,
-                "alt_text": "Image Description"
-            }
-        ],
-        "created_at": "2024-03-20T10:00:00Z",
-        "updated_at": "2024-03-20T10:00:00Z"
-    }
-]
-
-POST (Form-data):
-Form fields:
-1. name: "New Product"
-2. description: "New Product Description"
-3. category: 1
-4. brand: 1
-5. base_price: "1000.00"
-6. warranty_period: 12
-7. meta_title: "Meta Title"
-8. meta_description: "Meta Description"
-9. is_featured: true
-10. is_active: true
-11. images[0]: [file1]
-12. images[1]: [file2]
-13. images[2]: [file3]
-14. primary_image_index: 0
-15. attribute_value_groups: "[[1,2],[3,4]]"  // Gửi dưới dạng JSON string
-// Hoặc
-15. attribute_value_groups[]: [1,2]  // Gửi từng nhóm riêng biệt
-16. attribute_value_groups[]: [3,4]
-
-// Backend sẽ tự động:
-// 1. Parse JSON string thành list nếu cần
-// 2. Ép kiểu tất cả các giá trị thành int
-// 3. Tạo các tổ hợp biến thể:
-// - Variant 1: [1, 3] -> SKU: NEW-PRODUCT-RED-SMALL-1
-// - Variant 2: [1, 4] -> SKU: NEW-PRODUCT-RED-LARGE-2
-// - Variant 3: [2, 3] -> SKU: NEW-PRODUCT-BLUE-SMALL-3
-// - Variant 4: [2, 4] -> SKU: NEW-PRODUCT-BLUE-LARGE-4
-
-2. Product Variants API:
-Base URL: localhost:8000/api/products/variants/
-
-GET:
-[
-    {
-        "id": 1,
-        "product": 1,
-        "sku": "PRODUCT-NAME-RED-SMALL-1",
-        "price_adjustment": "10.00",
-        "stock_alert_threshold": 5,
-        "barcode": "123456789",
-        "is_active": true,
-        "attribute_values": [1, 3],
-        "created_at": "2024-03-20T10:00:00Z",
-        "updated_at": "2024-03-20T10:00:00Z"
-    }
-]
-
-// Lọc biến thể theo thuộc tính:
-GET localhost:8000/api/products/variants/?attribute_values=1,2,3
-// Lọc các biến thể có chứa các thuộc tính có ID là 1, 2, 3
-
-GET localhost:8000/api/products/variants/?product=1&attribute_values=1,2
-// Lọc các biến thể của sản phẩm có ID=1 và có chứa các thuộc tính có ID là 1, 2
-
-GET localhost:8000/api/products/variants/?attribute_type=1&attribute_value=2
-// Lọc các biến thể có thuộc tính loại 1 (ví dụ: màu sắc) và giá trị thuộc tính là 2 (ví dụ: màu xanh)
-
-GET localhost:8000/api/products/variants/?min_price=100&max_price=1000&attribute_values=1,2
-// Lọc các biến thể có giá từ 100-1000 và có chứa các thuộc tính có ID là 1, 2
-
-GET localhost:8000/api/products/variants/?is_active=true&attribute_values=1,2,3
-// Lọc các biến thể đang active và có chứa các thuộc tính có ID là 1, 2, 3
-
-// Kết hợp nhiều điều kiện:
-GET localhost:8000/api/products/variants/?product=1&attribute_values=1,2&min_price=100&max_price=1000&is_active=true
-// Lọc các biến thể của sản phẩm có ID=1, có giá từ 100-1000, đang active và có chứa các thuộc tính có ID là 1, 2
-
-POST:
-{
-    "product_id": 1,
-    "price_adjustment": "10.00",
-    "stock_alert_threshold": 5,
-    "barcode": "123456789",
+  {
+    "id": 1,
+    "name": "Tên sản phẩm",
+    "description": "Mô tả sản phẩm",
+    "category": 1,
+    "category_detail": {
+      "id": 1,
+      "name": "Tên danh mục"
+    },
+    "brand": 1,
+    "brand_detail": {
+      "id": 1,
+      "name": "Tên thương hiệu"
+    },
+    "base_price": "1000000.00",
+    "warranty_period": 12,
+    "slug": "ten-san-pham",
+    "meta_title": "Meta title",
+    "meta_description": "Meta description",
+    "is_featured": true,
     "is_active": true,
-    "attribute_values": [1, 3]
-}
-
-PUT:
-{
-    "price_adjustment": "15.00",
-    "stock_alert_threshold": 10,
-    "barcode": "987654321",
-    "is_active": true,
-    "attribute_values": [1, 3]
-}
-
-3. Attribute Types API:
-Base URL: localhost:8000/api/products/attribute-types/
-
-GET:
-[
-    {
-        "id": 1,
-        "name": "Màu",
-        "description": "Màu sắc sản phẩm",
-        "attribute_values": [
-            {
-                "id": 1,
-                "value": "Đỏ",
-                "price_adjustments": [
-                    {
-                        "id": 1,
-                        "product": 1,
-                        "price_adjustment": "300.00"
-                    }
-                ]
-            },
-            {
-                "id": 2,
-                "value": "Vàng",
-                "price_adjustments": [
-                    {
-                        "id": 2,
-                        "product": 1,
-                        "price_adjustment": "300.00"
-                    }
-                ]
-            }
-        ],
-        "created_at": "2024-03-20T10:00:00Z",
-        "updated_at": "2024-03-20T10:00:00Z"
-    }
+    "default_variant": 1,
+    "variants": [],
+    "images": []
+  }
 ]
+```
 
-POST:
+## 2. POST /api/products/products/
+- Tạo sản phẩm mới
+- Body:
+```json
 {
-    "name": "Màu",
-    "description": "Màu sắc sản phẩm"
+  "name": "Tên sản phẩm",
+  "description": "Mô tả sản phẩm",
+  "category": 1,
+  "brand": 1,
+  "base_price": "1000000.00",
+  "warranty_period": 12,
+  "meta_title": "Meta title",
+  "meta_description": "Meta description",
+  "is_featured": true,
+  "is_active": true,
+  "attribute_value_groups": [[1, 2], [3, 4]], // Các nhóm giá trị thuộc tính
+  "images": [file1, file2], // Files
+  "primary_image_index": 0 // Index của ảnh chính
 }
+```
 
-4. Attribute Values API:
-Base URL: localhost:8000/api/products/attribute-values/
+## 3. PUT /api/products/products/{id}/
+- Cập nhật sản phẩm
+- Body: Tương tự POST
 
-GET:
-[
+## 4. DELETE /api/products/products/{id}/
+- Xóa mềm sản phẩm
+
+## 5. GET /api/products/products/{id}/
+- Lấy chi tiết sản phẩm
+- Response: Tương tự GET list nhưng có thêm thông tin chi tiết
+
+## 6. POST /api/products/products/{id}/bulk_update_variants/
+- Cập nhật hàng loạt biến thể
+- Body:
+```json
+{
+  "variants": [
     {
-        "id": 1,
-        "attribute_type": 1,
-        "value": "Đỏ",
-        "price_adjustments": [
-            {
-                "id": 1,
-                "product": 1,
-                "price_adjustment": "300.00"
-            }
-        ],
-        "created_at": "2024-03-20T10:00:00Z",
-        "updated_at": "2024-03-20T10:00:00Z"
+      "price_adjustment": "100000.00",
+      "stock_alert_threshold": 10,
+      "barcode": "123456789",
+      "is_active": true,
+      "attribute_values": [1, 2, 3]
     }
-]
-
-POST:
-{
-    "attribute_type": 1,
-    "value": "Đỏ"
+  ]
 }
+```
 
-DELETE:
-// Khi xóa một thuộc tính, hệ thống sẽ:
-// 1. Tìm tất cả các biến thể có chứa thuộc tính này
-// 2. Xóa các biến thể đó
-// 3. Xóa các price adjustments liên quan
-// 4. Xóa thuộc tính
-
-DELETE localhost:8000/api/products/attribute-values/1/
-Response:
-{
-    "message": "Attribute value deleted successfully",
-    "deleted_variants": [
-        {
-            "id": 1,
-            "sku": "PRODUCT-NAME-RED-SMALL-1",
-            "product": 1
-        },
-        {
-            "id": 2,
-            "sku": "PRODUCT-NAME-RED-LARGE-2",
-            "product": 1
-        }
-    ],
-    "deleted_price_adjustments": [
-        {
-            "id": 1,
-            "product": 1,
-            "price_adjustment": "300.00"
-        }
+## 7. GET /api/products/products/{id}/get_attributes/
+- Lấy danh sách thuộc tính của sản phẩm
+- Response:
+```json
+[
+  {
+    "id": 1,
+    "name": "Tên thuộc tính",
+    "description": "Mô tả thuộc tính",
+    "values": [
+      {
+        "id": 1,
+        "value": "Giá trị thuộc tính"
+      }
     ]
-}
-
-// Nếu muốn xóa thuộc tính mà không xóa các biến thể:
-DELETE localhost:8000/api/products/attribute-values/1/?keep_variants=true
-Response:
-{
-    "message": "Attribute value deleted successfully. Variants were kept but attribute value was removed from them.",
-    "affected_variants": [
-        {
-            "id": 1,
-            "sku": "PRODUCT-NAME-RED-SMALL-1",
-            "product": 1,
-            "new_sku": "PRODUCT-NAME-SMALL-1"  // SKU được cập nhật sau khi xóa thuộc tính
-        },
-        {
-            "id": 2,
-            "sku": "PRODUCT-NAME-RED-LARGE-2",
-            "product": 1,
-            "new_sku": "PRODUCT-NAME-LARGE-2"
-        }
-    ]
-}
-
-5. Attribute Value Price Adjustments API:
-Base URL: localhost:8000/api/products/attribute-price-adjustments/
-
-GET:
-[
-    {
-        "id": 1,
-        "attribute_value": 1,
-        "product": 1,
-        "price_adjustment": "300.00",
-        "created_at": "2024-03-20T10:00:00Z",
-        "updated_at": "2024-03-20T10:00:00Z"
-    }
+  }
 ]
+```
 
-POST:
+## 8. POST /api/products/products/{id}/set_primary_image/
+- Đặt ảnh chính cho sản phẩm
+- Body:
+```json
 {
-    "attribute_value": 1,
+  "image_id": 1 // ID của ảnh cần đặt làm ảnh chính
+}
+```
+- Response:
+```json
+{
+  "message": "Đã đặt ảnh chính thành công",
+  "image": {
+    "id": 1,
     "product": 1,
-    "price_adjustment": "300.00"
+    "image": "path/to/image.png",
+    "is_primary": true
+  }
 }
+```
 
-6. Additional Product Endpoints:
+# PRODUCT VARIANT API
 
-GET Featured Products:
-localhost:8000/api/products/products/featured/
+## 1. GET /api/products/variants/
+- Lấy danh sách biến thể
+- Query params:
+  - search: Tìm kiếm theo tên sản phẩm/giá trị thuộc tính
+  - attr_values: Danh sách giá trị thuộc tính
+  - attr_type: Loại thuộc tính
+  - sort_by: Sắp xếp theo tên sản phẩm (product_name/-product_name)
+  - attr_value: Lọc theo giá trị thuộc tính
+- Response:
+```json
 [
-    {
-        "id": 1,
-        "name": "Featured Product",
-        ...
-    }
-]
-
-Bulk Update Variants:
-POST localhost:8000/api/products/{id}/bulk_update_variants/
-{
-    "variants": [
-        {
-            "sku": "PRODUCT-NAME-RED-SMALL-1",
-            "price_adjustment": "15.00",
-            "stock_alert_threshold": 5,
-            "barcode": "123456789",
-            "is_active": true,
-            "attribute_values": [1, 3]
-        }
-    ]
-}
-
-Filter Products:
-GET localhost:8000/api/products/products/?category=1&brand=2&min_price=100&max_price=1000&search=watch&featured=true&active=true
-[
-    {
-        "id": 1,
-        "name": "Filtered Product",
-        ...
-    }
-]
-
-Ví dụ sử dụng API để tạo sản phẩm với các thuộc tính:
-
-POST /api/products/ (Form-data)
-Form fields:
-1. name: "Casio"
-2. base_price: "1000.00"
-3. description: "Đồng hồ Casio"
-4. images[0]: [file1]
-5. images[1]: [file2]
-6. primary_image_index: 0
-7. attribute_value_groups: [
-    [1, 2],  // Nhóm màu sắc: Đỏ, Vàng
-    [3, 4]   // Nhóm kích thước: Nhỏ, Lớn
-]
-
-// Backend sẽ tự động tạo các tổ hợp biến thể:
-// - Variant 1: [1, 3] -> SKU: CASIO-DO-NHO-1
-// - Variant 2: [1, 4] -> SKU: CASIO-DO-LON-2
-// - Variant 3: [2, 3] -> SKU: CASIO-VANG-NHO-3
-// - Variant 4: [2, 4] -> SKU: CASIO-VANG-LON-4
-
-// Sau khi tạo xong, có thể cập nhật giá cho từng biến thể:
-PUT /api/variants/1/
-{
-    "price_adjustment": "300.00",
-    "stock_alert_threshold": 5,
+  {
+    "id": 1,
+    "product": 1,
+    "product_name": "Tên sản phẩm",
+    "sku": "SKU123",
+    "price_adjustment": "100000.00",
+    "stock_alert_threshold": 10,
     "barcode": "123456789",
     "is_active": true,
-    "attribute_values": [1, 3]
+    "attribute_values": [1, 2, 3],
+    "attribute_values_detail": [
+      {
+        "id": 1,
+        "value": "Giá trị",
+        "attribute_type": {
+          "id": 1,
+          "name": "Tên thuộc tính"
+        }
+      }
+    ]
+  }
+]
+```
+
+## 2. POST /api/products/variants/
+- Tạo biến thể mới
+- Body:
+```json
+{
+  "product_id": 1,
+  "price_adjustment": "100000.00",
+  "stock_alert_threshold": 10,
+  "barcode": "123456789",
+  "is_active": true,
+  "attribute_values": [1, 2, 3]
 }
+```
+
+## 3. PUT /api/products/variants/{id}/
+- Cập nhật biến thể
+- Body: Tương tự POST
+
+## 4. DELETE /api/products/variants/{id}/
+- Xóa biến thể
+
+## 5. GET /api/products/variants/{id}/
+- Lấy chi tiết biến thể
+- Response: Tương tự GET list
+
+## 6. POST /api/products/variants/{id}/upload_images/
+- Upload nhiều ảnh cho biến thể
+- Body (multipart/form-data):
+  - images: Danh sách file ảnh
+  - alt_texts: Danh sách alt text tương ứng (optional)
+- Response:
+```json
+[
+  {
+    "id": 1,
+    "variant": 1,
+    "image": "path/to/image.jpg",
+    "alt_text": "Mô tả ảnh"
+  }
+]
+```
+
+## 7. DELETE /api/products/variants/{id}/delete_image/
+- Xóa một ảnh của biến thể
+- Body:
+```json
+{
+  "image_id": 1
+}
+```
+
+# VARIANT IMAGE API
+
+## 1. GET /api/products/variant-images/
+- Lấy danh sách ảnh biến thể
+- Query params:
+  - variant: ID biến thể
+  - product: ID sản phẩm (lấy tất cả ảnh biến thể của sản phẩm)
+- Response:
+```json
+[
+  {
+    "id": 1,
+    "variant": 1,
+    "image": "path/to/image.png",
+    "alt_text": "Mô tả ảnh"
+  }
+]
+```
+
+## 2. POST /api/products/variant-images/
+- Tạo ảnh biến thể mới
+- Body (multipart/form-data):
+  - variant: ID biến thể
+  - image: File ảnh
+  - alt_text: Mô tả ảnh (optional)
+
+## 3. PUT /api/products/variant-images/{id}/
+- Cập nhật ảnh biến thể
+- Body:
+```json
+{
+  "alt_text": "Mô tả ảnh mới"
+}
+```
+
+## 4. DELETE /api/products/variant-images/{id}/
+- Xóa ảnh biến thể

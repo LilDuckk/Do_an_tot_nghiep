@@ -36,6 +36,7 @@ class Banner(BaseModel):
     class Meta:
         managed = True
         db_table = 'banner'
+        ordering = ['-updated_at', '-created_at']
 
     def save(self, *args, **kwargs):
         if self.image:

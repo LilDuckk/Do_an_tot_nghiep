@@ -90,7 +90,7 @@ export default function AttributesPage() {
     e.preventDefault();
     try {
       const token = localStorage.getItem('accessToken');
-      const response = await fetch('http://localhost:8000/api/products/attributestype/', {
+      const response = await fetch('http://localhost:8000/api/products/attribute-types/', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -116,7 +116,7 @@ export default function AttributesPage() {
     e.preventDefault();
     try {
       const token = localStorage.getItem('accessToken');
-      const response = await fetch(`http://localhost:8000/api/products/attributestype/${editingType.id}/`, {
+      const response = await fetch(`http://localhost:8000/api/products/attribute-types/${editingType.id}/`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -138,7 +138,7 @@ export default function AttributesPage() {
     if (!window.confirm('Bạn có chắc chắn muốn xóa loại thuộc tính này?')) return;
     try {
       const token = localStorage.getItem('accessToken');
-      const response = await fetch(`http://localhost:8000/api/products/attributestype/${id}/`, {
+      const response = await fetch(`http://localhost:8000/api/products/attribute-types/${id}/`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -156,7 +156,7 @@ export default function AttributesPage() {
     e.preventDefault();
     try {
       const token = localStorage.getItem('accessToken');
-      const response = await fetch('http://localhost:8000/api/products/attributesvalue/', {
+      const response = await fetch('http://localhost:8000/api/products/attribute-values/', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -182,7 +182,7 @@ export default function AttributesPage() {
     e.preventDefault();
     try {
       const token = localStorage.getItem('accessToken');
-      const response = await fetch(`http://localhost:8000/api/products/attributesvalue/${editingValue.id}/`, {
+      const response = await fetch(`http://localhost:8000/api/products/attribute-values/${editingValue.id}/`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -204,7 +204,7 @@ export default function AttributesPage() {
     if (!window.confirm('Bạn có chắc chắn muốn xóa giá trị thuộc tính này?')) return;
     try {
       const token = localStorage.getItem('accessToken');
-      const response = await fetch(`http://localhost:8000/api/products/attributesvalue/${id}/`, {
+      const response = await fetch(`http://localhost:8000/api/products/attribute-values/${id}/`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
