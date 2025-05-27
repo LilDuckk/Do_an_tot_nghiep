@@ -7,7 +7,7 @@ class EmployeeViewSet(viewsets.ModelViewSet):
     queryset = Employee.objects.all()
     serializer_class = EmployeeSerializer
     permission_classes = [DjangoModelPermissions]
-    filterset_fields = ['store', 'position', 'is_active']
-    search_fields = ['user__username', 'user__email', 'user__first_name', 'user__last_name']
+    filterset_fields = ['store', 'position', 'employee_code']
+    search_fields = ['user__username', 'user__email', 'first_name', 'last_name', 'phone']
     ordering_fields = ['created_at']
     ordering = ['-created_at'] 

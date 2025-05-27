@@ -7,7 +7,6 @@ from apps.core.models.base import BaseModel
 from apps.users.models import UserAccount
 from apps.products.models.category import Category
 from apps.products.models.brand import Brand
-from apps.products.models.attribute import AttributeType
 import uuid
 
 def product_image_upload_path(instance, filename):

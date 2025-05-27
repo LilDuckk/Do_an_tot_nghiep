@@ -19,6 +19,8 @@ const menuConfig = [
   { label: 'Đơn hàng', icon: '🧾', children: [
     { label: 'Quản lý đơn hàng', to: '/admin/orders' },
     { label: 'Trả hàng', to: '/admin/return-orders' },
+    { label: 'Quản lý khuyến mãi', to: '/admin/coupons' },
+    { label: 'Quản lý khách hàng', to: '/admin/customers' },
   ]},
   { label: 'Cửa hàng', icon: '🏬', children: [
     { label: 'Quản lý cửa hàng', to: '/admin/stores' },

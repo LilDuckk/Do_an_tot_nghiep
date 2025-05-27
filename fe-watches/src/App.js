@@ -46,6 +46,8 @@ import BannerManagement from './admin/system/BannerManagement';
 import ContactManagement from './admin/system/ContactManagement';
 import FooterManagement from './admin/system/FooterManagement';
 import NewsManagement from './admin/system/NewsManagement';
+import CouponListPage from './admin/coupon/CouponListPage';
+import CustomersListPage from './admin/customers/CustomersListPage';
 
 function PrivateRoute({ children }) {
   return authService.isTokenValid() ? children : <Navigate to="/admin/login" />;
@@ -95,6 +97,8 @@ function App() {
           <Route path="system/contact" element={<ContactManagement />} />
           <Route path="system/footer" element={<FooterManagement />} />
           <Route path="system/news" element={<NewsManagement />} />
+          <Route path="coupons" element={<CouponListPage />} />
+          <Route path="customers" element={<CustomersListPage />} />
         </Route>
         <Route path="/" element={<ClientHome />} />
         <Route path="/products" element={<ProductList />} />

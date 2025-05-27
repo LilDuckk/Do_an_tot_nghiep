@@ -129,7 +129,29 @@ export default function AuditLogs() {
 
   const renderPagination = () => {
     const pages = [];
-    for (let i = 1; i <= totalPages; i++) {
+    const maxVisiblePages = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+    // Điều chỉnh startPage nếu endPage đã đạt giới hạn
+    if (endPage - startPage + 1 < maxVisiblePages) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+
+    // Thêm nút trang đầu nếu không phải trang 1
+    if (startPage > 1) {
+      pages.push(
+        <button key="1" onClick={() => setCurrentPage(1)}>
+          1
+        </button>
+      );
+      if (startPage > 2) {
+        pages.push(<span key="start-ellipsis" className="ellipsis">...</span>);
+      }
+    }
+
+    // Thêm các nút trang
+    for (let i = startPage; i <= endPage; i++) {
       pages.push(
         <button
           key={i}
@@ -137,6 +159,18 @@ export default function AuditLogs() {
           className={currentPage === i ? 'active' : ''}
         >
           {i}
+        </button>
+      );
+    }
+
+    // Thêm nút trang cuối nếu không phải trang cuối
+    if (endPage < totalPages) {
+      if (endPage < totalPages - 1) {
+        pages.push(<span key="end-ellipsis" className="ellipsis">...</span>);
+      }
+      pages.push(
+        <button key={totalPages} onClick={() => setCurrentPage(totalPages)}>
+          {totalPages}
         </button>
       );
     }

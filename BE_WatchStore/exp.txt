@@ -1,257 +1,386 @@
-# PRODUCT API
+# API Orders
 
-## 1. GET /api/products/products/
+## 1. Orders API (/api/orders/orders/)
+### GET /api/orders/orders/
+- Lấy danh sách đơn hàng
+- Query params:
+  - customer: Lọc theo khách hàng
+  - status: Lọc theo trạng thái
+  - payment_method: Lọc theo phương thức thanh toán
+  - search: Tìm kiếm theo order_number
+  - ordering: Sắp xếp theo order_number hoặc created_at
+- Permission: DjangoModelPermissions
+
+### POST /api/orders/orders/
+- Tạo đơn hàng mới
+- Body:
+```json
+{
+    "customer": "customer_id",
+    "store": "store_id",
+    "employee": "employee_id",
+    "order_date": "order_date",
+    "status": "status_value",
+    "payment_method": "payment_method_value",
+    "payment_status": "payment_status",
+    "shipping_address": "shipping_address",
+    "shipping_method": "shipping_method",
+    "tracking_number": "tracking_number",
+    "subtotal": "subtotal",
+    "tax": "tax",
+    "shipping_fee": "shipping_fee",
+    "discount": "discount",
+    "total_amount": "total_amount",
+    "note": "note",
+    "is_online_order": "is_online_order"
+}
+```
+- Permission: DjangoModelPermissions
+
+### GET /api/orders/orders/{id}/
+- Lấy chi tiết một đơn hàng
+- Permission: DjangoModelPermissions
+
+### PUT /api/orders/orders/{id}/
+- Cập nhật toàn bộ thông tin đơn hàng
+- Body: Tương tự POST
+- Permission: DjangoModelPermissions
+
+### PATCH /api/orders/orders/{id}/
+- Cập nhật một phần thông tin đơn hàng
+- Body: Các trường cần cập nhật
+- Permission: DjangoModelPermissions
+
+### DELETE /api/orders/orders/{id}/
+- Xóa đơn hàng
+- Permission: DjangoModelPermissions
+
+## 2. Order Details API (/api/orders/order-details/)
+### GET /api/orders/order-details/
+- Lấy danh sách chi tiết đơn hàng
+- Query params:
+  - order: Lọc theo đơn hàng
+  - product: Lọc theo sản phẩm
+  - variant: Lọc theo biến thể
+  - ordering: Sắp xếp theo created_at
+- Permission: IsAdminUser
+
+### POST /api/orders/order-details/
+- Tạo chi tiết đơn hàng mới
+- Body:
+```json
+{
+    "order": "order_id",
+    "product_variant": "variant_id",
+    "quantity": "quantity",
+    "coupon_id": "coupon_id" // optional
+}
+```
+- Giá sản phẩm được tính tự động:
+  - unit_price = base_price + price_adjustment
+  - discount = giá trị giảm từ coupon (nếu có)
+  - final_price = (unit_price - discount) * quantity
+- Validation:
+  - Kiểm tra coupon có hợp lệ không (còn hạn, chưa vượt quá số lần sử dụng)
+  - Kiểm tra giá trị đơn hàng tối thiểu nếu coupon yêu cầu
+- Permission: IsAdminUser
+
+### GET /api/orders/order-details/{id}/
+- Lấy chi tiết một mục trong đơn hàng
+- Response bao gồm:
+  - Thông tin sản phẩm (product)
+  - Thông tin biến thể (variant)
+  - Thông tin coupon (nếu có)
+  - Giá gốc (unit_price)
+  - Giảm giá (discount)
+  - Giá cuối cùng (final_price)
+- Permission: IsAdminUser
+
+### PUT /api/orders/order-details/{id}/
+- Cập nhật toàn bộ thông tin chi tiết đơn hàng
+- Body: Tương tự POST
+- Permission: IsAdminUser
+
+### PATCH /api/orders/order-details/{id}/
+- Cập nhật một phần thông tin chi tiết đơn hàng
+- Body: Các trường cần cập nhật
+- Permission: IsAdminUser
+
+### DELETE /api/orders/order-details/{id}/
+- Xóa chi tiết đơn hàng
+- Permission: IsAdminUser
+
+## 3. Coupons API (/api/orders/coupons/)
+### GET /api/orders/coupons/
+- Lấy danh sách mã giảm giá
+- Permission: IsAdminUser
+
+### POST /api/orders/coupons/
+- Tạo mã giảm giá mới
+- Body:
+```json
+{
+    "code": "code",
+    "description": "description",
+    "discount_type": "percentage|fixed",
+    "discount_value": "discount_value",
+    "minimum_order_amount": "minimum_order_amount",
+    "start_date": "start_date",
+    "expires_at": "expires_at",
+    "usage_limit": "usage_limit",
+    "is_active": "is_active"
+}
+```
+- Validation:
+  - Thời gian kết thúc phải sau thời gian bắt đầu
+  - Giảm giá theo phần trăm không được vượt quá 100%
+- Permission: IsAdminUser
+
+### GET /api/orders/coupons/{id}/
+- Lấy chi tiết một mã giảm giá
+- Response bao gồm:
+  - Thông tin cơ bản của coupon
+  - Trạng thái hiệu lực (is_valid)
+  - Số lần đã sử dụng (usage_count)
+- Permission: IsAdminUser
+
+### PUT /api/orders/coupons/{id}/
+- Cập nhật toàn bộ thông tin mã giảm giá
+- Body: Tương tự POST
+- Permission: IsAdminUser
+
+### PATCH /api/orders/coupons/{id}/
+- Cập nhật một phần thông tin mã giảm giá
+- Body: Các trường cần cập nhật
+- Permission: IsAdminUser
+
+### DELETE /api/orders/coupons/{id}/
+- Xóa mã giảm giá
+- Permission: IsAdminUser
+
+## 4. Return Orders API (/api/orders/return-orders/)
+### GET /api/orders/return-orders/
+- Lấy danh sách đơn hàng trả
+- Permission: IsAdminUser
+
+### POST /api/orders/return-orders/
+- Tạo đơn hàng trả mới
+- Body:
+```json
+{
+    "order": "order_id",
+    "reason": "reason",
+    "status": "status",
+    "note": "note"
+}
+```
+- Permission: IsAdminUser
+
+### GET /api/orders/return-orders/{id}/
+- Lấy chi tiết một đơn hàng trả
+- Permission: IsAdminUser
+
+### PUT /api/orders/return-orders/{id}/
+- Cập nhật toàn bộ thông tin đơn hàng trả
+- Body: Tương tự POST
+- Permission: IsAdminUser
+
+### PATCH /api/orders/return-orders/{id}/
+- Cập nhật một phần thông tin đơn hàng trả
+- Body: Các trường cần cập nhật
+- Permission: IsAdminUser
+
+### DELETE /api/orders/return-orders/{id}/
+- Xóa đơn hàng trả
+- Permission: IsAdminUser
+
+## 5. Return Order Details API (/api/orders/return-order-details/)
+### GET /api/orders/return-order-details/
+- Lấy danh sách chi tiết đơn hàng trả
+- Permission: IsAdminUser
+
+### POST /api/orders/return-order-details/
+- Tạo chi tiết đơn hàng trả mới
+- Body:
+```json
+{
+    "return_order": "return_order_id",
+    "order_detail": "order_detail_id",
+    "quantity": "quantity",
+    "reason": "reason"
+}
+```
+- Permission: IsAdminUser
+
+### GET /api/orders/return-order-details/{id}/
+- Lấy chi tiết một mục trong đơn hàng trả
+- Permission: IsAdminUser
+
+### PUT /api/orders/return-order-details/{id}/
+- Cập nhật toàn bộ thông tin chi tiết đơn hàng trả
+- Body: Tương tự POST
+- Permission: IsAdminUser
+
+### PATCH /api/orders/return-order-details/{id}/
+- Cập nhật một phần thông tin chi tiết đơn hàng trả
+- Body: Các trường cần cập nhật
+- Permission: IsAdminUser
+
+### DELETE /api/orders/return-order-details/{id}/
+- Xóa chi tiết đơn hàng trả
+- Permission: IsAdminUser
+
+## 6. Customers API (/api/orders/customers/)
+### GET /api/orders/customers/
+- Lấy danh sách khách hàng
+- Permission: IsAdminUser
+
+### POST /api/orders/customers/
+- Tạo khách hàng mới
+- Body:
+```json
+{
+    "first_name": "first_name",
+    "last_name": "last_name",
+    "email": "email@example.com",
+    "phone": "phone_number",
+    "address": "address",
+    "birth_date": "YYYY-MM-DD",
+    "gender": "male|female|other",
+    "notes": "notes"
+}
+```
+- Validation:
+  - email: Định dạng email hợp lệ
+  - gender: Chỉ chấp nhận 'male', 'female', 'other'
+  - birth_date: Định dạng YYYY-MM-DD
+- Permission: IsAdminUser
+
+### GET /api/orders/customers/{id}/
+- Lấy chi tiết một khách hàng
+- Response bao gồm:
+  - Thông tin cơ bản của khách hàng
+  - Danh sách đơn hàng của khách hàng
+- Permission: IsAdminUser
+
+### PUT /api/orders/customers/{id}/
+- Cập nhật toàn bộ thông tin khách hàng
+- Body: Tương tự POST
+- Permission: IsAdminUser
+
+### PATCH /api/orders/customers/{id}/
+- Cập nhật một phần thông tin khách hàng
+- Body: Các trường cần cập nhật
+- Permission: IsAdminUser
+
+### DELETE /api/orders/customers/{id}/
+- Xóa khách hàng (soft delete)
+- Permission: IsAdminUser
+
+## 7. Products API (/api/products/products/)
+### GET /api/products/products/
 - Lấy danh sách sản phẩm
 - Query params:
-  - category: ID danh mục
-  - brand: ID thương hiệu
-  - min_price: Giá tối thiểu
-  - max_price: Giá tối đa
-  - search: Tìm kiếm theo tên/mô tả
-  - featured: true/false (sản phẩm nổi bật)
-  - is_active: true/false (trạng thái hoạt động của sản phẩm)
-- Response:
-```json
-[
-  {
-    "id": 1,
-    "name": "Tên sản phẩm",
-    "description": "Mô tả sản phẩm",
-    "category": 1,
-    "category_detail": {
-      "id": 1,
-      "name": "Tên danh mục"
-    },
-    "brand": 1,
-    "brand_detail": {
-      "id": 1,
-      "name": "Tên thương hiệu"
-    },
-    "base_price": "1000000.00",
-    "warranty_period": 12,
-    "slug": "ten-san-pham",
-    "meta_title": "Meta title",
-    "meta_description": "Meta description",
-    "is_featured": true,
-    "is_active": true,
-    "default_variant": 1,
-    "variants": [],
-    "images": []
-  }
-]
-```
+  - category: Lọc theo danh mục
+  - brand: Lọc theo thương hiệu
+  - search: Tìm kiếm theo tên sản phẩm
+  - ordering: Sắp xếp theo tên, giá, created_at
+- Permission: IsAdminUser
 
-## 2. POST /api/products/products/
+### POST /api/products/products/
 - Tạo sản phẩm mới
 - Body:
 ```json
 {
-  "name": "Tên sản phẩm",
-  "description": "Mô tả sản phẩm",
-  "category": 1,
-  "brand": 1,
-  "base_price": "1000000.00",
-  "warranty_period": 12,
-  "meta_title": "Meta title",
-  "meta_description": "Meta description",
-  "is_featured": true,
-  "is_active": true,
-  "attribute_value_groups": [[1, 2], [3, 4]], // Các nhóm giá trị thuộc tính
-  "images": [file1, file2], // Files
-  "primary_image_index": 0 // Index của ảnh chính
-}
-```
-
-## 3. PUT /api/products/products/{id}/
-- Cập nhật sản phẩm
-- Body: Tương tự POST
-
-## 4. DELETE /api/products/products/{id}/
-- Xóa mềm sản phẩm
-
-## 5. GET /api/products/products/{id}/
-- Lấy chi tiết sản phẩm
-- Response: Tương tự GET list nhưng có thêm thông tin chi tiết
-
-## 6. POST /api/products/products/{id}/bulk_update_variants/
-- Cập nhật hàng loạt biến thể
-- Body:
-```json
-{
-  "variants": [
-    {
-      "price_adjustment": "100000.00",
-      "stock_alert_threshold": 10,
-      "barcode": "123456789",
-      "is_active": true,
-      "attribute_values": [1, 2, 3]
-    }
-  ]
-}
-```
-
-## 7. GET /api/products/products/{id}/get_attributes/
-- Lấy danh sách thuộc tính của sản phẩm
-- Response:
-```json
-[
-  {
-    "id": 1,
-    "name": "Tên thuộc tính",
-    "description": "Mô tả thuộc tính",
-    "values": [
-      {
-        "id": 1,
-        "value": "Giá trị thuộc tính"
-      }
-    ]
-  }
-]
-```
-
-## 8. POST /api/products/products/{id}/set_primary_image/
-- Đặt ảnh chính cho sản phẩm
-- Body:
-```json
-{
-  "image_id": 1 // ID của ảnh cần đặt làm ảnh chính
-}
-```
-- Response:
-```json
-{
-  "message": "Đã đặt ảnh chính thành công",
-  "image": {
-    "id": 1,
-    "product": 1,
-    "image": "path/to/image.png",
-    "is_primary": true
-  }
-}
-```
-
-# PRODUCT VARIANT API
-
-## 1. GET /api/products/variants/
-- Lấy danh sách biến thể
-- Query params:
-  - search: Tìm kiếm theo tên sản phẩm/giá trị thuộc tính
-  - attr_values: Danh sách giá trị thuộc tính
-  - attr_type: Loại thuộc tính
-  - sort_by: Sắp xếp theo tên sản phẩm (product_name/-product_name)
-  - attr_value: Lọc theo giá trị thuộc tính
-- Response:
-```json
-[
-  {
-    "id": 1,
-    "product": 1,
-    "product_name": "Tên sản phẩm",
-    "sku": "SKU123",
-    "price_adjustment": "100000.00",
-    "stock_alert_threshold": 10,
-    "barcode": "123456789",
+    "name": "Tên sản phẩm",
+    "description": "Mô tả sản phẩm",
+    "category": "category_id",
+    "brand": "brand_id",
+    "base_price": "Giá cơ bản",
+    "sku": "Mã sản phẩm",
     "is_active": true,
-    "attribute_values": [1, 2, 3],
-    "attribute_values_detail": [
-      {
-        "id": 1,
-        "value": "Giá trị",
-        "attribute_type": {
-          "id": 1,
-          "name": "Tên thuộc tính"
-        }
-      }
-    ]
-  }
-]
-```
-
-## 2. POST /api/products/variants/
-- Tạo biến thể mới
-- Body:
-```json
-{
-  "product_id": 1,
-  "price_adjustment": "100000.00",
-  "stock_alert_threshold": 10,
-  "barcode": "123456789",
-  "is_active": true,
-  "attribute_values": [1, 2, 3]
+    "images": ["url1", "url2"],
+    "specifications": {
+        "key1": "value1",
+        "key2": "value2"
+    }
 }
 ```
+- Permission: IsAdminUser
 
-## 3. PUT /api/products/variants/{id}/
-- Cập nhật biến thể
+### GET /api/products/products/{id}/
+- Lấy chi tiết một sản phẩm
+- Response bao gồm:
+  - Thông tin cơ bản của sản phẩm
+  - Danh sách biến thể sản phẩm
+  - Danh sách hình ảnh
+  - Thông số kỹ thuật
+- Permission: IsAdminUser
+
+### PUT /api/products/products/{id}/
+- Cập nhật toàn bộ thông tin sản phẩm
 - Body: Tương tự POST
+- Permission: IsAdminUser
 
-## 4. DELETE /api/products/variants/{id}/
-- Xóa biến thể
+### PATCH /api/products/products/{id}/
+- Cập nhật một phần thông tin sản phẩm
+- Body: Các trường cần cập nhật
+- Permission: IsAdminUser
 
-## 5. GET /api/products/variants/{id}/
-- Lấy chi tiết biến thể
-- Response: Tương tự GET list
+### DELETE /api/products/products/{id}/
+- Xóa sản phẩm (soft delete)
+- Permission: IsAdminUser
 
-## 6. POST /api/products/variants/{id}/upload_images/
-- Upload nhiều ảnh cho biến thể
-- Body (multipart/form-data):
-  - images: Danh sách file ảnh
-  - alt_texts: Danh sách alt text tương ứng (optional)
-- Response:
-```json
-[
-  {
-    "id": 1,
-    "variant": 1,
-    "image": "path/to/image.jpg",
-    "alt_text": "Mô tả ảnh"
-  }
-]
-```
-
-## 7. DELETE /api/products/variants/{id}/delete_image/
-- Xóa một ảnh của biến thể
-- Body:
-```json
-{
-  "image_id": 1
-}
-```
-
-# VARIANT IMAGE API
-
-## 1. GET /api/products/variant-images/
-- Lấy danh sách ảnh biến thể
+## 8. Product Variants API (/api/products/product-variants/)
+### GET /api/products/product-variants/
+- Lấy danh sách biến thể sản phẩm
 - Query params:
-  - variant: ID biến thể
-  - product: ID sản phẩm (lấy tất cả ảnh biến thể của sản phẩm)
-- Response:
-```json
-[
-  {
-    "id": 1,
-    "variant": 1,
-    "image": "path/to/image.png",
-    "alt_text": "Mô tả ảnh"
-  }
-]
-```
+  - product: Lọc theo sản phẩm
+  - search: Tìm kiếm theo tên biến thể
+  - ordering: Sắp xếp theo tên, giá, created_at
+- Permission: IsAdminUser
 
-## 2. POST /api/products/variant-images/
-- Tạo ảnh biến thể mới
-- Body (multipart/form-data):
-  - variant: ID biến thể
-  - image: File ảnh
-  - alt_text: Mô tả ảnh (optional)
-
-## 3. PUT /api/products/variant-images/{id}/
-- Cập nhật ảnh biến thể
+### POST /api/products/product-variants/
+- Tạo biến thể sản phẩm mới
 - Body:
 ```json
 {
-  "alt_text": "Mô tả ảnh mới"
+    "product": "product_id",
+    "name": "Tên biến thể",
+    "sku": "Mã biến thể",
+    "price_adjustment": "Điều chỉnh giá",
+    "stock_quantity": "Số lượng tồn kho",
+    "is_active": true,
+    "attributes": {
+        "color": "red",
+        "size": "medium"
+    }
 }
 ```
+- Validation:
+  - SKU phải là duy nhất
+  - Giá điều chỉnh có thể âm hoặc dương
+  - Số lượng tồn kho không được âm
+- Permission: IsAdminUser
 
-## 4. DELETE /api/products/variant-images/{id}/
-- Xóa ảnh biến thể
+### GET /api/products/product-variants/{id}/
+- Lấy chi tiết một biến thể sản phẩm
+- Response bao gồm:
+  - Thông tin cơ bản của biến thể
+  - Thông tin sản phẩm gốc
+  - Các thuộc tính của biến thể
+- Permission: IsAdminUser
+
+### PUT /api/products/product-variants/{id}/
+- Cập nhật toàn bộ thông tin biến thể sản phẩm
+- Body: Tương tự POST
+- Permission: IsAdminUser
+
+### PATCH /api/products/product-variants/{id}/
+- Cập nhật một phần thông tin biến thể sản phẩm
+- Body: Các trường cần cập nhật
+- Permission: IsAdminUser
+
+### DELETE /api/products/product-variants/{id}/
+- Xóa biến thể sản phẩm (soft delete)
+- Permission: IsAdminUser
