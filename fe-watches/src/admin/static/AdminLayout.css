@@ -377,3 +377,7 @@ body[data-admin-theme] {
 .admin-layout.collapsed .dropdown-menu {
   display: none !important;
 }
+
+input{
+  color: var(--bg) !important;
+}

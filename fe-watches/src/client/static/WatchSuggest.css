@@ -1,5 +1,5 @@
 .watch-suggest {
-  background: #fff;
+  background: #616161;
   padding: 32px 0 32px 0;
   margin: 0 auto 32px auto;
   width: 95%;
@@ -10,14 +10,14 @@
   box-shadow: 0 2px 12px rgba(0,0,0,0.06);
 }
 .watch-suggest__title {
-  color: #222;
+  color: #f6f6f6;
   font-size: 1.3rem;
   font-weight: 600;
   margin-bottom: 8px;
   letter-spacing: 1px;
 }
 .watch-suggest__desc {
-  color: #555;
+  color: #d0d0d0;
   font-size: 1rem;
   margin-bottom: 18px;
   text-align: center;
@@ -30,7 +30,7 @@
   flex-wrap: wrap;
 }
 .watch-suggest__item {
-  background: #f7f7f7;
+  background: #7a7a7a;
   border-radius: 10px;
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0,0,0,0.04);
@@ -49,7 +49,7 @@
 }
 .watch-suggest__label {
   font-size: 0.98rem;
-  color: #222;
+  color: #d1d1d1;
   text-align: center;
 }
 @media (max-width: 700px) {
