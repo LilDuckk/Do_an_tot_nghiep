@@ -14,7 +14,7 @@ import {
 } from 'antd';
 import { EditOutlined, DeleteOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
-import './CouponPage.css';
+import '../static/AdminCommon.css';
 
 const { Option } = Select;
 

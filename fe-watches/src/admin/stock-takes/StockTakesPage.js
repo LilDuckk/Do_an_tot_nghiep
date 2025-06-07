@@ -1,5 +1,5 @@
 import React from 'react';
-import '../users/UsersPage.css';
+import '../static/AdminCommon.css';
 
 export default function StockTakesPage() {
   return (

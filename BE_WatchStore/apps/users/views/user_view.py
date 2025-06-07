@@ -33,3 +33,36 @@ class UserViewSet(viewsets.ModelViewSet):
             user.save()
             return Response({'status': 'Đổi mật khẩu thành công'})
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    @action(detail=False, methods=['get'], url_path='all', url_name='all')
+    def list_all(self, request):
+        """
+        Lấy tất cả user đang active với khả năng tìm kiếm và lọc
+        """
+        queryset = self.get_queryset().filter(is_active=True)
+        
+        # Áp dụng bộ lọc
+        queryset = self.filter_queryset(queryset)
+        
+        # Áp dụng tìm kiếm
+        search_query = request.query_params.get('search', None)
+        if search_query:
+            try:
+                # Thử chuyển đổi search_query thành số để tìm theo ID
+                search_id = int(search_query)
+                queryset = queryset.filter(id=search_id)
+            except ValueError:
+                # Nếu không phải số, tìm theo username và email
+                queryset = queryset.filter(
+                    username__icontains=search_query
+                ) | queryset.filter(
+                    email__icontains=search_query
+                )
+        
+        # Áp dụng sắp xếp
+        ordering = request.query_params.get('ordering', '-created_at')
+        if ordering:
+            queryset = queryset.order_by(ordering)
+            
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)

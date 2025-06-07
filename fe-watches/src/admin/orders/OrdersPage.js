@@ -15,7 +15,7 @@ import {
 } from 'antd';
 import { EditOutlined, DeleteOutlined, PlusOutlined, SearchOutlined, EyeOutlined, ShoppingCartOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
-import './OrdersPage.css';
+import '../static/AdminCommon.css';
 
 const { Option } = Select;
 

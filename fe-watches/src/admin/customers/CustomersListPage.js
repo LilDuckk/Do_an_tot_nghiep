@@ -13,7 +13,7 @@ import {
 } from 'antd';
 import { EditOutlined, DeleteOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
-import './CustomersPage.css';
+import '../static/AdminCommon.css';
 
 const { Option } = Select;
 

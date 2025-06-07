@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import './UsersPage.css';
+import '../static/AdminCommon.css';
 import { hasModulePermission } from '../../services/permission';
 
 export default function UserViewPage() {

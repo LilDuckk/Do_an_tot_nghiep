@@ -24,6 +24,7 @@ const menuConfig = [
   ]},
   { label: 'Cửa hàng', icon: '🏬', children: [
     { label: 'Quản lý cửa hàng', to: '/admin/stores' },
+    { label: 'Quản lý nhân viên', to: '/admin/employees' },
     { label: 'Tồn kho', to: '/admin/inventories' },
     { label: 'Kiểm kê', to: '/admin/stock-takes' },
     { label: 'Chuyển kho', to: '/admin/stock-transfers' },
