@@ -155,7 +155,7 @@
 }
 .admin-perm-col {
   flex: 1;
-  background: #f6f8fa;
+  background: var(--bg);
   border-radius: 10px;
   box-shadow: 0 2px 8px #e0e6ed;
   padding: 18px 14px 20px 14px;
@@ -180,7 +180,7 @@
 }
 .admin-perm-list {
   border: 1px solid #e0e6ed;
-  background: #fff;
+  background: var(--dropdown-bg);
   border-radius: 8px;
   min-height: 180px;
   max-height: 260px;
@@ -199,11 +199,15 @@
   white-space: nowrap;
   gap: 10px;
 }
+
+.admin-perm-item span{
+  color: var(--text);
+}
 .admin-perm-item:last-child {
   border-bottom: none;
 }
 .admin-perm-item:hover {
-  background: #eaf3ff;
+  background: var(--hover);
 }
 .admin-perm-item span {
   display: inline-block;

@@ -6,12 +6,18 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from django.db.models import Count
 
 
 class GroupSerializer(serializers.ModelSerializer):
+    user_count = serializers.SerializerMethodField()
+
     class Meta:
         model = Group
-        fields = ['id', 'name', 'permissions']
+        fields = ['id', 'name', 'permissions', 'user_count']
+
+    def get_user_count(self, obj):
+        return obj.user_set.count()
 
 class PermissionSerializer(serializers.ModelSerializer):
     class Meta:
