@@ -465,9 +465,9 @@ const OrdersPage = () => {
 
   return (
     <div className="orders-page">
-      <div className="orders-header">
-      <h2>Quản lý đơn hàng</h2>
-        <Space>
+      <div className="admin-list-header">
+        <h2>Quản lý đơn hàng</h2>
+        <div className="search-bar">
           <Input
             placeholder="Tìm kiếm theo tên khách hàng..."
             prefix={<SearchOutlined />}
@@ -487,7 +487,7 @@ const OrdersPage = () => {
           >
             Thêm đơn hàng
           </Button>
-        </Space>
+        </div>
       </div>
 
       <Table

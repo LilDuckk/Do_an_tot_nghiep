@@ -1,106 +1,86 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { hasModulePermission } from '../../services/permission';
+import { Input, Space, Empty } from 'antd';
+import { SearchOutlined } from '@ant-design/icons';
 import { useDebounce } from '../hooks/useDebounce';
 import '../static/AdminCommon.css';
-import { Link} from 'react-router-dom';
-import { hasModulePermission } from '../../services/permission';
 
 export default function PermissionsListPage() {
   const [permissions, setPermissions] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchText, setSearchText] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const navigate = useNavigate();
 
+  const debouncedSearchText = useDebounce(searchText);
   const ITEMS_PER_PAGE = 20;
-  const DEBOUNCE_DELAY = 500; // 500ms delay
 
-  const debouncedSearchTerm = useDebounce(searchTerm, DEBOUNCE_DELAY);
-
-  // const navigate = useNavigate();
-
-  const fetchPermissions = async (page = 1, search = '') => {
-    setLoading(true);
+  const fetchPermissions = useCallback(async () => {
     try {
+      setLoading(true);
       const token = localStorage.getItem('accessToken');
       const queryParams = new URLSearchParams({
-        page: page,
+        page: currentPage,
         page_size: ITEMS_PER_PAGE,
-        search: search
+        search: debouncedSearchText
       });
-      
       const res = await fetch(`http://localhost:8000/api/account/auth/permissions/?${queryParams}`, {
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Authorization': `Bearer ${token}` }
       });
-      
       if (res.status === 403) {
         setError('Bạn không có quyền xem danh sách này.');
         setPermissions([]);
         setTotalPages(1);
-        setLoading(false);
         return;
       }
-      if (!res.ok) throw new Error('Lỗi khi lấy danh sách quyền');
-      
+      if (!res.ok) {
+        setPermissions([]);
+        setTotalPages(1);
+        return;
+      }
       const data = await res.json();
-      setPermissions(data.results || data);
-      setTotalPages(Math.ceil((data.count || data.length) / ITEMS_PER_PAGE));
+      const count = data.count || 0;
+      const results = data.results || [];
+      setPermissions(results);
+      if (count === 0) {
+        setTotalPages(1);
+        if (currentPage !== 1) setCurrentPage(1);
+      } else {
+        setTotalPages(Math.ceil(count / ITEMS_PER_PAGE));
+      }
     } catch (err) {
       setError(err.message);
+      setPermissions([]);
+      setTotalPages(1);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-  };
+  }, [currentPage, debouncedSearchText]);
 
-  useEffect(() => { 
-    fetchPermissions(currentPage, debouncedSearchTerm);
-  }, [currentPage, debouncedSearchTerm]);
+  useEffect(() => {
+    fetchPermissions();
+  }, [fetchPermissions]);
 
   const handleSearch = (e) => {
     e.preventDefault();
     setCurrentPage(1);
-    fetchPermissions(1, searchTerm);
+    fetchPermissions();
   };
-
-  const handleSearchChange = (e) => {
-    setSearchTerm(e.target.value);
-  };
-
-  const handleClearSearch = () => {
-    setSearchTerm('');
-    setCurrentPage(1);
-    fetchPermissions(1, '');
-  };
-
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleSearch(e);
-    }
-  };
-
-  // const handleDelete = async (id) => {
-  //   if (!window.confirm('Bạn chắc chắn muốn xóa quyền này?')) return;
-  //   try {
-  //     const token = localStorage.getItem('accessToken');
-  //     const res = await fetch(`http://localhost:8000/api/account/auth/permissions/${id}/`, {
-  //       method: 'DELETE',
-  //       headers: { Authorization: `Bearer ${token}` },
-  //     });
-  //     if (res.status === 403) {
-  //       alert('Bạn không có quyền xóa mục này.');
-  //       return;
-  //     }
-  //     if (res.status === 204) fetchPermissions(currentPage, searchTerm);
-  //     else throw new Error('Xóa thất bại');
-  //   } catch (err) {
-  //     alert(err.message);
-  //   }
-  // };
 
   const renderPagination = () => {
+    if (!permissions.length) {
+      return (
+        <div className="admin-pagination">
+          <button disabled>Trước</button>
+          <div className="page-numbers"><button className="active" disabled>1</button></div>
+          <button disabled>Sau</button>
+          <span className="page-info">Trang 1 / 1</span>
+        </div>
+      );
+    }
     const pages = [];
     for (let i = 1; i <= totalPages; i++) {
       pages.push(
@@ -108,98 +88,70 @@ export default function PermissionsListPage() {
           key={i}
           onClick={() => setCurrentPage(i)}
           className={currentPage === i ? 'active' : ''}
+          disabled={currentPage === i}
         >
           {i}
         </button>
       );
     }
-
     return (
       <div className="admin-pagination">
-        <button 
-          onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-          disabled={currentPage === 1}
-        >
-          Trước
-        </button>
-        <div className="page-numbers">
-          {pages}
-        </div>
-        <button
-          onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-          disabled={currentPage === totalPages}
-        >
-          Sau
-        </button>
-        <span className="page-info">
-          Trang {currentPage} / {totalPages}
-        </span>
+        <button onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1}>Trước</button>
+        <div className="page-numbers">{pages}</div>
+        <button onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages}>Sau</button>
+        <span className="page-info">Trang {currentPage} / {totalPages}</span>
       </div>
     );
   };
 
-  if (loading) return <div>Đang tải...</div>;
+  if (loading && !permissions.length) return <div>Đang tải...</div>;
   if (error) return <div className="admin-error">{error}</div>;
 
   return (
     <div className="admin-permissions-list">
       <div className="admin-list-header">
-        <h2>Danh sách quyền</h2>
-        {hasModulePermission('permission', 'create') && (
-          <Link to="/admin/permissions/create" className="admin-btn primary">+ Thêm mới</Link>
-        )}
-      </div>
-
-      <form onSubmit={handleSearch} className="admin-search-bar">
-        <div className="search-input-wrapper">
-          <input
-            type="text"
-            placeholder="Tìm kiếm theo tên hoặc codename..."
-            value={searchTerm}
-            onChange={handleSearchChange}
-            onKeyPress={handleKeyPress}
+        <h2>Quản lý quyền</h2>
+        <div className="search-bar">
+          <Input
+            placeholder="Tìm kiếm quyền..."
+            prefix={<SearchOutlined />}
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            style={{ width: 300 }}
+            allowClear
           />
-          {searchTerm && (
-            <button 
-              type="button" 
-              className="clear-search" 
-              onClick={handleClearSearch}
-              title="Xóa tìm kiếm"
-            >
-              ×
-            </button>
-          )}
         </div>
-        <button type="submit">Tìm kiếm</button>
-      </form>
-
-      <table className="admin-table">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Tên quyền</th>
-            <th>Codename</th>
-            <th>Content Type</th>
-          </tr>
-        </thead>
-        <tbody>
-          {permissions.map(p => (
-            <tr key={p.id}>
-              <td>{p.id}</td>
-              <td>{p.name}</td>
-              <td>{p.codename}</td>
-              <td>{p.content_type}</td>
-              {/* {hasModulePermission('permission', 'edit') && (
-                <td><button onClick={() => navigate(`/admin/permissions/${p.id}/edit`)}>Sửa</button></td>
-              )}
-              {hasModulePermission('permission', 'delete') && (
-                <td><button onClick={() => handleDelete(p.id)} className="danger">Xóa</button></td>
-              )} */}
+      </div>
+      <div className="table-responsive">
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Tên quyền</th>
+              <th>Mã quyền</th>
+              <th>Mô tả</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-
+          </thead>
+          <tbody>
+            {permissions.length === 0 ? (
+              <tr>
+                <td colSpan="4" style={{ textAlign: 'center', padding: '40px 0' }}>
+                  <Empty description="No data" imageStyle={{ height: 60 }} />
+                </td>
+              </tr>
+            ) : (
+              permissions.map(p => (
+                <tr key={p.id}>
+                  <td>{p.id}</td>
+                  <td>{p.name}</td>
+                  <td>{p.codename}</td>
+                  <td>{p.description}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
       {renderPagination()}
     </div>
   );

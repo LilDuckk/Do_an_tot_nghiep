@@ -379,5 +379,5 @@ body[data-admin-theme] {
 }
 
 input{
-  color: var(--bg) !important;
+  color: black !important;
 }

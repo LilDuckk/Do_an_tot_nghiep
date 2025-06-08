@@ -1,6 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { hasModulePermission } from '../../services/permission';
+import { Input, Button, Space, Empty } from 'antd';
+import { SearchOutlined, PlusOutlined } from '@ant-design/icons';
 import '../static/AdminCommon.css';
 import { useDebounce } from '../hooks/useDebounce';
 
@@ -8,8 +10,7 @@ export default function VariantsPage() {
   const [variants, setVariants] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [attributeSearch, setAttributeSearch] = useState('');
+  const [searchText, setSearchText] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [editingId, setEditingId] = useState(null);
@@ -18,29 +19,18 @@ export default function VariantsPage() {
   const [uploadingImages, setUploadingImages] = useState({});
   const navigate = useNavigate();
 
+  const debouncedSearchText = useDebounce(searchText);
   const ITEMS_PER_PAGE = 20;
 
-  const debouncedSearchTerm = useDebounce(searchTerm, 500);
-  const debouncedAttributeSearch = useDebounce(attributeSearch, 500);
-
-  const fetchVariants = async (page = 1, search = '', attrSearch = '') => {
-    setLoading(true);
+  const fetchVariants = useCallback(async () => {
     try {
+      setLoading(true);
       const token = localStorage.getItem('accessToken');
       const queryParams = new URLSearchParams({
-        page: page,
+        page: currentPage,
         page_size: ITEMS_PER_PAGE,
-        search: search
+        search: debouncedSearchText
       });
-
-      // Thêm các giá trị thuộc tính vào query params
-      if (attrSearch) {
-        const attrValues = attrSearch.split('+').map(value => value.trim()).filter(value => value);
-        attrValues.forEach(value => {
-          queryParams.append('attr_values', value);
-        });
-      }
-
       const res = await fetch(`http://localhost:8000/api/products/variants/?${queryParams}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -48,64 +38,75 @@ export default function VariantsPage() {
         setError('Bạn không có quyền xem danh sách này.');
         setVariants([]);
         setTotalPages(1);
-        setLoading(false);
         return;
       }
       if (!res.ok) throw new Error('Lỗi khi lấy danh sách biến thể');
       const data = await res.json();
-      setVariants(data.results || data);
-      setTotalPages(Math.ceil((data.count || data.length) / ITEMS_PER_PAGE));
+      const count = data.count || 0;
+      const results = data.results || [];
+      setVariants(results);
+      if (count === 0) {
+        setTotalPages(1);
+        if (currentPage !== 1) setCurrentPage(1);
+      } else {
+        setTotalPages(Math.ceil(count / ITEMS_PER_PAGE));
+      }
     } catch (err) {
       setError(err.message);
+      setVariants([]);
+      setTotalPages(1);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-  };
+  }, [currentPage, debouncedSearchText]);
 
   useEffect(() => {
-    fetchVariants(currentPage, debouncedSearchTerm, debouncedAttributeSearch);
-  }, [currentPage, debouncedSearchTerm, debouncedAttributeSearch]);
+    fetchVariants();
+  }, [fetchVariants]);
 
   const handleSearch = (e) => {
     e.preventDefault();
     setCurrentPage(1);
-    fetchVariants(1, searchTerm, attributeSearch);
+    fetchVariants();
   };
 
   const handleEdit = (variant) => {
     setEditingId(variant.id);
     setEditingVariant({
       ...variant,
-      product_id: variant.product_id || variant.product || (variant.product_detail && variant.product_detail.id)
+      product_id: variant.product_id || variant.product || (variant.product_detail && variant.product_detail.id),
+      price_adjustment: variant.price_adjustment ?? '',
+      stock_alert_threshold: variant.stock_alert_threshold ?? '',
+      is_active: variant.is_active,
     });
   };
 
-  const handleUpdate = async (e) => {
-    e.preventDefault();
+  const handleUpdate = async (v) => {
     try {
       const token = localStorage.getItem('accessToken');
-      const requestBody = {
+      const body = {
         product_id: editingVariant.product_id,
-        price_adjustment: editingVariant.price_adjustment,
-        is_active: editingVariant.is_active
+        price_adjustment: editingVariant.price_adjustment === '' ? null : Number(editingVariant.price_adjustment),
+        stock_alert_threshold: editingVariant.stock_alert_threshold === '' ? null : Number(editingVariant.stock_alert_threshold),
+        is_active: editingVariant.is_active,
       };
-      const response = await fetch(`http://localhost:8000/api/products/variants/${editingVariant.id}/`, {
+      const res = await fetch(`http://localhost:8000/api/products/variants/${v.id}/`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify(body),
       });
-      if (!response.ok) {
-        const errorData = await response.json();
+      if (!res.ok) {
+        const errorData = await res.json();
         throw new Error('Lỗi khi cập nhật biến thể: ' + JSON.stringify(errorData));
       }
-      const result = await response.json();
-      setVariants(prev => prev.map(v => v.id === result.id ? result : v));
       setEditingId(null);
       setEditingVariant({});
-    } catch (error) {
-      alert(error.message);
+      fetchVariants();
+    } catch (err) {
+      alert(err.message);
     }
   };
 
@@ -121,7 +122,7 @@ export default function VariantsPage() {
         alert('Bạn không có quyền xóa mục này.');
         return;
       }
-      if (res.status === 204) fetchVariants(currentPage, searchTerm, attributeSearch);
+      if (res.status === 204) fetchVariants();
       else throw new Error('Xóa thất bại');
     } catch (err) {
       alert(err.message);
@@ -150,7 +151,7 @@ export default function VariantsPage() {
       if (!response.ok) throw new Error('Lỗi khi upload ảnh');
       
       // Refresh danh sách biến thể để lấy ảnh mới
-      fetchVariants(currentPage, searchTerm, attributeSearch);
+      fetchVariants();
     } catch (error) {
       alert(error.message);
     } finally {
@@ -175,7 +176,7 @@ export default function VariantsPage() {
       if (!response.ok) throw new Error('Lỗi khi xóa ảnh');
       
       // Refresh danh sách biến thể để cập nhật ảnh
-      fetchVariants(currentPage, searchTerm, attributeSearch);
+      fetchVariants();
     } catch (error) {
       alert(error.message);
     }
@@ -196,13 +197,23 @@ export default function VariantsPage() {
       if (!response.ok) throw new Error('Lỗi khi cập nhật mô tả ảnh');
       
       // Refresh danh sách biến thể để cập nhật mô tả ảnh
-      fetchVariants(currentPage, searchTerm, attributeSearch);
+      fetchVariants();
     } catch (error) {
       alert(error.message);
     }
   };
 
   const renderPagination = () => {
+    if (!variants.length) {
+      return (
+        <div className="admin-pagination">
+          <button disabled>Trước</button>
+          <div className="page-numbers"><button className="active" disabled>1</button></div>
+          <button disabled>Sau</button>
+          <span className="page-info">Trang 1 / 1</span>
+        </div>
+      );
+    }
     const pages = [];
     for (let i = 1; i <= totalPages; i++) {
       pages.push(
@@ -210,6 +221,7 @@ export default function VariantsPage() {
           key={i}
           onClick={() => setCurrentPage(i)}
           className={currentPage === i ? 'active' : ''}
+          disabled={currentPage === i}
         >
           {i}
         </button>
@@ -225,36 +237,24 @@ export default function VariantsPage() {
     );
   };
 
-  if (loading) return <div>Đang tải...</div>;
+  if (loading && !variants.length) return <div>Đang tải...</div>;
   if (error) return <div className="admin-error">{error}</div>;
 
   return (
     <div className="admin-variants-list">
       <div className="admin-list-header">
-        <h2>Quản lý biến thể sản phẩm</h2>
-        {hasModulePermission('variant', 'create') && (
-          <button className="admin-btn primary" onClick={() => navigate('/admin/variants/create')}>+ Thêm mới</button>
-        )}
+        <h2>Quản lý biến thể</h2>
+        <div className="search-bar">
+          <Input
+            placeholder="Tìm kiếm biến thể..."
+            prefix={<SearchOutlined />}
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            style={{ width: 300 }}
+            allowClear
+          />
+        </div>
       </div>
-      <form onSubmit={handleSearch} className="admin-search-bar">
-        <div className="search-input-wrapper">
-          <input
-            type="text"
-            placeholder="Tìm kiếm theo tên sản phẩm, SKU..."
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-          />
-        </div>
-        <div className="search-input-wrapper">
-          <input
-            type="text"
-            placeholder="Tìm kiếm theo thuộc tính (vd: màu đỏ+kích thước 40mm)"
-            value={attributeSearch}
-            onChange={e => setAttributeSearch(e.target.value)}
-          />
-        </div>
-        <button type="submit">Tìm kiếm</button>
-      </form>
       <div className="table-responsive">
         <table className="admin-table">
           <thead>
@@ -262,107 +262,123 @@ export default function VariantsPage() {
               <th>ID</th>
               <th>Tên sản phẩm</th>
               <th>SKU</th>
-              <th>Giá trị thuộc tính</th>
               <th>Giá điều chỉnh</th>
+              <th>Số tồn kho</th>
               <th>Trạng thái</th>
               <th>Ảnh</th>
               <th>Hành động</th>
             </tr>
           </thead>
           <tbody>
-            {variants.map(v => (
-              <tr key={v.id}>
-                <td>{v.id}</td>
-                <td>{v.product_name}</td>
-                <td>{v.sku}</td>
-                <td>
-                  {v.attribute_values_detail?.map(attr => (
-                    <div key={attr.id}>
-                      {attr.attribute_type.name}: {attr.value}
-                    </div>
-                  ))}
-                </td>
-                <td>
-                  {editingId === v.id ? (
-                    <input
-                      type="number"
-                      value={editingVariant.price_adjustment}
-                      onChange={e => setEditingVariant({...editingVariant, price_adjustment: e.target.value})}
-                      required
-                    />
-                  ) : (
-                    v.price_adjustment
-                  )}
-                </td>
-                <td>
-                  {editingId === v.id ? (
-                    <select
-                      value={editingVariant.is_active}
-                      onChange={e => setEditingVariant({...editingVariant, is_active: e.target.value === 'true'})}
-                    >
-                      <option value="true">Hoạt động</option>
-                      <option value="false">Không hoạt động</option>
-                    </select>
-                  ) : (
-                    v.is_active ? 'Hoạt động' : 'Không hoạt động'
-                  )}
-                </td>
-                <td>
-                  <div className="variant-images">
-                    {v.images?.map(image => (
-                      <div key={image.id} className="variant-image-item">
-                        <img 
-                          src={image.image.startsWith('http') ? image.image : `http://localhost:8000${image.image}`}
-                          alt={image.alt_text || ''}
-                          style={{maxWidth: 120, borderRadius: 4}}
-                        />
-                        <div className="image-actions">
-                          <input
-                            type="text"
-                            placeholder="Mô tả ảnh"
-                            value={image.alt_text || ''}
-                            onChange={e => handleUpdateImageAltText(image.id, e.target.value)}
-                          />
-                          <button 
-                            className="admin-btn danger"
-                            onClick={() => handleDeleteImage(v.id, image.id)}
-                          >
-                            Xóa
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                    <div className="image-upload">
-                      <input
-                        type="file"
-                        multiple
-                        accept="image/*"
-                        onChange={e => handleImageUpload(v.id, e.target.files)}
-                        disabled={uploadingImages[v.id]}
-                      />
-                      {uploadingImages[v.id] && <span>Đang tải lên...</span>}
-                    </div>
-                  </div>
-                </td>
-                <td className="admin-table-actions">
-                  {editingId === v.id ? (
-                    <>
-                      <button className="admin-btn primary" onClick={handleUpdate}>Lưu</button>
-                      <button className="admin-btn" onClick={() => { setEditingId(null); setEditingVariant({}); }}>Hủy</button>
-                    </>
-                  ) : (
-                    <>
-                      {hasModulePermission('variant', 'edit') && (
-                        <button className="admin-btn" onClick={() => handleEdit(v)}>Sửa</button>
-                      )}
-                      {hasModulePermission('variant', 'delete') && (
-                        <button className="admin-btn danger" onClick={() => handleDelete(v.id)}>Xóa</button>
-                      )}
-                    </>
-                  )}
+            {variants.length === 0 ? (
+              <tr>
+                <td colSpan="8" style={{ textAlign: 'center', padding: '40px 0' }}>
+                  <Empty description="No data" imageStyle={{ height: 60 }} />
                 </td>
               </tr>
-            ))}
+            ) : (
+              variants.map(v => (
+                <tr key={v.id}>
+                  <td>{v.id}</td>
+                  <td>{v.product_name}</td>
+                  <td>{v.sku}</td>
+                  <td>
+                    {editingId === v.id ? (
+                      <input
+                        type="number"
+                        value={editingVariant.price_adjustment}
+                        onChange={e => setEditingVariant({ ...editingVariant, price_adjustment: e.target.value })}
+                        placeholder="Giá điều chỉnh"
+                      />
+                    ) : (
+                      v.price_adjustment !== null && v.price_adjustment !== undefined
+                        ? v.price_adjustment.toLocaleString('vi-VN') + 'đ'
+                        : ''
+                    )}
+                  </td>
+                  <td>
+                    {editingId === v.id ? (
+                      <input
+                        type="number"
+                        value={editingVariant.stock_alert_threshold}
+                        onChange={e => setEditingVariant({ ...editingVariant, stock_alert_threshold: e.target.value })}
+                        placeholder="Số tồn kho"
+                      />
+                    ) : (
+                      v.stock_alert_threshold !== null && v.stock_alert_threshold !== undefined
+                        ? v.stock_alert_threshold
+                        : ''
+                    )}
+                  </td>
+                  <td>
+                    {editingId === v.id ? (
+                      <select
+                        value={editingVariant.is_active}
+                        onChange={e => setEditingVariant({ ...editingVariant, is_active: e.target.value === 'true' })}
+                      >
+                        <option value={true}>Hoạt động</option>
+                        <option value={false}>Ẩn</option>
+                      </select>
+                    ) : (
+                      v.is_active ? 'Hoạt động' : 'Ẩn'
+                    )}
+                  </td>
+                  <td>
+                    <div className="variant-images">
+                      {v.images?.map(image => (
+                        <div key={image.id} className="variant-image-item" style={{ marginBottom: 8 }}>
+                          <img
+                            src={image.image?.startsWith('http') ? image.image : `http://localhost:8000${image.image}`}
+                            alt={image.alt_text || ''}
+                            style={{ maxWidth: 80, borderRadius: 4, marginBottom: 4 }}
+                          />
+                          {editingId === v.id && (
+                            <>
+                              <input
+                                type="text"
+                                placeholder="Mô tả ảnh"
+                                value={image.alt_text || ''}
+                                onChange={e => handleUpdateImageAltText(image.id, e.target.value)}
+                                style={{ width: 80, marginBottom: 4 }}
+                              />
+                              <button
+                                className="admin-btn danger"
+                                onClick={e => { e.preventDefault(); handleDeleteImage(v.id, image.id); }}
+                                style={{ display: 'block', margin: '0 auto' }}
+                              >
+                                Xóa
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      ))}
+                      {editingId === v.id && (
+                        <div className="image-upload">
+                          <input
+                            type="file"
+                            multiple
+                            accept="image/*"
+                            onChange={e => handleImageUpload(v.id, e.target.files)}
+                            disabled={uploadingImages[v.id]}
+                          />
+                          {uploadingImages[v.id] && <span>Đang tải lên...</span>}
+                        </div>
+                      )}
+                    </div>
+                  </td>
+                  <td className="admin-table-actions">
+                    {editingId === v.id ? (
+                      <>
+                        <button className="admin-btn primary" onClick={() => handleUpdate(v)}>Lưu</button>
+                        <button className="admin-btn" onClick={() => setEditingId(null)}>Hủy</button>
+                      </>
+                    ) : (
+                      <button className="admin-btn" onClick={() => handleEdit(v)}>Sửa</button>
+                    )}
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

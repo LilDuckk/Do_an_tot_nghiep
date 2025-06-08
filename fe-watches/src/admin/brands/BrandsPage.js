@@ -1,30 +1,39 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { hasModulePermission } from '../../services/permission';
+import { Input, Button, Space, Empty } from 'antd';
+import { SearchOutlined, PlusOutlined } from '@ant-design/icons';
 import '../static/AdminCommon.css';
-import { useDebounce } from '../hooks/useDebounce';
 
 export default function BrandsPage() {
   const [brands, setBrands] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchText, setSearchText] = useState('');
+  const [debouncedSearchText, setDebouncedSearchText] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const navigate = useNavigate();
 
   const ITEMS_PER_PAGE = 20;
 
-  const debouncedSearchTerm = useDebounce(searchTerm, 500);
+  // Debounce search text
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchText(searchText);
+    }, 500);
 
-  const fetchBrands = async (page = 1, search = '') => {
-    setLoading(true);
+    return () => clearTimeout(timer);
+  }, [searchText]);
+
+  const fetchBrands = useCallback(async () => {
     try {
+      setLoading(true);
       const token = localStorage.getItem('accessToken');
       const queryParams = new URLSearchParams({
-        page: page,
+        page: currentPage,
         page_size: ITEMS_PER_PAGE,
-        search: search
+        search: debouncedSearchText
       });
       const res = await fetch(`http://localhost:8000/api/products/brands/?${queryParams}`, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -33,28 +42,36 @@ export default function BrandsPage() {
         setError('Bạn không có quyền xem danh sách này.');
         setBrands([]);
         setTotalPages(1);
-        setLoading(false);
         return;
       }
       if (!res.ok) throw new Error('Lỗi khi lấy danh sách thương hiệu');
       const data = await res.json();
-      setBrands(data.results || data);
-      setTotalPages(Math.ceil((data.count || data.length) / ITEMS_PER_PAGE));
+      const count = data.count || 0;
+      const results = data.results || [];
+      setBrands(results);
+      if (count === 0) {
+        setTotalPages(1);
+        if (currentPage !== 1) setCurrentPage(1);
+      } else {
+        setTotalPages(Math.ceil(count / ITEMS_PER_PAGE));
+      }
     } catch (err) {
       setError(err.message);
+      setBrands([]);
+      setTotalPages(1);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-  };
+  }, [currentPage, debouncedSearchText]);
 
   useEffect(() => {
-    fetchBrands(currentPage, debouncedSearchTerm);
-    // eslint-disable-next-line
-  }, [currentPage, debouncedSearchTerm]);
+    fetchBrands();
+  }, [fetchBrands]);
 
   const handleSearch = (e) => {
     e.preventDefault();
     setCurrentPage(1);
-    fetchBrands(1, searchTerm);
+    fetchBrands();
   };
 
   const handleDelete = async (id) => {
@@ -69,7 +86,7 @@ export default function BrandsPage() {
         alert('Bạn không có quyền xóa mục này.');
         return;
       }
-      if (res.status === 204) fetchBrands(currentPage, searchTerm);
+      if (res.status === 204) fetchBrands();
       else throw new Error('Xóa thất bại');
     } catch (err) {
       alert(err.message);
@@ -77,6 +94,16 @@ export default function BrandsPage() {
   };
 
   const renderPagination = () => {
+    if (!brands.length) {
+      return (
+        <div className="admin-pagination">
+          <button disabled>Trước</button>
+          <div className="page-numbers"><button className="active" disabled>1</button></div>
+          <button disabled>Sau</button>
+          <span className="page-info">Trang 1 / 1</span>
+        </div>
+      );
+    }
     const pages = [];
     for (let i = 1; i <= totalPages; i++) {
       pages.push(
@@ -84,6 +111,7 @@ export default function BrandsPage() {
           key={i}
           onClick={() => setCurrentPage(i)}
           className={currentPage === i ? 'active' : ''}
+          disabled={currentPage === i}
         >
           {i}
         </button>
@@ -99,62 +127,77 @@ export default function BrandsPage() {
     );
   };
 
-  if (loading) return <div>Đang tải...</div>;
+  if (loading && !brands.length) return <div>Đang tải...</div>;
   if (error) return <div className="admin-error">{error}</div>;
 
   return (
     <div className="admin-brands-list">
       <div className="admin-list-header">
         <h2>Quản lý thương hiệu</h2>
-        {hasModulePermission('brand', 'create') && (
-          <button className="admin-btn primary" onClick={() => navigate('/admin/brands/create')}>+ Thêm mới</button>
-        )}
-      </div>
-      <form onSubmit={handleSearch} className="admin-search-bar">
-        <div className="search-input-wrapper">
-          <input
-            type="text"
-            placeholder="Tìm kiếm theo tên, mô tả..."
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
+        <div className="search-bar">
+          <Input
+            placeholder="Tìm kiếm thương hiệu..."
+            prefix={<SearchOutlined />}
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            style={{ width: 300 }}
+            allowClear
           />
+          {hasModulePermission('brand', 'create') && (
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => navigate('/admin/brands/create')}
+            >
+              Thêm thương hiệu
+            </Button>
+          )}
         </div>
-        <button type="submit">Tìm kiếm</button>
-      </form>
-      <table className="admin-table">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Tên thương hiệu</th>
-            <th>Mô tả</th>
-            <th>Logo</th>
-            <th>Thứ tự</th>
-            <th>Trạng thái</th>
-            <th>Hành động</th>
-          </tr>
-        </thead>
-        <tbody>
-          {brands.map(b => (
-            <tr key={b.id}>
-              <td>{b.id}</td>
-              <td>{b.name}</td>
-              <td>{b.description}</td>
-              <td>{b.logo_url ? <img src={b.logo_url} alt={b.name} style={{width:40}}/> : ''}</td>
-              <td>{b.display_order}</td>
-              <td>{b.is_active ? 'Hoạt động' : 'Ẩn'}</td>
-              <td className="admin-table-actions">
-                <button onClick={() => navigate(`/admin/brands/${b.id}`)}>Xem</button>
-                {hasModulePermission('brand', 'edit') && (
-                  <button onClick={() => navigate(`/admin/brands/${b.id}/edit`)}>Sửa</button>
-                )}
-                {hasModulePermission('brand', 'delete') && (
-                  <button onClick={() => handleDelete(b.id)} className="danger">Xóa</button>
-                )}
-              </td>
+      </div>
+      <div className="table-responsive">
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Tên thương hiệu</th>
+              <th>Mô tả</th>
+              <th>Logo</th>
+              <th>Thứ tự</th>
+              <th>Trạng thái</th>
+              <th>Hành động</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {brands.length === 0 ? (
+              <tr>
+                <td colSpan="7" style={{ textAlign: 'center', padding: '40px 0' }}>
+                  <Empty description="No data" imageStyle={{ height: 60 }} />
+                </td>
+              </tr>
+            ) : (
+              brands.map(b => (
+                <tr key={b.id}>
+                  <td>{b.id}</td>
+                  <td>{b.name}</td>
+                  <td>{b.description}</td>
+                  <td>{b.logo_url ? <img src={b.logo_url} alt={b.name} style={{width:40}}/> : ''}</td>
+                  <td>{b.display_order}</td>
+                  <td>{b.is_active ? 'Hoạt động' : 'Ẩn'}</td>
+                  <td className="admin-table-actions">
+                    <button className="admin-btn" onClick={() => navigate(`/admin/brands/${b.id}`)}>Xem</button>
+                    {hasModulePermission('brand', 'edit') && (
+                      <button className="admin-btn" onClick={() => navigate(`/admin/brands/${b.id}/edit`)}>Sửa</button>
+                    )}
+                    {hasModulePermission('brand', 'delete') && (
+                      <button className="admin-btn danger" onClick={() => handleDelete(b.id)}>Xóa</button>
+                    )}
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
       {renderPagination()}
     </div>
   );

@@ -1,448 +1,667 @@
-import React, { useState, useEffect, useRef } from 'react';
-import '../static/AdminCommon.css';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { hasModulePermission } from '../../services/permission';
 import { useDebounce } from '../hooks/useDebounce';
+import { Input, Button, Space, Empty } from 'antd';
+import { SearchOutlined, PlusOutlined } from '@ant-design/icons';
+import '../static/AdminCommon.css';
 
 export default function AttributesPage() {
-  // States cho AttributeType
   const [attributeTypes, setAttributeTypes] = useState([]);
-  const [editingTypeId, setEditingTypeId] = useState(null);
-  const [editingType, setEditingType] = useState({});
-  const [newType, setNewType] = useState({
-    name: '',
-    description: ''
-  });
-
-  // States cho AttributeValue
   const [attributeValues, setAttributeValues] = useState([]);
-  const [editingValueId, setEditingValueId] = useState(null);
-  const [editingValue, setEditingValue] = useState({});
-  const [newValue, setNewValue] = useState({
-    name: '',
-    value: '',
-    attribute_type: ''
-  });
-
-  // States chung
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [searchTypeTerm, setSearchTypeTerm] = useState('');
-  const [searchValueTerm, setSearchValueTerm] = useState('');
-  const debouncedTypeSearch = useDebounce(searchTypeTerm, 500);
-  const debouncedValueSearch = useDebounce(searchValueTerm, 500);
+  
+  // Search states for types
+  const [typeSearchText, setTypeSearchText] = useState('');
+  const [debouncedTypeSearchText, setDebouncedTypeSearchText] = useState('');
+  
+  // Search states for values
+  const [valueSearchText, setValueSearchText] = useState('');
+  const [debouncedValueSearchText, setDebouncedValueSearchText] = useState('');
+  
+  // Pagination states for types
+  const [typeCurrentPage, setTypeCurrentPage] = useState(1);
+  const [typeTotalPages, setTypeTotalPages] = useState(1);
+  
+  // Pagination states for values
+  const [valueCurrentPage, setValueCurrentPage] = useState(1);
+  const [valueTotalPages, setValueTotalPages] = useState(1);
+  
+  // States for inline editing
+  const [editingType, setEditingType] = useState(null);
+  const [editingValue, setEditingValue] = useState(null);
+  const [newType, setNewType] = useState({ name: '', description: '', display_order: 0, is_active: true });
+  const [newValue, setNewValue] = useState({ value: '', attribute_type: '' });
+  const [showNewTypeForm, setShowNewTypeForm] = useState(false);
+  const [showNewValueForm, setShowNewValueForm] = useState(false);
+  
+  const navigate = useNavigate();
+  const ITEMS_PER_PAGE = 20;
+
+  // Debounce search text for types
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedTypeSearchText(typeSearchText);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [typeSearchText]);
+
+  useEffect(() => {
+    setTypeCurrentPage(1);
+  }, [debouncedTypeSearchText]);
+
+  useEffect(() => {
+    fetchAttributeTypes();
+  }, [typeCurrentPage, debouncedTypeSearchText]);
+
+  // Debounce search text for values
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedValueSearchText(valueSearchText);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [valueSearchText]);
+
+  const fetchAttributeTypes = useCallback(async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('accessToken');
+      const queryParams = new URLSearchParams({
+        page: typeCurrentPage,
+        page_size: ITEMS_PER_PAGE,
+        search: debouncedTypeSearchText,
+        timestamp: new Date().getTime()
+      });
+      const res = await fetch(`http://localhost:8000/api/products/attribute-types/?${queryParams}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.status === 403) {
+        setError('Bạn không có quyền xem danh sách này.');
+        setAttributeTypes([]);
+        setTypeTotalPages(1);
+        return;
+      }
+      if (!res.ok) throw new Error('Lỗi khi lấy danh sách loại thuộc tính');
+      const data = await res.json();
+      setAttributeTypes(data.results || data);
+      setTypeTotalPages(Math.ceil((data.count || data.length) / ITEMS_PER_PAGE));
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [typeCurrentPage, debouncedTypeSearchText]);
+
+  const fetchAttributeValues = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('accessToken');
+      const queryParams = new URLSearchParams({
+        page: valueCurrentPage,
+        page_size: ITEMS_PER_PAGE,
+        search: debouncedValueSearchText,
+        timestamp: new Date().getTime()
+      });
+      const res = await fetch(`http://localhost:8000/api/products/attribute-values/?${queryParams}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error('Lỗi khi lấy danh sách giá trị thuộc tính');
+      const data = await res.json();
+      
+      // Lấy thông tin attribute_type cho mỗi value
+      const valuesWithTypes = await Promise.all(
+        (data.results || data).map(async (value) => {
+          try {
+            const typeRes = await fetch(`http://localhost:8000/api/products/attribute-types/${value.attribute_type}/`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (typeRes.ok) {
+              const typeData = await typeRes.json();
+              return {
+                ...value,
+                attribute_type_detail: typeData
+              };
+            }
+            return value;
+          } catch (err) {
+            console.error('Lỗi khi lấy thông tin loại thuộc tính:', err);
+            return value;
+          }
+        })
+      );
+      
+      setAttributeValues(valuesWithTypes);
+      setValueTotalPages(Math.ceil((data.count || data.length) / ITEMS_PER_PAGE));
+    } catch (err) {
+      console.error(err.message);
+    }
+  }, [valueCurrentPage, debouncedValueSearchText]);
 
   useEffect(() => {
     fetchAttributeTypes();
     fetchAttributeValues();
-  }, []);
+  }, [fetchAttributeTypes, fetchAttributeValues]);
 
-  useEffect(() => {
-    fetchAttributeTypes(debouncedTypeSearch);
-  }, [debouncedTypeSearch]);
+  // const handleTypeSearch = (e) => {
+  //   e.preventDefault();
+  //   setTypeCurrentPage(1);
+  //   fetchAttributeTypes();
+  // };
 
-  useEffect(() => {
-    fetchAttributeValues(debouncedValueSearch);
-  }, [debouncedValueSearch]);
+  // const handleValueSearch = (e) => {
+  //   e.preventDefault();
+  //   setValueCurrentPage(1);
+  //   fetchAttributeValues();
+  // };
 
-  // Fetch AttributeTypes
-  const fetchAttributeTypes = async (search = '') => {
+  const handleDeleteType = async (id) => {
+    if (!window.confirm('Bạn chắc chắn muốn xóa loại thuộc tính này?')) return;
     try {
       const token = localStorage.getItem('accessToken');
-      const queryParams = new URLSearchParams({
-        search: search
+      const res = await fetch(`http://localhost:8000/api/products/attribute-types/${id}/`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
       });
-      const response = await fetch(`http://localhost:8000/api/products/attribute-types/?${queryParams}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        }
-      });
-      if (!response.ok) throw new Error('Lỗi khi lấy danh sách loại thuộc tính');
-      const data = await response.json();
-      setAttributeTypes(data.results || data);
-    } catch (error) {
-      setError(error.message);
+      if (res.status === 403) {
+        alert('Bạn không có quyền xóa mục này.');
+        return;
+      }
+      if (res.status === 204) {
+        setAttributeTypes(prevTypes => {
+          const updatedTypes = prevTypes.filter(type => type.id !== id);
+          if (updatedTypes.length === 0 && typeCurrentPage > 1) {
+            setTypeCurrentPage(prev => prev - 1);
+          }
+          return updatedTypes;
+        });
+        fetchAttributeTypes();
+        fetchAttributeValues();
+      }
+      else throw new Error('Xóa thất bại');
+    } catch (err) {
+      alert(err.message);
     }
   };
 
-  // Fetch AttributeValues
-  const fetchAttributeValues = async (search = '') => {
+  const handleDeleteValue = async (id) => {
+    if (!window.confirm('Bạn chắc chắn muốn xóa giá trị thuộc tính này?')) return;
     try {
       const token = localStorage.getItem('accessToken');
-      const queryParams = new URLSearchParams({
-        search: search
+      const res = await fetch(`http://localhost:8000/api/products/attribute-values/${id}/`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
       });
-      const response = await fetch(`http://localhost:8000/api/products/attribute-values/?${queryParams}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        }
-      });
-      if (!response.ok) throw new Error('Lỗi khi lấy danh sách giá trị thuộc tính');
-      const data = await response.json();
-      setAttributeValues(data.results || data);
-    } catch (error) {
-      setError(error.message);
-    } finally {
-      setLoading(false);
+      if (res.status === 403) {
+        alert('Bạn không có quyền xóa mục này.');
+        return;
+      }
+      if (res.status === 204) {
+        setAttributeValues(prevValues => {
+          const updatedValues = prevValues.filter(value => value.id !== id);
+          if (updatedValues.length === 0 && valueCurrentPage > 1) {
+            setValueCurrentPage(prev => prev - 1);
+          }
+          return updatedValues;
+        });
+        fetchAttributeTypes();
+        fetchAttributeValues();
+      }
+      else throw new Error('Xóa thất bại');
+    } catch (err) {
+      alert(err.message);
     }
   };
 
-  // Xử lý AttributeType
-  const handleTypeCreate = async (e) => {
+  const handleCreateType = async (e) => {
     e.preventDefault();
     try {
       const token = localStorage.getItem('accessToken');
-      const response = await fetch('http://localhost:8000/api/products/attribute-types/', {
+      const res = await fetch('http://localhost:8000/api/products/attribute-types/', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify(newType),
+        body: JSON.stringify(newType)
       });
-      if (!response.ok) throw new Error('Lỗi khi tạo loại thuộc tính');
-      const result = await response.json();
-      setAttributeTypes(prev => [...prev, result]);
-      setNewType({ name: '', description: '' });
-    } catch (error) {
-      alert(error.message);
+      if (!res.ok) throw new Error('Lỗi khi tạo loại thuộc tính');
+      setShowNewTypeForm(false);
+      setNewType({ name: '', description: '', display_order: 0, is_active: true });
+      setTypeCurrentPage(1);
+      fetchAttributeTypes();
+    } catch (err) {
+      alert(err.message);
     }
   };
 
-  const handleTypeEdit = (type) => {
-    setEditingTypeId(type.id);
-    setEditingType({ ...type });
-  };
-
-  const handleTypeUpdate = async (e) => {
+  const handleCreateValue = async (e) => {
     e.preventDefault();
     try {
       const token = localStorage.getItem('accessToken');
-      const response = await fetch(`http://localhost:8000/api/products/attribute-types/${editingType.id}/`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(editingType),
-      });
-      if (!response.ok) throw new Error('Lỗi khi cập nhật loại thuộc tính');
-      const result = await response.json();
-      setAttributeTypes(prev => prev.map(t => t.id === result.id ? result : t));
-      setEditingTypeId(null);
-      setEditingType({});
-    } catch (error) {
-      alert(error.message);
-    }
-  };
-
-  const handleTypeDelete = async (id) => {
-    if (!window.confirm('Bạn có chắc chắn muốn xóa loại thuộc tính này?')) return;
-    try {
-      const token = localStorage.getItem('accessToken');
-      const response = await fetch(`http://localhost:8000/api/products/attribute-types/${id}/`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      if (!response.ok) throw new Error('Lỗi khi xóa loại thuộc tính');
-      setAttributeTypes(prev => prev.filter(t => t.id !== id));
-    } catch (error) {
-      alert(error.message);
-    }
-  };
-
-  // Xử lý AttributeValue
-  const handleValueCreate = async (e) => {
-    e.preventDefault();
-    try {
-      const token = localStorage.getItem('accessToken');
-      const response = await fetch('http://localhost:8000/api/products/attribute-values/', {
+      const res = await fetch('http://localhost:8000/api/products/attribute-values/', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify(newValue),
+        body: JSON.stringify(newValue)
       });
-      if (!response.ok) throw new Error('Lỗi khi tạo giá trị thuộc tính');
-      const result = await response.json();
-      setAttributeValues(prev => [...prev, result]);
-      setNewValue({ name: '', value: '', attribute_type: '' });
-    } catch (error) {
-      alert(error.message);
+      if (!res.ok) throw new Error('Lỗi khi tạo giá trị thuộc tính');
+      setShowNewValueForm(false);
+      setNewValue({ value: '', attribute_type: '' });
+      setValueCurrentPage(1);
+      fetchAttributeValues();
+    } catch (err) {
+      alert(err.message);
     }
   };
 
-  const handleValueEdit = (value) => {
-    setEditingValueId(value.id);
-    setEditingValue({ ...value });
-  };
-
-  const handleValueUpdate = async (e) => {
-    e.preventDefault();
+  const handleUpdateType = async (id) => {
     try {
       const token = localStorage.getItem('accessToken');
-      const response = await fetch(`http://localhost:8000/api/products/attribute-values/${editingValue.id}/`, {
+      const typeToUpdate = attributeTypes.find(t => t.id === id);
+      const res = await fetch(`http://localhost:8000/api/products/attribute-types/${id}/`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify(editingValue),
+        body: JSON.stringify(typeToUpdate)
       });
-      if (!response.ok) throw new Error('Lỗi khi cập nhật giá trị thuộc tính');
-      const result = await response.json();
-      setAttributeValues(prev => prev.map(v => v.id === result.id ? result : v));
-      setEditingValueId(null);
-      setEditingValue({});
-    } catch (error) {
-      alert(error.message);
+      if (!res.ok) throw new Error('Lỗi khi cập nhật loại thuộc tính');
+      setEditingType(null);
+      fetchAttributeTypes();
+    } catch (err) {
+      alert(err.message);
     }
   };
 
-  const handleValueDelete = async (id) => {
-    if (!window.confirm('Bạn có chắc chắn muốn xóa giá trị thuộc tính này?')) return;
+  const handleUpdateValue = async (id) => {
     try {
       const token = localStorage.getItem('accessToken');
-      const response = await fetch(`http://localhost:8000/api/products/attribute-values/${id}/`, {
-        method: 'DELETE',
+      const valueToUpdate = attributeValues.find(v => v.id === id);
+      const res = await fetch(`http://localhost:8000/api/products/attribute-values/${id}/`, {
+        method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         },
+        body: JSON.stringify({
+          ...valueToUpdate,
+          attribute_type: valueToUpdate.attribute_type
+        })
       });
-      if (!response.ok) throw new Error('Lỗi khi xóa giá trị thuộc tính');
-      setAttributeValues(prev => prev.filter(v => v.id !== id));
-    } catch (error) {
-      alert(error.message);
+      if (!res.ok) throw new Error('Lỗi khi cập nhật giá trị thuộc tính');
+      setEditingValue(null);
+      fetchAttributeValues();
+    } catch (err) {
+      alert(err.message);
     }
   };
 
-  if (loading) return <div className="loading">Đang tải...</div>;
+  const renderTypePagination = () => {
+    const pages = [];
+    for (let i = 1; i <= typeTotalPages; i++) {
+      pages.push(
+        <button
+          key={i}
+          onClick={() => setTypeCurrentPage(i)}
+          className={typeCurrentPage === i ? 'active' : ''}
+        >
+          {i}
+        </button>
+      );
+    }
+    return (
+      <div className="admin-pagination">
+        <button onClick={() => setTypeCurrentPage(prev => Math.max(prev - 1, 1))} disabled={typeCurrentPage === 1}>Trước</button>
+        <div className="page-numbers">{pages}</div>
+        <button onClick={() => setTypeCurrentPage(prev => Math.min(prev + 1, typeTotalPages))} disabled={typeCurrentPage === typeTotalPages}>Sau</button>
+        <span className="page-info">Trang {typeCurrentPage} / {typeTotalPages}</span>
+      </div>
+    );
+  };
+
+  const renderValuePagination = () => {
+    const pages = [];
+    for (let i = 1; i <= valueTotalPages; i++) {
+      pages.push(
+        <button
+          key={i}
+          onClick={() => setValueCurrentPage(i)}
+          className={valueCurrentPage === i ? 'active' : ''}
+        >
+          {i}
+        </button>
+      );
+    }
+    return (
+      <div className="admin-pagination">
+        <button onClick={() => setValueCurrentPage(prev => Math.max(prev - 1, 1))} disabled={valueCurrentPage === 1}>Trước</button>
+        <div className="page-numbers">{pages}</div>
+        <button onClick={() => setValueCurrentPage(prev => Math.min(prev + 1, valueTotalPages))} disabled={valueCurrentPage === valueTotalPages}>Sau</button>
+        <span className="page-info">Trang {valueCurrentPage} / {valueTotalPages}</span>
+      </div>
+    );
+  };
+
+  if (loading && !attributeTypes.length) return <div>Đang tải...</div>;
   if (error) return <div className="admin-error">{error}</div>;
 
   return (
-    <div className="admin-attributes-container">
-      <div className="admin-attributes-grid">
-        {/* Phần AttributeType */}
-        <div className="admin-attributes-section">
-          <div className="admin-list-header">
-            <h2>Loại thuộc tính</h2>
-          </div>
-          <div className="admin-search-bar">
-            <input
-              type="text"
-              placeholder="Tìm kiếm loại thuộc tính..."
-              value={searchTypeTerm}
-              onChange={e => setSearchTypeTerm(e.target.value)}
-            />
-          </div>
+    <div className="admin-attributes-list">
+      <div className="admin-list-header">
+        <h2>Quản lý thuộc tính</h2>
+      </div>
+
+      <div className="admin-tables-container">
+        <div className="admin-table-section">
+          <h3>Loại thuộc tính</h3>
+          <div className="search-bar">
+          <Input
+            placeholder="Tìm kiếm loại thuộc tính..."
+            prefix={<SearchOutlined />}
+            value={typeSearchText}
+            onChange={(e) => setTypeSearchText(e.target.value)}
+            style={{ width: 300 }}
+            allowClear
+          />
+          {hasModulePermission('attribute', 'create') && (
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => setShowNewTypeForm(true)}
+            >
+              Thêm loại thuộc tính
+            </Button>
+          )}
+        </div>
           <div className="table-responsive">
             <table className="admin-table">
               <thead>
                 <tr>
                   <th>ID</th>
-                  <th>Tên</th>
+                  <th>Tên loại</th>
                   <th>Mô tả</th>
-                  <th>Thao tác</th>
+                  <th>Thứ tự</th>
+                  <th>Trạng thái</th>
+                  <th>Hành động</th>
                 </tr>
               </thead>
               <tbody>
-                {/* Dòng thêm mới */}
-                <tr className="new-item-row">
-                  <td>+</td>
-                  <td>
-                    <input
-                      type="text"
-                      value={newType.name}
-                      onChange={e => setNewType({...newType, name: e.target.value})}
-                      placeholder="Tên loại"
-                      required
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="text"
-                      value={newType.description}
-                      onChange={e => setNewType({...newType, description: e.target.value})}
-                      placeholder="Mô tả"
-                    />
-                  </td>
-                  <td>
-                    <button
-                      className="admin-btn primary"
-                      onClick={handleTypeCreate}
-                      disabled={!newType.name}
-                    >
-                      Thêm mới
-                    </button>
-                  </td>
-                </tr>
-                {/* Danh sách loại thuộc tính */}
-                {attributeTypes.map(type => (
-                  <tr key={type.id}>
-                    <td>{type.id}</td>
+                {showNewTypeForm && (
+                  <tr className="editing-row">
+                    <td>New</td>
                     <td>
-                      {editingTypeId === type.id ? (
-                        <input
-                          type="text"
-                          value={editingType.name}
-                          onChange={e => setEditingType({...editingType, name: e.target.value})}
-                          required
-                        />
-                      ) : type.name}
+                      <input
+                        type="text"
+                        value={newType.name}
+                        onChange={e => setNewType({ ...newType, name: e.target.value })}
+                        placeholder="Tên loại"
+                      />
                     </td>
                     <td>
-                      {editingTypeId === type.id ? (
-                        <input
-                          type="text"
-                          value={editingType.description}
-                          onChange={e => setEditingType({...editingType, description: e.target.value})}
-                        />
-                      ) : type.description}
+                      <input
+                        type="text"
+                        value={newType.description}
+                        onChange={e => setNewType({ ...newType, description: e.target.value })}
+                        placeholder="Mô tả"
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        value={newType.display_order}
+                        onChange={e => setNewType({ ...newType, display_order: parseInt(e.target.value) || 0 })}
+                      />
+                    </td>
+                    <td>
+                      <select
+                        value={newType.is_active}
+                        onChange={e => setNewType({ ...newType, is_active: e.target.value === 'true' })}
+                      >
+                        <option value={true}>Hoạt động</option>
+                        <option value={false}>Ẩn</option>
+                      </select>
                     </td>
                     <td className="admin-table-actions">
-                      {editingTypeId === type.id ? (
-                        <>
-                          <button className="admin-btn primary" onClick={handleTypeUpdate}>Lưu</button>
-                          <button className="admin-btn" onClick={() => { setEditingTypeId(null); setEditingType({}); }}>Hủy</button>
-                        </>
-                      ) : (
-                        <>
-                          <button className="admin-btn" onClick={() => handleTypeEdit(type)}>Sửa</button>
-                          <button className="admin-btn danger" onClick={() => handleTypeDelete(type.id)}>Xóa</button>
-                        </>
-                      )}
+                      <button className="admin-btn primary" onClick={handleCreateType}>Lưu</button>
+                      <button className="admin-btn" onClick={() => setShowNewTypeForm(false)}>Hủy</button>
                     </td>
                   </tr>
-                ))}
+                )}
+                {attributeTypes.length === 0 ? (
+                  <tr>
+                    <td colSpan="6" style={{ textAlign: 'center', padding: '40px 0' }}>
+                      <Empty description="No data" imageStyle={{ height: 60 }} />
+                    </td>
+                  </tr>
+                ) : (
+                  attributeTypes.map(type => (
+                    <tr key={type.id}>
+                      <td>{type.id}</td>
+                      <td>
+                        {editingType === type.id ? (
+                          <input
+                            type="text"
+                            value={type.name}
+                            onChange={(e) => {
+                              const updatedTypes = attributeTypes.map(t =>
+                                t.id === type.id ? { ...t, name: e.target.value } : t
+                              );
+                              setAttributeTypes(updatedTypes);
+                            }}
+                          />
+                        ) : (
+                          type.name
+                        )}
+                      </td>
+                      <td>
+                        {editingType === type.id ? (
+                          <input
+                            type="text"
+                            value={type.description}
+                            onChange={(e) => {
+                              const updatedTypes = attributeTypes.map(t =>
+                                t.id === type.id ? { ...t, description: e.target.value } : t
+                              );
+                              setAttributeTypes(updatedTypes);
+                            }}
+                          />
+                        ) : (
+                          type.description
+                        )}
+                      </td>
+                      <td>
+                        {editingType === type.id ? (
+                          <input
+                            type="number"
+                            value={type.display_order}
+                            onChange={(e) => {
+                              const updatedTypes = attributeTypes.map(t =>
+                                t.id === type.id ? { ...t, display_order: parseInt(e.target.value) } : t
+                              );
+                              setAttributeTypes(updatedTypes);
+                            }}
+                          />
+                        ) : (
+                          type.display_order
+                        )}
+                      </td>
+                      <td>
+                        {editingType === type.id ? (
+                          <select
+                            value={type.is_active}
+                            onChange={(e) => {
+                              const updatedTypes = attributeTypes.map(t =>
+                                t.id === type.id ? { ...t, is_active: e.target.value === 'true' } : t
+                              );
+                              setAttributeTypes(updatedTypes);
+                            }}
+                          >
+                            <option value={true}>Hoạt động</option>
+                            <option value={false}>Ẩn</option>
+                          </select>
+                        ) : (
+                          type.is_active ? 'Hoạt động' : 'Ẩn'
+                        )}
+                      </td>
+                      <td className="admin-table-actions">
+                        {editingType === type.id ? (
+                          <>
+                            <button className="admin-btn primary" onClick={() => handleUpdateType(type.id)}>Lưu</button>
+                            <button className="admin-btn" onClick={() => setEditingType(null)}>Hủy</button>
+                          </>
+                        ) : (
+                          <>
+                            {hasModulePermission('attribute', 'edit') && (
+                              <button className="admin-btn" onClick={() => setEditingType(type.id)}>Sửa</button>
+                            )}
+                            {hasModulePermission('attribute', 'delete') && (
+                              <button className="admin-btn danger" onClick={() => handleDeleteType(type.id)}>Xóa</button>
+                            )}
+                          </>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
+          {renderTypePagination()}
         </div>
 
-        {/* Phần AttributeValue */}
-        <div className="admin-attributes-section">
-          <div className="admin-list-header">
-            <h2>Giá trị thuộc tính</h2>
-          </div>
-          <div className="admin-search-bar">
-            <input
-              type="text"
-              placeholder="Tìm kiếm giá trị thuộc tính..."
-              value={searchValueTerm}
-              onChange={e => setSearchValueTerm(e.target.value)}
-            />
-          </div>
+        <div className="admin-table-section">
+          <h3>Giá trị thuộc tính</h3>
+            <div className="search-bar">
+              <Input
+                placeholder="Tìm kiếm giá trị thuộc tính..."
+                prefix={<SearchOutlined />}
+                value={valueSearchText}
+                onChange={(e) => setValueSearchText(e.target.value)}
+                style={{ width: 300 }}
+                allowClear
+              />
+              {hasModulePermission('attribute', 'create') && (
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  onClick={() => setShowNewValueForm(true)}
+                >
+                  Thêm giá trị thuộc tính
+                </Button>
+              )}
+            </div>
           <div className="table-responsive">
             <table className="admin-table">
               <thead>
                 <tr>
                   <th>ID</th>
-                  
                   <th>Giá trị</th>
                   <th>Loại thuộc tính</th>
-                  <th>Thao tác</th>
+                  <th>Hành động</th>
                 </tr>
               </thead>
               <tbody>
-                {/* Dòng thêm mới */}
-                <tr className="new-item-row">
-                  <td>+</td>
-                  {/* <td>
-                    <input
-                      type="text"
-                      value={newValue.name}
-                      onChange={e => setNewValue({...newValue, name: e.target.value})}
-                      placeholder="Tên giá trị"
-                      required
-                    />
-                  </td> */}
-                  <td>
-                    <input
-                      type="text"
-                      value={newValue.value}
-                      onChange={e => setNewValue({...newValue, value: e.target.value})}
-                      placeholder="Giá trị"
-                      required
-                    />
-                  </td>
-                  <td>
-                    <select
-                      value={newValue.attribute_type}
-                      onChange={e => setNewValue({...newValue, attribute_type: e.target.value})}
-                      required
-                    >
-                      <option value="">Chọn loại</option>
-                      {attributeTypes.map(type => (
-                        <option key={type.id} value={type.id}>{type.name}</option>
-                      ))}
-                    </select>
-                  </td>
-                  <td>
-                    <button
-                      className="admin-btn primary"
-                      onClick={handleValueCreate}
-                      disabled={ !newValue.value || !newValue.attribute_type}
-                    >
-                      Thêm mới
-                    </button>
-                  </td>
-                </tr>
-                {/* Danh sách giá trị thuộc tính */}
-                {attributeValues.map(value => (
-                  <tr key={value.id}>
-                    <td>{value.id}</td>
-                    {/* <td>
-                      {editingValueId === value.id ? (
-                        <input
-                          type="text"
-                          value={editingValue.name}
-                          onChange={e => setEditingValue({...editingValue, name: e.target.value})}
-                          required
-                        />
-                      ) : value.name}
-                    </td> */}
+                {showNewValueForm && (
+                  <tr className="editing-row">
+                    <td>New</td>
                     <td>
-                      {editingValueId === value.id ? (
-                        <input
-                          type="text"
-                          value={editingValue.value}
-                          onChange={e => setEditingValue({...editingValue, value: e.target.value})}
-                          required
-                        />
-                      ) : value.value}
+                      <input
+                        type="text"
+                        value={newValue.value}
+                        onChange={e => setNewValue({ ...newValue, value: e.target.value })}
+                        placeholder="Giá trị"
+                      />
                     </td>
                     <td>
-                      {editingValueId === value.id ? (
-                        <select
-                          value={editingValue.attribute_type}
-                          onChange={e => setEditingValue({...editingValue, attribute_type: e.target.value})}
-                          required
-                        >
-                          {attributeTypes.map(type => (
-                            <option key={type.id} value={type.id}>{type.name}</option>
-                          ))}
-                        </select>
-                      ) : attributeTypes.find(t => t.id === value.attribute_type)?.name}
+                      <select
+                        value={newValue.attribute_type}
+                        onChange={e => setNewValue({ ...newValue, attribute_type: e.target.value })}
+                      >
+                        <option value="">Chọn loại thuộc tính</option>
+                        {attributeTypes.map(type => (
+                          <option key={type.id} value={type.id}>{type.name}</option>
+                        ))}
+                      </select>
                     </td>
                     <td className="admin-table-actions">
-                      {editingValueId === value.id ? (
-                        <>
-                          <button className="admin-btn primary" onClick={handleValueUpdate}>Lưu</button>
-                          <button className="admin-btn" onClick={() => { setEditingValueId(null); setEditingValue({}); }}>Hủy</button>
-                        </>
-                      ) : (
-                        <>
-                          <button className="admin-btn" onClick={() => handleValueEdit(value)}>Sửa</button>
-                          <button className="admin-btn danger" onClick={() => handleValueDelete(value.id)}>Xóa</button>
-                        </>
-                      )}
+                      <button className="admin-btn primary" onClick={handleCreateValue}>Lưu</button>
+                      <button className="admin-btn" onClick={() => setShowNewValueForm(false)}>Hủy</button>
                     </td>
                   </tr>
-                ))}
+                )}
+                {attributeValues.length === 0 ? (
+                  <tr>
+                    <td colSpan="4" style={{ textAlign: 'center', padding: '40px 0' }}>
+                      <Empty description="No data" imageStyle={{ height: 60 }} />
+                    </td>
+                  </tr>
+                ) : (
+                  attributeValues.map(value => (
+                    <tr key={value.id}>
+                      <td>{value.id}</td>
+                      <td>
+                        {editingValue === value.id ? (
+                          <input
+                            type="text"
+                            value={value.value}
+                            onChange={(e) => {
+                              const updatedValues = attributeValues.map(v =>
+                                v.id === value.id ? { ...v, value: e.target.value } : v
+                              );
+                              setAttributeValues(updatedValues);
+                            }}
+                          />
+                        ) : (
+                          value.value
+                        )}
+                      </td>
+                      <td>
+                        {editingValue === value.id ? (
+                          <select
+                            value={value.attribute_type}
+                            onChange={(e) => {
+                              const updatedValues = attributeValues.map(v =>
+                                v.id === value.id ? { ...v, attribute_type: e.target.value } : v
+                              );
+                              setAttributeValues(updatedValues);
+                            }}
+                          >
+                            {attributeTypes.map(type => (
+                              <option key={type.id} value={type.id}>{type.name}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          value.attribute_type_detail ? value.attribute_type_detail.name : 'N/A'
+                        )}
+                      </td>
+                      <td className="admin-table-actions">
+                        {editingValue === value.id ? (
+                          <>
+                            <button className="admin-btn primary" onClick={() => handleUpdateValue(value.id)}>Lưu</button>
+                            <button className="admin-btn" onClick={() => setEditingValue(null)}>Hủy</button>
+                          </>
+                        ) : (
+                          <>
+                            {hasModulePermission('attribute', 'edit') && (
+                              <button className="admin-btn" onClick={() => setEditingValue(value.id)}>Sửa</button>
+                            )}
+                            {hasModulePermission('attribute', 'delete') && (
+                              <button className="admin-btn danger" onClick={() => handleDeleteValue(value.id)}>Xóa</button>
+                            )}
+                          </>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
+          {renderValuePagination()}
         </div>
       </div>
     </div>
