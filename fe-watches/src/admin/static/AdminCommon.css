@@ -23,14 +23,12 @@
   padding: 8px 16px;
   border: 1px solid #d9d9d9;
   border-radius: 4px;
-  background: white;
+  background: var(--bg);
+  color: var(--text);
   cursor: pointer;
   transition: all 0.3s;
-}
-
-.admin-btn:hover {
-  border-color: #40a9ff;
-  color: #40a9ff;
+  font-size: 14px;
+  margin: 0;
 }
 
 .admin-btn.primary {
@@ -46,37 +44,45 @@
 }
 
 .admin-btn.danger {
-  color: #ff4d4f;
-  border-color: #ff4d4f;
+  background: #f44336;
+  color: white;
+  border: none;
 }
 
 .admin-btn.danger:hover {
-  background: #ff4d4f;
+  background: #da190b;
   color: white;
 }
 
 .admin-table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 20px;
-  background: white;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin: 20px 0;
+  background: var(--bg);
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
 .admin-table th,
 .admin-table td {
-  padding: 12px;
+  padding: 12px 15px;
   text-align: left;
-  border-bottom: 1px solid #e8e8e8;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  background: var(--bg);
+  vertical-align: middle;
+  line-height: 1.5;
 }
 
 .admin-table th {
-  background-color: #fafafa;
-  font-weight: 500;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--bg);
 }
 
 .admin-table tr:hover {
-  background-color: #fafafa;
+  background: var(--hover);
 }
 
 .admin-group-create, .admin-group-edit {
@@ -469,42 +475,6 @@
   box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
 }
 
-.admin-btn {
-  padding: 8px 16px;
-  border: 1px solid #d9d9d9;
-  border-radius: 4px;
-  background: rgb(6, 97, 119);
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.admin-btn:hover {
-  border-color: #40a9ff;
-  color: #40a9ff;
-}
-
-.admin-btn.primary {
-  background: #1890ff;
-  border-color: #1890ff;
-  color: white;
-}
-
-.admin-btn.primary:hover {
-  background: #40a9ff;
-  border-color: #40a9ff;
-  color: white;
-}
-
-.admin-btn.danger {
-  color: #ff4d4f;
-  border-color: #ff4d4f;
-}
-
-.admin-btn.danger:hover {
-  background: #ff4d4f;
-  color: white;
-}
-
 .admin-pagination {
   display: flex;
   justify-content: center;
@@ -561,53 +531,60 @@
 /* Table Actions */
 .admin-table-actions {
   display: flex;
+  align-items: center;
+  justify-content: center;
   gap: 8px;
+  height: 100%;
 }
 
-.admin-table-actions button {
-  padding: 6px 12px;
-  border: none;
+.admin-table-actions .admin-btn {
+  min-width: 48px;
+  min-height: 32px;
+  padding: 0 12px;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 4px;
+  border: none;
   cursor: pointer;
-  transition: all 0.2s;
-  font-size: 0.9rem;
+  transition: background 0.2s;
 }
 
-.admin-table-actions button:not(.danger) {
-  background: var(--bg);
-  color: var(--text);
+.admin-table-actions .admin-btn:not(:last-child) {
+  margin-right: 4px;
 }
 
-.admin-table-actions button:hover:not(.danger) {
-  background: var(--hover);
+.admin-table-actions .admin-btn.danger {
+  background: #ff4d4f;
+  color: #fff;
 }
 
-/* Style cho từng loại nút */
-.admin-table-actions button:first-child {
-  background: #2ecc71;
-  color: white;
+.admin-table-actions .admin-btn {
+  background: #1677ff;
+  color: #fff;
 }
 
-.admin-table-actions button:first-child:hover {
-  background: #27ae60;
+.admin-table-actions .admin-btn:nth-child(1) {
+  background: #52c41a;
 }
 
-.admin-table-actions button:nth-child(2) {
-  background: #3498db;
-  color: white;
+.admin-table-actions .admin-btn:nth-child(2) {
+  background: #1890ff;
 }
 
-.admin-table-actions button:nth-child(2):hover {
-  background: #2980b9;
+.admin-table-actions .admin-btn:active {
+  opacity: 0.85;
 }
 
-.admin-table-actions button.danger {
-  background: #e74c3c;
-  color: white;
-}
-
-.admin-table-actions button.danger:hover {
-  background: #c0392b;
+/* Đảm bảo chiều cao các dòng bảng đồng nhất */
+.admin-table tr td,
+.admin-table tr th {
+  height: 80px;
+  min-height: 48px;
+  vertical-align: middle;
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
 /* Pagination */
@@ -1029,26 +1006,8 @@
 }
 
 /* Tables */
-.admin-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin: 20px 0;
+.admin-table tr td span{
   background: var(--bg);
-  border-radius: 4px;
-  overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-}
-
-.admin-table th,
-.admin-table td {
-  padding: 12px 15px;
-  text-align: left;
-  border-bottom: 1px solid #eee;
-}
-
-.admin-table th {
-  background: var(--bg);
-  font-weight: 600;
   color: var(--text);
 }
 

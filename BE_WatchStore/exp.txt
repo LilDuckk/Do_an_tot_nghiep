@@ -1,11 +1,109 @@
-## 1. Store Management
+# Dữ liệu mẫu cho Store
+[
+    {
+        "id": 1,
+        "name": "Watch Store Hà Nội",
+        "address": "123 Nguyễn Huệ, Quận 1, Hà Nội",
+        "phone": "024-1234-5678",
+        "is_active": true,
+        "manager": {
+            "id": 1,
+            "first_name": "Nguyễn",
+            "last_name": "Văn A",
+            "employee_code": "EMP001",
+            "position": "Store Manager"
+        },
+        "created_at": "2024-03-15T08:00:00Z",
+        "updated_at": "2024-03-15T08:00:00Z"
+    },
+    {
+        "id": 2,
+        "name": "Watch Store Hồ Chí Minh",
+        "address": "456 Lê Lợi, Quận 1, TP.HCM",
+        "phone": "028-8765-4321",
+        "is_active": true,
+        "manager": {
+            "id": 2,
+            "first_name": "Trần",
+            "last_name": "Thị B",
+            "employee_code": "EMP002",
+            "position": "Store Manager"
+        },
+        "created_at": "2024-03-15T08:00:00Z",
+        "updated_at": "2024-03-15T08:00:00Z"
+    }
+]
 
-### 1.1. List Stores
-```http
-GET /api/stores/stores/
-```
-**Response:**
-```json
+# Dữ liệu mẫu cho Employee
+[
+    {
+        "id": 1,
+        "user": 1,
+        "user_details": {
+            "id": 1,
+            "username": "NVA123456",
+            "email": "nguyenvana@watchstore.com",
+            "is_active": true
+        },
+        "name": "Nguyễn Văn A",
+        "phone": "0987654321",
+        "email": "nguyenvana@watchstore.com",
+        "address": "789 Trần Hưng Đạo, Hà Nội",
+        "employee_code": "NVA123456",
+        "position": "Store Manager",
+        "hire_date": "2024-01-01",
+        "store": 1,
+        "store_details": {
+            "id": 1,
+            "name": "Watch Store Hà Nội",
+            "address": "123 Nguyễn Huệ, Quận 1, Hà Nội",
+            "phone": "024-1234-5678",
+            "is_active": true
+        },
+        "created_at": "2024-03-15T08:00:00Z",
+        "updated_at": "2024-03-15T08:00:00Z"
+    },
+    {
+        "id": 2,
+        "user": 2,
+        "user_details": {
+            "id": 2,
+            "username": "staff.hn",
+            "email": "staff.hn@watchstore.com",
+            "is_active": true
+        },
+        "first_name": "Trần",
+        "last_name": "Thị B",
+        "phone": "0987654322",
+        "address": "456 Lê Duẩn, Hà Nội",
+        "employee_code": "EMP002",
+        "position": "Sales Staff",
+        "hire_date": "2024-02-01",
+        "store": 1,
+        "store_details": {
+            "id": 1,
+            "name": "Watch Store Hà Nội",
+            "address": "123 Nguyễn Huệ, Quận 1, Hà Nội",
+            "phone": "024-1234-5678",
+            "is_active": true
+        },
+        "created_at": "2024-03-15T08:00:00Z",
+        "updated_at": "2024-03-15T08:00:00Z"
+    }
+]
+
+# API Endpoints cho Store
+## Danh sách API
+GET /api/stores/ - Lấy danh sách stores (có phân trang)
+GET /api/stores/list_all/ - Lấy tất cả stores (không phân trang)
+GET /api/stores/{id}/ - Lấy chi tiết một store
+GET /api/stores/{id}/employee_count/ - Lấy số lượng nhân viên của store
+POST /api/stores/ - Tạo store mới
+PUT /api/stores/{id}/ - Cập nhật store
+DELETE /api/stores/{id}/ - Xóa store
+
+## Dữ liệu mẫu cho Store
+### GET /api/stores/
 {
     "count": 2,
     "next": null,
@@ -15,344 +113,57 @@ GET /api/stores/stores/
             "id": 1,
             "name": "Watch Store Hà Nội",
             "address": "123 Nguyễn Huệ, Quận 1, Hà Nội",
-            "phone": "02412345678",
-            "store_code": "HN001",
-            "opening_date": "2024-01-01",
+            "phone": "024-1234-5678",
             "is_active": true,
-            "manager": {
-                "id": 1,
-                "first_name": "Nguyễn",
-                "last_name": "Văn A",
-                "employee_code": "EMP001"
-            },
-            "created_at": "2024-01-01T00:00:00Z",
-            "updated_at": "2024-01-01T00:00:00Z"
+            "created_at": "2024-03-15T08:00:00Z",
+            "updated_at": "2024-03-15T08:00:00Z"
         },
         {
             "id": 2,
             "name": "Watch Store Hồ Chí Minh",
             "address": "456 Lê Lợi, Quận 1, TP.HCM",
-            "phone": "02812345678",
-            "store_code": "HCM001",
-            "opening_date": "2024-01-01",
+            "phone": "028-8765-4321",
             "is_active": true,
-            "manager": {
-                "id": 2,
-                "first_name": "Trần",
-                "last_name": "Văn B",
-                "employee_code": "EMP002"
-            },
-            "created_at": "2024-01-01T00:00:00Z",
-            "updated_at": "2024-01-01T00:00:00Z"
+            "created_at": "2024-03-15T08:00:00Z",
+            "updated_at": "2024-03-15T08:00:00Z"
         }
     ]
 }
-```
 
-### 1.2. Create Store
-```http
-POST /api/stores/stores/
-```
-**Request Body:**
-```json
+### GET /api/stores/{id}/employee_count/
+{
+    "employee_count": 2
+}
+
+### POST /api/stores/
 {
     "name": "Watch Store Đà Nẵng",
     "address": "789 Nguyễn Văn Linh, Quận Hải Châu, Đà Nẵng",
-    "phone": "02361234567",
-    "store_code": "DN001",
-    "opening_date": "2024-01-01",
+    "phone": "0236-1234-5678",
     "is_active": true,
-    "manager": 3
+    "manager_id": 3
 }
-```
 
-### 1.3. Get Store Detail
-```http
-GET /api/stores/stores/{id}/
-```
-**Response:**
-```json
-{
-    "id": 1,
-    "name": "Watch Store Hà Nội",
-    "address": "123 Nguyễn Huệ, Quận 1, Hà Nội",
-    "phone": "02412345678",
-    "store_code": "HN001",
-    "opening_date": "2024-01-01",
-    "is_active": true,
-    "manager": {
-        "id": 1,
-        "first_name": "Nguyễn",
-        "last_name": "Văn A",
-        "employee_code": "EMP001"
-    },
-    "created_at": "2024-01-01T00:00:00Z",
-    "updated_at": "2024-01-01T00:00:00Z"
-}
-```
-
-### 1.4. Update Store
-```http
-PUT /api/stores/stores/{id}/
-```
-**Request Body:**
-```json
+### PUT /api/stores/{id}/
 {
     "name": "Watch Store Hà Nội - Chi nhánh mới",
     "address": "123 Nguyễn Huệ, Quận 1, Hà Nội",
-    "phone": "02412345678",
-    "store_code": "HN001",
-    "opening_date": "2024-01-01",
+    "phone": "024-1234-5678",
     "is_active": true,
-    "manager": 1
+    "manager_id": 1
 }
-```
 
-### 1.5. Delete Store
-```http
-DELETE /api/stores/stores/{id}/
-```
+# API Endpoints cho Employee
+## Danh sách API
+GET /api/employees/ - Lấy danh sách employees (có phân trang)
+GET /api/employees/list_all/ - Lấy tất cả employees (không phân trang)
+GET /api/employees/{id}/ - Lấy chi tiết một employee
+POST /api/employees/ - Tạo employee mới
+PUT /api/employees/{id}/ - Cập nhật employee
+DELETE /api/employees/{id}/ - Xóa employee
 
-## 2. Employee Management
-
-### 2.1. List Employees
-```http
-GET /api/stores/employees/
-```
-
-### Query Parameters
-- `store`: Filter by store ID (e.g., `?store=1`)
-- `position`: Filter by position (e.g., `?position=Store Manager`)
-- `employee_code`: Filter by employee code (e.g., `?employee_code=EMP001`)
-- `search`: Search in username, email, first_name, last_name, phone
-- `ordering`: Order by created_at (e.g., `?ordering=-created_at`)
-
-### Response
-```json
-{
-    "count": 3,
-    "next": null,
-    "previous": null,
-    "results": [
-        {
-            "id": 1,
-            "user": {
-                "id": 1,
-                "username": "nguyenvana",
-                "email": "nguyenvana@example.com",
-                "first_name": "Nguyễn",
-                "last_name": "Văn A",
-                "is_active": true
-            },
-            "first_name": "Nguyễn",
-            "last_name": "Văn A",
-            "phone": "0912345678",
-            "address": "123 Nguyễn Huệ, Hà Nội",
-            "employee_code": "EMP001",
-            "position": "Store Manager",
-            "hire_date": "2024-01-01",
-            "store": {
-                "id": 1,
-                "name": "Watch Store Hà Nội",
-                "store_code": "HN001",
-                "address": "123 Nguyễn Huệ, Quận 1, Hà Nội",
-                "phone": "02412345678",
-                "is_active": true
-            },
-            "created_at": "2024-01-01T00:00:00Z",
-            "updated_at": "2024-01-01T00:00:00Z"
-        },
-        {
-            "id": 2,
-            "user": {
-                "id": 2,
-                "username": "tranvanb",
-                "email": "tranvanb@example.com",
-                "first_name": "Trần",
-                "last_name": "Văn B",
-                "is_active": true
-            },
-            "first_name": "Trần",
-            "last_name": "Văn B",
-            "phone": "0987654321",
-            "address": "456 Lê Lợi, TP.HCM",
-            "employee_code": "EMP002",
-            "position": "Sales Staff",
-            "hire_date": "2024-01-01",
-            "store": {
-                "id": 1,
-                "name": "Watch Store Hà Nội",
-                "store_code": "HN001",
-                "address": "123 Nguyễn Huệ, Quận 1, Hà Nội",
-                "phone": "02412345678",
-                "is_active": true
-            },
-            "created_at": "2024-01-01T00:00:00Z",
-            "updated_at": "2024-01-01T00:00:00Z"
-        }
-    ]
-}
-```
-
-### 2.2. Create Employee
-```http
-POST /api/stores/employees/
-```
-
-### Request Body
-```json
-{
-    "user_id": 3,
-    "first_name": "Lê",
-    "last_name": "Văn C",
-    "phone": "0977123456",
-    "address": "789 Đồng Khởi, TP.HCM",
-    "employee_code": "EMP003",
-    "position": "Sales Staff",
-    "hire_date": "2024-01-01",
-    "store_id": 1
-}
-```
-
-### Response
-```json
-{
-    "id": 3,
-    "user": {
-        "id": 3,
-        "username": "levanc",
-        "email": "levanc@example.com",
-        "first_name": "Lê",
-        "last_name": "Văn C",
-        "is_active": true
-    },
-    "first_name": "Lê",
-    "last_name": "Văn C",
-    "phone": "0977123456",
-    "address": "789 Đồng Khởi, TP.HCM",
-    "employee_code": "EMP003",
-    "position": "Sales Staff",
-    "hire_date": "2024-01-01",
-    "store": {
-        "id": 1,
-        "name": "Watch Store Hà Nội",
-        "store_code": "HN001",
-        "address": "123 Nguyễn Huệ, Quận 1, Hà Nội",
-        "phone": "02412345678",
-        "is_active": true
-    },
-    "created_at": "2024-01-01T00:00:00Z",
-    "updated_at": "2024-01-01T00:00:00Z"
-}
-```
-
-### 2.3. Get Employee Detail
-```http
-GET /api/stores/employees/{id}/
-```
-
-### Response
-```json
-{
-    "id": 1,
-    "user": {
-        "id": 1,
-        "username": "nguyenvana",
-        "email": "nguyenvana@example.com",
-        "first_name": "Nguyễn",
-        "last_name": "Văn A",
-        "is_active": true
-    },
-    "first_name": "Nguyễn",
-    "last_name": "Văn A",
-    "phone": "0912345678",
-    "address": "123 Nguyễn Huệ, Hà Nội",
-    "employee_code": "EMP001",
-    "position": "Store Manager",
-    "hire_date": "2024-01-01",
-    "store": {
-        "id": 1,
-        "name": "Watch Store Hà Nội",
-        "store_code": "HN001",
-        "address": "123 Nguyễn Huệ, Quận 1, Hà Nội",
-        "phone": "02412345678",
-        "is_active": true
-    },
-    "created_at": "2024-01-01T00:00:00Z",
-    "updated_at": "2024-01-01T00:00:00Z"
-}
-```
-
-### 2.4. Update Employee
-```http
-PUT /api/stores/employees/{id}/
-```
-
-### Request Body
-```json
-{
-    "user_id": 1,
-    "first_name": "Nguyễn",
-    "last_name": "Văn A",
-    "phone": "0912345678",
-    "address": "123 Nguyễn Huệ, Hà Nội",
-    "employee_code": "EMP001",
-    "position": "Senior Store Manager",
-    "hire_date": "2024-01-01",
-    "store_id": 1
-}
-```
-
-### Response
-```json
-{
-    "id": 1,
-    "user": {
-        "id": 1,
-        "username": "nguyenvana",
-        "email": "nguyenvana@example.com",
-        "first_name": "Nguyễn",
-        "last_name": "Văn A",
-        "is_active": true
-    },
-    "first_name": "Nguyễn",
-    "last_name": "Văn A",
-    "phone": "0912345678",
-    "address": "123 Nguyễn Huệ, Hà Nội",
-    "employee_code": "EMP001",
-    "position": "Senior Store Manager",
-    "hire_date": "2024-01-01",
-    "store": {
-        "id": 1,
-        "name": "Watch Store Hà Nội",
-        "store_code": "HN001",
-        "address": "123 Nguyễn Huệ, Quận 1, Hà Nội",
-        "phone": "02412345678",
-        "is_active": true
-    },
-    "created_at": "2024-01-01T00:00:00Z",
-    "updated_at": "2024-01-01T00:00:00Z"
-}
-```
-
-### 2.5. Delete Employee
-```http
-DELETE /api/stores/employees/{id}/
-```
-
-### Response
-```http
-HTTP 204 No Content
-```
-
-## 3. Store Inventory Management
-
-### 3.1. List Store Inventories
-```http
-GET /api/stores/store-inventories/
-```
-**Response:**
-```json
+## Dữ liệu mẫu cho Employee
+### GET /api/employees/
 {
     "count": 2,
     "next": null,
@@ -360,116 +171,95 @@ GET /api/stores/store-inventories/
     "results": [
         {
             "id": 1,
-            "store": {
+            "user": 1,
+            "user_details": {
+                "id": 1,
+                "username": "NVA123456",
+                "email": "nguyenvana@watchstore.com",
+                "is_active": true
+            },
+            "name": "Nguyễn Văn A",
+            "phone": "0987654321",
+            "email": "nguyenvana@watchstore.com",
+            "address": "789 Trần Hưng Đạo, Hà Nội",
+            "employee_code": "NVA123456",
+            "position": "Store Manager",
+            "hire_date": "2024-01-01",
+            "store": 1,
+            "store_details": {
                 "id": 1,
                 "name": "Watch Store Hà Nội",
-                "store_code": "HN001"
+                "address": "123 Nguyễn Huệ, Quận 1, Hà Nội",
+                "phone": "024-1234-5678",
+                "is_active": true
             },
-            "product_variant": {
+            "created_at": "2024-03-15T08:00:00Z",
+            "updated_at": "2024-03-15T08:00:00Z"
+        },
+        {
+            "id": 2,
+            "user": 2,
+            "user_details": {
+                "id": 2,
+                "username": "staff.hn",
+                "email": "staff.hn@watchstore.com",
+                "is_active": true
+            },
+            "first_name": "Trần",
+            "last_name": "Thị B",
+            "phone": "0987654322",
+            "address": "456 Lê Duẩn, Hà Nội",
+            "employee_code": "EMP002",
+            "position": "Sales Staff",
+            "hire_date": "2024-02-01",
+            "store": 1,
+            "store_details": {
                 "id": 1,
-                "sku": "WATCH001-BLK",
-                "product": {
-                    "id": 1,
-                    "name": "Classic Watch Black"
-                }
+                "name": "Watch Store Hà Nội",
+                "address": "123 Nguyễn Huệ, Quận 1, Hà Nội",
+                "phone": "024-1234-5678",
+                "is_active": true
             },
-            "quantity": 10,
-            "last_updated": "2024-01-01T00:00:00Z",
-            "created_at": "2024-01-01T00:00:00Z",
-            "updated_at": "2024-01-01T00:00:00Z"
+            "created_at": "2024-03-15T08:00:00Z",
+            "updated_at": "2024-03-15T08:00:00Z"
         }
     ]
 }
-```
 
-### 3.2. Create Store Inventory
-```http
-POST /api/stores/store-inventories/
-```
-**Request Body:**
-```json
+### POST /api/employees/
 {
+    "name": "Lê Văn C",
+    "phone": "0987654323",
+    "email": "levanc@watchstore.com",
+    "address": "321 Lý Thường Kiệt, Hà Nội",
+    "hire_date": "2024-03-01",
     "store": 1,
-    "product_variant": 1,
-    "quantity": 10
+    "auto_create": true,
+    "user": null
 }
-```
 
-### 3.3. Get Store Inventory Detail
-```http
-GET /api/stores/store-inventories/{id}/
-```
-**Response:**
-```json
+### PUT /api/employees/{id}/
 {
-    "id": 1,
-    "store": {
-        "id": 1,
-        "name": "Watch Store Hà Nội",
-        "store_code": "HN001"
-    },
-    "product_variant": {
-        "id": 1,
-        "sku": "WATCH001-BLK",
-        "product": {
-            "id": 1,
-            "name": "Classic Watch Black"
-        }
-    },
-    "quantity": 10,
-    "last_updated": "2024-01-01T00:00:00Z",
-    "created_at": "2024-01-01T00:00:00Z",
-    "updated_at": "2024-01-01T00:00:00Z"
-}
-```
-
-### 3.4. Update Store Inventory
-```http
-PUT /api/stores/store-inventories/{id}/
-```
-**Request Body:**
-```json
-{
+    "name": "Nguyễn Văn A",
+    "phone": "0987654321",
+    "email": "nguyenvana@watchstore.com",
+    "address": "789 Trần Hưng Đạo, Hà Nội",
+    "hire_date": "2024-01-01",
     "store": 1,
-    "product_variant": 1,
-    "quantity": 15
+    "user": 1,
+    "auto_create": false
 }
-```
 
-### 3.5. Delete Store Inventory
-```http
-DELETE /api/stores/store-inventories/{id}/
-```
+# Các tính năng tìm kiếm và lọc
+## Store
+- Tìm kiếm theo: name, address, phone
+- Lọc theo: is_active
+- Sắp xếp theo: name, created_at, updated_at
+- Phân trang: Mặc định 10 items/trang
+- API đếm nhân viên: /api/stores/{id}/employee_count/
 
-## Query Parameters
-
-### Store List
-- `name`: Filter by store name
-- `address`: Filter by store address
-- `is_active`: Filter by active status
-- `search`: Search in name, address, phone, email
-- `ordering`: Order by name, created_at
-
-### Employee List
-- `store`: Filter by store ID
-- `position`: Filter by position
-- `employee_code`: Filter by employee code
-- `search`: Search in username, email, first_name, last_name, phone
-- `ordering`: Order by created_at
-
-### Store Inventory List
-- `store`: Filter by store ID
-- `product_variant`: Filter by product variant ID
-- `quantity`: Filter by quantity
-- `ordering`: Order by last_updated, created_at
-
-## Authentication
-All endpoints require authentication using JWT token:
-```http
-Authorization: Bearer <your_jwt_token>
-```
-
-## Permissions
-- Superuser: Full access to all endpoints
-- Store Manager: Full access to their store's data
-- Store Staff: Read-only access to their store's data
+## Employee
+- Tìm kiếm theo: first_name, last_name, phone, employee_code
+- Lọc theo: store, position
+- Sắp xếp theo: first_name, last_name, hire_date, created_at
+- Phân trang: Mặc định 10 items/trang

@@ -5,14 +5,14 @@ import {
   Modal,
   Form,
   Input,
-  DatePicker,
   Select,
   message,
   Space,
   Popconfirm,
+  AutoComplete,
+  Badge,
 } from 'antd';
-import { EditOutlined, DeleteOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
-import dayjs from 'dayjs';
+import { EditOutlined, DeleteOutlined, PlusOutlined, SearchOutlined, TeamOutlined } from '@ant-design/icons';
 import '../static/AdminCommon.css';
 
 const { Option } = Select;
@@ -25,7 +25,10 @@ const StoresPage = () => {
   const [editingId, setEditingId] = useState(null);
   const [searchText, setSearchText] = useState('');
   const [debouncedSearchText, setDebouncedSearchText] = useState('');
-  const [managers, setManagers] = useState([]);
+  const [employees, setEmployees] = useState([]);
+  const [searchManagerText, setSearchManagerText] = useState('');
+  const [selectedManager, setSelectedManager] = useState(null);
+  const [employeeCounts, setEmployeeCounts] = useState({});
 
   // Debounce search text
   useEffect(() => {
@@ -35,6 +38,22 @@ const StoresPage = () => {
 
     return () => clearTimeout(timer);
   }, [searchText]);
+
+  const fetchEmployeeCount = async (storeId) => {
+    try {
+      const token = localStorage.getItem('accessToken');
+      const response = await fetch(`http://localhost:8000/api/stores/stores/${storeId}/employee_count/`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+      setEmployeeCounts(prev => ({
+        ...prev,
+        [storeId]: data.employee_count
+      }));
+    } catch (error) {
+      console.error('Lỗi khi lấy số lượng nhân viên:', error);
+    }
+  };
 
   const fetchStores = useCallback(async () => {
     try {
@@ -56,7 +75,13 @@ const StoresPage = () => {
       }
 
       const data = await response.json();
-      setStores(Array.isArray(data.results) ? data.results : []);
+      const storesData = Array.isArray(data.results) ? data.results : [];
+      setStores(storesData);
+      
+      // Lấy số lượng nhân viên cho mỗi cửa hàng
+      storesData.forEach(store => {
+        fetchEmployeeCount(store.id);
+      });
     } catch (error) {
       message.error('Lỗi khi tải danh sách cửa hàng');
       setStores([]);
@@ -65,22 +90,22 @@ const StoresPage = () => {
     }
   }, [debouncedSearchText]);
 
-  const fetchManagers = async () => {
+  const fetchEmployees = async () => {
     try {
       const token = localStorage.getItem('accessToken');
-      const response = await fetch('http://localhost:8000/api/stores/employees/', {
+      const response = await fetch('http://localhost:8000/api/stores/employees/list_all/', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
-      setManagers(data.results || []);
+      setEmployees(data || []);
     } catch (error) {
-      message.error('Lỗi khi tải danh sách quản lý');
+      message.error('Lỗi khi tải danh sách nhân viên');
     }
   };
 
   useEffect(() => {
     fetchStores();
-    fetchManagers();
+    fetchEmployees();
   }, [fetchStores]);
 
   const handleSubmit = async (values) => {
@@ -90,10 +115,8 @@ const StoresPage = () => {
         name: values.name,
         address: values.address,
         phone: values.phone,
-        store_code: values.store_code,
-        opening_date: values.opening_date.format('YYYY-MM-DD'),
-        is_active: values.is_active,
-        manager: values.manager
+        is_active: values.is_active ?? true,
+        manager_id: selectedManager?.id
       };
 
       if (editingId) {
@@ -131,6 +154,7 @@ const StoresPage = () => {
       }
       setModalVisible(false);
       form.resetFields();
+      setSelectedManager(null);
       fetchStores();
     } catch (error) {
       message.error('Có lỗi xảy ra');
@@ -157,12 +181,24 @@ const StoresPage = () => {
     }
   };
 
+  const getManagerOptions = () => {
+    return employees
+      .filter(emp => {
+        if (!emp) return false;
+        const searchLower = searchManagerText.toLowerCase();
+        return (
+          (emp.name?.toLowerCase() || '').includes(searchLower) ||
+          (emp.employee_code?.toLowerCase() || '').includes(searchLower)
+        );
+      })
+      .map(emp => ({
+        value: `${emp.name || ''} - ${emp.employee_code || ''}`,
+        label: `${emp.name || ''} - ${emp.employee_code || ''}`,
+        employee: emp
+      }));
+  };
+
   const columns = [
-    {
-      title: 'Mã cửa hàng',
-      dataIndex: 'store_code',
-      key: 'store_code',
-    },
     {
       title: 'Tên cửa hàng',
       dataIndex: 'name',
@@ -179,16 +215,24 @@ const StoresPage = () => {
       key: 'phone',
     },
     {
-      title: 'Ngày khai trương',
-      dataIndex: 'opening_date',
-      key: 'opening_date',
-    },
-    {
       title: 'Quản lý',
-      dataIndex: ['manager', 'first_name'],
+      dataIndex: ['manager', 'name'],
       key: 'manager',
       render: (_, record) => 
-        record.manager ? `${record.manager.first_name} ${record.manager.last_name}` : '-',
+        record.manager ? `${record.manager.name} - ${record.manager.employee_code}` : '-',
+    },
+    {
+      title: 'Số nhân viên',
+      key: 'employee_count',
+      render: (_, record) => (
+        <Badge 
+          count={employeeCounts[record.id] || 0} 
+          showZero
+          style={{ backgroundColor: 'rgb(96 131 207)' }}
+        >
+          <TeamOutlined style={{ fontSize: '20px' }} />
+        </Badge>
+      ),
     },
     {
       title: 'Trạng thái',
@@ -208,8 +252,9 @@ const StoresPage = () => {
               setEditingId(record.id);
               form.setFieldsValue({
                 ...record,
-                opening_date: dayjs(record.opening_date),
+                manager: record.manager ? `${record.manager.name} - ${record.manager.employee_code}` : undefined
               });
+              setSelectedManager(record.manager);
               setModalVisible(true);
             }}
           />
@@ -243,6 +288,7 @@ const StoresPage = () => {
             onClick={() => {
               setEditingId(null);
               form.resetFields();
+              setSelectedManager(null);
               setModalVisible(true);
             }}
           >
@@ -254,19 +300,25 @@ const StoresPage = () => {
       <Table
         columns={columns}
         dataSource={stores}
-        loading={loading}
         rowKey="id"
-        className="coupon-table"
+        loading={loading}
       />
 
       <Modal
-        title={editingId ? 'Chỉnh sửa cửa hàng' : 'Thêm cửa hàng mới'}
+        title={editingId ? "Sửa cửa hàng" : "Thêm cửa hàng mới"}
         open={modalVisible}
-        onCancel={() => setModalVisible(false)}
+        onCancel={() => {
+          setModalVisible(false);
+          form.resetFields();
+          setSelectedManager(null);
+        }}
         footer={null}
-        width={600}
       >
-        <Form form={form} onFinish={handleSubmit} layout="vertical">
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={handleSubmit}
+        >
           <Form.Item
             name="name"
             label="Tên cửa hàng"
@@ -280,7 +332,7 @@ const StoresPage = () => {
             label="Địa chỉ"
             rules={[{ required: true, message: 'Vui lòng nhập địa chỉ' }]}
           >
-            <Input.TextArea />
+            <Input />
           </Form.Item>
 
           <Form.Item
@@ -292,33 +344,20 @@ const StoresPage = () => {
           </Form.Item>
 
           <Form.Item
-            name="store_code"
-            label="Mã cửa hàng"
-            rules={[{ required: true, message: 'Vui lòng nhập mã cửa hàng' }]}
-          >
-            <Input />
-          </Form.Item>
-
-          <Form.Item
-            name="opening_date"
-            label="Ngày khai trương"
-            rules={[{ required: true, message: 'Vui lòng chọn ngày khai trương' }]}
-          >
-            <DatePicker style={{ width: '100%' }} />
-          </Form.Item>
-
-          <Form.Item
             name="manager"
             label="Quản lý"
-            rules={[{ required: true, message: 'Vui lòng chọn quản lý' }]}
           >
-            <Select>
-              {managers.map(manager => (
-                <Option key={manager.id} value={manager.id}>
-                  {manager.first_name} {manager.last_name} - {manager.employee_code}
-                </Option>
-              ))}
-            </Select>
+            <AutoComplete
+              options={getManagerOptions()}
+              value={searchManagerText}
+              onChange={setSearchManagerText}
+              onSelect={(value, option) => {
+                setSelectedManager(option.employee);
+                form.setFieldsValue({ manager: value });
+              }}
+              placeholder="Tìm kiếm quản lý..."
+              style={{ width: '100%' }}
+            />
           </Form.Item>
 
           <Form.Item
@@ -337,7 +376,13 @@ const StoresPage = () => {
               <Button type="primary" htmlType="submit">
                 {editingId ? 'Cập nhật' : 'Thêm mới'}
               </Button>
-              <Button onClick={() => setModalVisible(false)}>Hủy</Button>
+              <Button onClick={() => {
+                setModalVisible(false);
+                form.resetFields();
+                setSelectedManager(null);
+              }}>
+                Hủy
+              </Button>
             </Space>
           </Form.Item>
         </Form>

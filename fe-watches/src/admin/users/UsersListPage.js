@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { hasModulePermission } from '../../services/permission';
-import { Input, Button, Space, Empty } from 'antd';
-import { SearchOutlined, PlusOutlined } from '@ant-design/icons';
+import { Input, Button, Space, Empty, Tag } from 'antd';
+import { SearchOutlined, PlusOutlined, UserOutlined, ShopOutlined } from '@ant-design/icons';
 import { useDebounce } from '../hooks/useDebounce';
 import '../static/AdminCommon.css';
 
@@ -153,8 +153,8 @@ export default function UsersListPage() {
               <th>ID</th>
               <th>Tên đăng nhập</th>
               <th>Email</th>
-              <th>Họ và tên</th>
               <th>Nhóm</th>
+              <th>Thông tin nhân viên</th>
               <th>Trạng thái</th>
               <th>Hành động</th>
             </tr>
@@ -162,7 +162,7 @@ export default function UsersListPage() {
           <tbody>
             {users.length === 0 ? (
               <tr>
-                <td colSpan="7" style={{ textAlign: 'center', padding: '40px 0' }}>
+                <td colSpan="8" style={{ textAlign: 'center', padding: '40px 0' }}>
                   <Empty description="No data" imageStyle={{ height: 60 }} />
                 </td>
               </tr>
@@ -172,8 +172,25 @@ export default function UsersListPage() {
                   <td>{u.id}</td>
                   <td>{u.username}</td>
                   <td>{u.email}</td>
-                  <td>{u.full_name}</td>
                   <td>{u.groups?.map(g => g.name).join(', ') || 'Không có'}</td>
+                  <td>
+                    {u.employee_details ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <div>
+                          <UserOutlined style={{ marginRight: '8px' }} />
+                          <Tag color="blue">{u.employee_details.name}</Tag>
+                          <Tag color="cyan">{u.employee_details.employee_code}</Tag>
+                        </div>
+                        <div>
+                          <ShopOutlined style={{ marginRight: '8px' }} />
+                          <Tag color="purple">{u.employee_details.position}</Tag>
+                          <Tag color="green">{u.employee_details.store_name}</Tag>
+                        </div>
+                      </div>
+                    ) : (
+                      <Tag color="default">Không phải nhân viên</Tag>
+                    )}
+                  </td>
                   <td>{u.is_active ? 'Hoạt động' : 'Khóa'}</td>
                   <td className="admin-table-actions">
                     <button className="admin-btn" onClick={() => navigate(`/admin/users/${u.id}`)}>Xem</button>

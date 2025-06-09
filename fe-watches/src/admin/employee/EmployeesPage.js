@@ -10,6 +10,7 @@ import {
   message,
   Space,
   Popconfirm,
+  Checkbox,
   AutoComplete,
 } from 'antd';
 import { EditOutlined, DeleteOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
@@ -27,10 +28,12 @@ const EmployeesPage = () => {
   const [searchText, setSearchText] = useState('');
   const [debouncedSearchText, setDebouncedSearchText] = useState('');
   const [stores, setStores] = useState([]);
-  const [users, setUsers] = useState([]);
-  const [groups, setGroups] = useState([]);
   const [userSearchValue, setUserSearchValue] = useState('');
   const [userOptions, setUserOptions] = useState([]);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [storeSearchValue, setStoreSearchValue] = useState('');
+  const [storeOptions, setStoreOptions] = useState([]);
+  const [selectedStore, setSelectedStore] = useState(null);
 
   // Debounce search text
   useEffect(() => {
@@ -73,26 +76,20 @@ const EmployeesPage = () => {
   const fetchStores = async () => {
     try {
       const token = localStorage.getItem('accessToken');
-      const response = await fetch('http://localhost:8000/api/stores/stores/', {
+      const response = await fetch('http://localhost:8000/api/stores/stores/list_all/', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
-      setStores(data.results || []);
+      setStores(data || []);
+      // Tạo options cho AutoComplete
+      const options = data.map(store => ({
+        value: store.id,
+        label: `${store.name} - ${store.address}`,
+        store: store
+      }));
+      setStoreOptions(options);
     } catch (error) {
       message.error('Lỗi khi tải danh sách cửa hàng');
-    }
-  };
-
-  const fetchGroups = async () => {
-    try {
-      const token = localStorage.getItem('accessToken');
-      const response = await fetch('http://localhost:8000/api/account/auth/groups/', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await response.json();
-      setGroups(data.results || []);
-    } catch (error) {
-      message.error('Lỗi khi tải danh sách nhóm quyền');
     }
   };
 
@@ -110,7 +107,8 @@ const EmployeesPage = () => {
       const data = await response.json();
       const options = data.map(user => ({
         value: user.id,
-        label: `${user.username}${user.email ? ` (${user.email})` : ''}${user.groups.length > 0 ? ` - ${user.groups.map(g => g.name).join(', ')}` : ''}`
+        label: `${user.username}${user.email ? ` (${user.email})` : ''}${user.groups.length > 0 ? ` - ${user.groups.map(g => g.name).join(', ')}` : ''}`,
+        user: user
       }));
       setUserOptions(options);
     } catch (error) {
@@ -121,22 +119,20 @@ const EmployeesPage = () => {
   useEffect(() => {
     fetchEmployees();
     fetchStores();
-    fetchGroups();
   }, [fetchEmployees]);
 
   const handleSubmit = async (values) => {
     try {
       const token = localStorage.getItem('accessToken');
       const formattedValues = {
-        user_id: values.user_id,
-        first_name: values.first_name,
-        last_name: values.last_name,
+        name: values.name,
         phone: values.phone,
+        email: values.email,
         address: values.address,
-        employee_code: values.employee_code,
-        position: values.position,
-        hire_date: values.hire_date.format('YYYY-MM-DD'),
-        store_id: values.store_id
+        hire_date: values.hire_date?.format('YYYY-MM-DD'),
+        store: selectedStore?.id,
+        auto_create: selectedUser ? true : (values.auto_create || false),
+        user: selectedUser?.id
       };
 
       if (editingId) {
@@ -174,6 +170,8 @@ const EmployeesPage = () => {
       }
       setModalVisible(false);
       form.resetFields();
+      setSelectedUser(null);
+      setSelectedStore(null);
       fetchEmployees();
     } catch (error) {
       message.error('Có lỗi xảy ra');
@@ -202,14 +200,9 @@ const EmployeesPage = () => {
 
   const columns = [
     {
-      title: 'Mã nhân viên',
-      dataIndex: 'employee_code',
-      key: 'employee_code',
-    },
-    {
       title: 'Họ và tên',
-      key: 'full_name',
-      render: (_, record) => `${record.first_name} ${record.last_name}`,
+      dataIndex: 'name',
+      key: 'name',
     },
     {
       title: 'Số điện thoại',
@@ -217,9 +210,25 @@ const EmployeesPage = () => {
       key: 'phone',
     },
     {
+      title: 'Email',
+      dataIndex: 'email',
+      key: 'email',
+    },
+    {
+      title: 'Tài khoản',
+      dataIndex: ['user_details', 'username'],
+      key: 'user',
+      render: (_, record) => record.user_details?.username || '-'
+    },
+    {
       title: 'Địa chỉ',
       dataIndex: 'address',
       key: 'address',
+    },
+    {
+      title: 'Mã nhân viên',
+      dataIndex: 'employee_code',
+      key: 'employee_code',
     },
     {
       title: 'Chức vụ',
@@ -233,7 +242,7 @@ const EmployeesPage = () => {
     },
     {
       title: 'Cửa hàng',
-      dataIndex: ['store', 'name'],
+      dataIndex: ['store_details', 'name'],
       key: 'store',
     },
     {
@@ -248,10 +257,12 @@ const EmployeesPage = () => {
               setEditingId(record.id);
               form.setFieldsValue({
                 ...record,
-                hire_date: dayjs(record.hire_date),
-                store_id: record.store.id,
-                user_id: record.user.id
+                hire_date: record.hire_date ? dayjs(record.hire_date) : null,
+                store: record.store_details ? `${record.store_details.name} - ${record.store_details.address}` : undefined,
+                user: record.user_details ? `${record.user_details.username}${record.user_details.email ? ` (${record.user_details.email})` : ''}` : undefined
               });
+              setSelectedUser(record.user_details);
+              setSelectedStore(record.store_details);
               setModalVisible(true);
             }}
           />
@@ -285,6 +296,8 @@ const EmployeesPage = () => {
             onClick={() => {
               setEditingId(null);
               form.resetFields();
+              setSelectedUser(null);
+              setSelectedStore(null);
               setModalVisible(true);
             }}
           >
@@ -298,46 +311,29 @@ const EmployeesPage = () => {
         dataSource={employees}
         loading={loading}
         rowKey="id"
-        className="coupon-table"
       />
 
       <Modal
-        title={editingId ? 'Chỉnh sửa nhân viên' : 'Thêm nhân viên mới'}
+        title={editingId ? "Sửa nhân viên" : "Thêm nhân viên mới"}
         open={modalVisible}
-        onCancel={() => setModalVisible(false)}
+        onCancel={() => {
+          setModalVisible(false);
+          form.resetFields();
+          setSelectedUser(null);
+          setSelectedStore(null);
+        }}
         footer={null}
         width={600}
       >
-        <Form form={form} onFinish={handleSubmit} layout="vertical">
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={handleSubmit}
+        >
           <Form.Item
-            name="user_id"
-            label="Người dùng"
-            rules={[{ required: true, message: 'Vui lòng chọn người dùng' }]}
-          >
-            <AutoComplete
-              options={userOptions}
-              onSearch={searchUsers}
-              onChange={(value) => {
-                form.setFieldsValue({ user_id: value });
-                setUserSearchValue(value);
-              }}
-              placeholder="Tìm kiếm theo tên hoặc email..."
-              style={{ width: '100%' }}
-            />
-          </Form.Item>
-
-          <Form.Item
-            name="first_name"
-            label="Họ"
-            rules={[{ required: true, message: 'Vui lòng nhập họ' }]}
-          >
-            <Input />
-          </Form.Item>
-
-          <Form.Item
-            name="last_name"
-            label="Tên"
-            rules={[{ required: true, message: 'Vui lòng nhập tên' }]}
+            name="name"
+            label="Họ và tên"
+            rules={[{ required: true, message: 'Vui lòng nhập họ và tên' }]}
           >
             <Input />
           </Form.Item>
@@ -351,55 +347,93 @@ const EmployeesPage = () => {
           </Form.Item>
 
           <Form.Item
-            name="address"
-            label="Địa chỉ"
-            rules={[{ required: true, message: 'Vui lòng nhập địa chỉ' }]}
-          >
-            <Input.TextArea />
-          </Form.Item>
-
-          <Form.Item
-            name="employee_code"
-            label="Mã nhân viên"
-            rules={[{ required: true, message: 'Vui lòng nhập mã nhân viên' }]}
+            name="email"
+            label="Email"
+            rules={[
+              { required: true, message: 'Vui lòng nhập email' },
+              { type: 'email', message: 'Email không hợp lệ' }
+            ]}
           >
             <Input />
           </Form.Item>
 
           <Form.Item
-            name="position"
-            label="Chức vụ"
-            rules={[{ required: true, message: 'Vui lòng chọn chức vụ' }]}
+            name="user"
+            label="Tài khoản"
           >
-            <Select>
-              {groups.map(group => (
-                <Option key={group.id} value={group.name}>
-                  {group.name}
-                </Option>
-              ))}
-            </Select>
+            <AutoComplete
+              options={userOptions}
+              onSearch={searchUsers}
+              onChange={(value) => {
+                form.setFieldsValue({ 
+                  user: value,
+                  auto_create: value ? true : false 
+                });
+                setUserSearchValue(value);
+                if (!value) {
+                  setSelectedUser(null);
+                }
+              }}
+              onSelect={(value, option) => {
+                setSelectedUser(option.user);
+                form.setFieldsValue({ 
+                  user: option.label,
+                  auto_create: true 
+                });
+              }}
+              placeholder="Tìm kiếm tài khoản..."
+              style={{ width: '100%' }}
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="address"
+            label="Địa chỉ"
+          >
+            <Input.TextArea />
           </Form.Item>
 
           <Form.Item
             name="hire_date"
             label="Ngày vào làm"
-            rules={[{ required: true, message: 'Vui lòng chọn ngày vào làm' }]}
           >
             <DatePicker style={{ width: '100%' }} />
           </Form.Item>
 
           <Form.Item
-            name="store_id"
+            name="store"
             label="Cửa hàng"
-            rules={[{ required: true, message: 'Vui lòng chọn cửa hàng' }]}
           >
-            <Select>
-              {stores.map(store => (
-                <Option key={store.id} value={store.id}>
-                  {store.name} - {store.store_code}
-                </Option>
-              ))}
-            </Select>
+            <AutoComplete
+              options={storeOptions}
+              onSearch={(value) => {
+                const filteredOptions = storeOptions.filter(option =>
+                  option.label.toLowerCase().includes(value.toLowerCase())
+                );
+                setStoreOptions(filteredOptions);
+              }}
+              onChange={(value) => {
+                form.setFieldsValue({ store: value });
+                setStoreSearchValue(value);
+                if (!value) {
+                  setSelectedStore(null);
+                }
+              }}
+              onSelect={(value, option) => {
+                setSelectedStore(option.store);
+                form.setFieldsValue({ store: option.label });
+              }}
+              placeholder="Tìm kiếm cửa hàng..."
+              style={{ width: '100%' }}
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="auto_create"
+            valuePropName="checked"
+            initialValue={false}
+          >
+            <Checkbox disabled={!!selectedUser}>Tự động tạo tài khoản</Checkbox>
           </Form.Item>
 
           <Form.Item>
@@ -407,7 +441,14 @@ const EmployeesPage = () => {
               <Button type="primary" htmlType="submit">
                 {editingId ? 'Cập nhật' : 'Thêm mới'}
               </Button>
-              <Button onClick={() => setModalVisible(false)}>Hủy</Button>
+              <Button onClick={() => {
+                setModalVisible(false);
+                form.resetFields();
+                setSelectedUser(null);
+                setSelectedStore(null);
+              }}>
+                Hủy
+              </Button>
             </Space>
           </Form.Item>
         </Form>

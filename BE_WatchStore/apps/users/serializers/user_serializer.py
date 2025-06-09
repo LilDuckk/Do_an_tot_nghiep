@@ -18,6 +18,7 @@ class UserSerializer(serializers.ModelSerializer):
         required=False,
         write_only=True
     )
+    employee_details = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = UserAccount
@@ -31,6 +32,7 @@ class UserSerializer(serializers.ModelSerializer):
             'password',
             'groups',      # Trả về thông tin group (id, name)
             'groups_id',   # Nhận danh sách id group khi tạo/cập nhật
+            'employee_details',
         ]
         read_only_fields = ['is_staff', 'is_superuser']
 
@@ -69,3 +71,16 @@ class UserSerializer(serializers.ModelSerializer):
                     'groups_id': 'Tài khoản phải thuộc ít nhất 1 group, trừ khi là tài khoản superuser.'
                 })
         return attrs
+
+    def get_employee_details(self, obj):
+        if hasattr(obj, 'employee_user_set') and obj.employee_user_set.exists():
+            employee = obj.employee_user_set.first()
+            return {
+                'id': employee.id,
+                'name': employee.name,
+                'employee_code': employee.employee_code,
+                'position': employee.position,
+                'store': employee.store.id if employee.store else None,
+                'store_name': employee.store.name if employee.store else None
+            }
+        return None
