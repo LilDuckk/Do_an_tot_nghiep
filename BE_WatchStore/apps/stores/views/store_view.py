@@ -9,7 +9,7 @@ from apps.stores.models.store import Store
 from apps.stores.serializers.store_serializer import StoreSerializer
 
 class StoreViewSet(viewsets.ModelViewSet):
-    queryset = Store.objects.all()
+    queryset = Store.objects.filter(is_deleted=False)
     serializer_class = StoreSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
@@ -38,5 +38,5 @@ class StoreViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['get'])
     def employee_count(self, request, pk=None):
         store = self.get_object()
-        employee_count = store.employees.count()
+        employee_count = store.employees.filter(is_deleted=False).count()
         return Response({'employee_count': employee_count}) 

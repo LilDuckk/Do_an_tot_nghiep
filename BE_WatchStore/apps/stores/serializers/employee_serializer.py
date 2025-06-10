@@ -12,12 +12,12 @@ class EmployeeSerializer(serializers.ModelSerializer):
         model = Employee
         fields = [
             'id', 'user', 'user_details', 'name', 'phone', 'email',
-            'address', 'employee_code', 'position', 'hire_date',
+            'address', 'employee_code', 'position', 'is_manager', 'hire_date',
             'store', 'store_details', 'created_at', 'updated_at',
             'created_by', 'created_by_details', 'updated_by', 'updated_by_details',
             'auto_create'
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at', 'created_by', 'updated_by', 'employee_code', 'position']
+        read_only_fields = ['id', 'created_at', 'updated_at', 'created_by', 'updated_by', 'employee_code']
         extra_kwargs = {
             'name': {'required': True},
             'phone': {'required': True},
@@ -31,8 +31,11 @@ class EmployeeSerializer(serializers.ModelSerializer):
         return None
 
     def create(self, validated_data):
-        # Lấy position từ group_permissions của user nếu có
-        if validated_data.get('user'):
+        # Nếu is_manager=True, set position là "Quản lý"
+        if validated_data.get('is_manager'):
+            validated_data['position'] = "Quản lý"
+        # Nếu không phải manager và có user, lấy position từ group_permissions
+        elif validated_data.get('user'):
             user = validated_data['user']
             if user.groups.exists():
                 group = user.groups.first()
@@ -40,8 +43,11 @@ class EmployeeSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
 
     def update(self, instance, validated_data):
-        # Cập nhật position nếu user thay đổi
-        if 'user' in validated_data and validated_data['user'] != instance.user:
+        # Nếu is_manager=True, set position là "Quản lý"
+        if validated_data.get('is_manager'):
+            validated_data['position'] = "Quản lý"
+        # Nếu không phải manager và có user, lấy position từ group_permissions
+        elif 'user' in validated_data and validated_data['user'] != instance.user:
             user = validated_data['user']
             if user.groups.exists():
                 group = user.groups.first()

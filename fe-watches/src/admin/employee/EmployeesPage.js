@@ -132,7 +132,9 @@ const EmployeesPage = () => {
         hire_date: values.hire_date?.format('YYYY-MM-DD'),
         store: selectedStore?.id,
         auto_create: selectedUser ? true : (values.auto_create || false),
-        user: selectedUser?.id
+        user: selectedUser?.id,
+        is_manager: values.is_manager || false,
+        position: values.position || 'Nhân viên bán hàng'
       };
 
       if (editingId) {
@@ -220,20 +222,26 @@ const EmployeesPage = () => {
       key: 'user',
       render: (_, record) => record.user_details?.username || '-'
     },
-    {
-      title: 'Địa chỉ',
-      dataIndex: 'address',
-      key: 'address',
-    },
+    // {
+    //   title: 'Địa chỉ',
+    //   dataIndex: 'address',
+    //   key: 'address',
+    // },
     {
       title: 'Mã nhân viên',
       dataIndex: 'employee_code',
       key: 'employee_code',
     },
+    // {
+    //   title: 'Chức vụ',
+    //   dataIndex: 'position',
+    //   key: 'position',
+    // },
     {
-      title: 'Chức vụ',
-      dataIndex: 'position',
-      key: 'position',
+      title: 'Vị trí',
+      dataIndex: 'is_manager',
+      key: 'is_manager',
+      render: (isManager) => isManager ? 'Quản lý' : 'Nhân viên'
     },
     {
       title: 'Ngày vào làm',
@@ -434,6 +442,25 @@ const EmployeesPage = () => {
             initialValue={false}
           >
             <Checkbox disabled={!!selectedUser}>Tự động tạo tài khoản</Checkbox>
+          </Form.Item>
+
+          <Form.Item
+            name="is_manager"
+            label="Vị trí"
+            initialValue={false}
+          >
+            <Select>
+              <Option value={true}>Quản lý</Option>
+              <Option value={false}>Nhân viên</Option>
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            name="position"
+            label="Chức vụ"
+            initialValue="Nhân viên bán hàng"
+          >
+            <Input />
           </Form.Item>
 
           <Form.Item>

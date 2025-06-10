@@ -114,18 +114,34 @@ DELETE /api/stores/{id}/ - Xóa store
             "name": "Watch Store Hà Nội",
             "address": "123 Nguyễn Huệ, Quận 1, Hà Nội",
             "phone": "024-1234-5678",
+            "store_code": "WAT1234567",
             "is_active": true,
+            "managers": [
+                {
+                    "id": 1,
+                    "name": "Nguyễn Văn A",
+                    "employee_code": "NVA123456",
+                    "position": "Quản lý",
+                    "email": "nguyenvana@watchstore.com",
+                    "phone": "0987654321"
+                }
+            ],
             "created_at": "2024-03-15T08:00:00Z",
-            "updated_at": "2024-03-15T08:00:00Z"
-        },
-        {
-            "id": 2,
-            "name": "Watch Store Hồ Chí Minh",
-            "address": "456 Lê Lợi, Quận 1, TP.HCM",
-            "phone": "028-8765-4321",
-            "is_active": true,
-            "created_at": "2024-03-15T08:00:00Z",
-            "updated_at": "2024-03-15T08:00:00Z"
+            "updated_at": "2024-03-15T08:00:00Z",
+            "created_by": 1,
+            "created_by_details": {
+                "id": 1,
+                "username": "admin",
+                "email": "admin@watchstore.com",
+                "is_active": true
+            },
+            "updated_by": 1,
+            "updated_by_details": {
+                "id": 1,
+                "username": "admin",
+                "email": "admin@watchstore.com",
+                "is_active": true
+            }
         }
     ]
 }
@@ -140,8 +156,7 @@ DELETE /api/stores/{id}/ - Xóa store
     "name": "Watch Store Đà Nẵng",
     "address": "789 Nguyễn Văn Linh, Quận Hải Châu, Đà Nẵng",
     "phone": "0236-1234-5678",
-    "is_active": true,
-    "manager_id": 3
+    "is_active": true
 }
 
 ### PUT /api/stores/{id}/
@@ -149,21 +164,20 @@ DELETE /api/stores/{id}/ - Xóa store
     "name": "Watch Store Hà Nội - Chi nhánh mới",
     "address": "123 Nguyễn Huệ, Quận 1, Hà Nội",
     "phone": "024-1234-5678",
-    "is_active": true,
-    "manager_id": 1
+    "is_active": true
 }
 
 # API Endpoints cho Employee
 ## Danh sách API
-GET /api/employees/ - Lấy danh sách employees (có phân trang)
-GET /api/employees/list_all/ - Lấy tất cả employees (không phân trang)
-GET /api/employees/{id}/ - Lấy chi tiết một employee
-POST /api/employees/ - Tạo employee mới
-PUT /api/employees/{id}/ - Cập nhật employee
-DELETE /api/employees/{id}/ - Xóa employee
+GET /api/stores/employees/ - Lấy danh sách employees (có phân trang)
+GET /api/stores/employees/list_all/ - Lấy tất cả employees (không phân trang)
+GET /api/stores/employees/{id}/ - Lấy chi tiết một employee
+POST /api/stores/employees/ - Tạo employee mới
+PUT /api/stores/employees/{id}/ - Cập nhật employee
+DELETE /api/stores/employees/{id}/ - Xóa employee
 
 ## Dữ liệu mẫu cho Employee
-### GET /api/employees/
+### GET /api/stores/employees/
 {
     "count": 2,
     "next": null,
@@ -183,7 +197,8 @@ DELETE /api/employees/{id}/ - Xóa employee
             "email": "nguyenvana@watchstore.com",
             "address": "789 Trần Hưng Đạo, Hà Nội",
             "employee_code": "NVA123456",
-            "position": "Store Manager",
+            "position": "Quản lý",
+            "is_manager": true,
             "hire_date": "2024-01-01",
             "store": 1,
             "store_details": {
@@ -194,7 +209,22 @@ DELETE /api/employees/{id}/ - Xóa employee
                 "is_active": true
             },
             "created_at": "2024-03-15T08:00:00Z",
-            "updated_at": "2024-03-15T08:00:00Z"
+            "updated_at": "2024-03-15T08:00:00Z",
+            "created_by": 1,
+            "created_by_details": {
+                "id": 1,
+                "username": "admin",
+                "email": "admin@watchstore.com",
+                "is_active": true
+            },
+            "updated_by": 1,
+            "updated_by_details": {
+                "id": 1,
+                "username": "admin",
+                "email": "admin@watchstore.com",
+                "is_active": true
+            },
+            "auto_create": false
         },
         {
             "id": 2,
@@ -205,12 +235,13 @@ DELETE /api/employees/{id}/ - Xóa employee
                 "email": "staff.hn@watchstore.com",
                 "is_active": true
             },
-            "first_name": "Trần",
-            "last_name": "Thị B",
+            "name": "Trần Thị B",
             "phone": "0987654322",
+            "email": "staff.hn@watchstore.com",
             "address": "456 Lê Duẩn, Hà Nội",
-            "employee_code": "EMP002",
-            "position": "Sales Staff",
+            "employee_code": "TTB123456",
+            "position": "Nhân viên bán hàng",
+            "is_manager": false,
             "hire_date": "2024-02-01",
             "store": 1,
             "store_details": {
@@ -221,12 +252,27 @@ DELETE /api/employees/{id}/ - Xóa employee
                 "is_active": true
             },
             "created_at": "2024-03-15T08:00:00Z",
-            "updated_at": "2024-03-15T08:00:00Z"
+            "updated_at": "2024-03-15T08:00:00Z",
+            "created_by": 1,
+            "created_by_details": {
+                "id": 1,
+                "username": "admin",
+                "email": "admin@watchstore.com",
+                "is_active": true
+            },
+            "updated_by": 1,
+            "updated_by_details": {
+                "id": 1,
+                "username": "admin",
+                "email": "admin@watchstore.com",
+                "is_active": true
+            },
+            "auto_create": true
         }
     ]
 }
 
-### POST /api/employees/
+### POST /api/stores/employees/
 {
     "name": "Lê Văn C",
     "phone": "0987654323",
@@ -234,11 +280,12 @@ DELETE /api/employees/{id}/ - Xóa employee
     "address": "321 Lý Thường Kiệt, Hà Nội",
     "hire_date": "2024-03-01",
     "store": 1,
-    "auto_create": true,
-    "user": null
+    "is_manager": false,
+    "position": "Nhân viên bán hàng",
+    "auto_create": true
 }
 
-### PUT /api/employees/{id}/
+### PUT /api/stores/employees/{id}/
 {
     "name": "Nguyễn Văn A",
     "phone": "0987654321",
@@ -246,6 +293,7 @@ DELETE /api/employees/{id}/ - Xóa employee
     "address": "789 Trần Hưng Đạo, Hà Nội",
     "hire_date": "2024-01-01",
     "store": 1,
+    "is_manager": true,
     "user": 1,
     "auto_create": false
 }
@@ -259,7 +307,127 @@ DELETE /api/employees/{id}/ - Xóa employee
 - API đếm nhân viên: /api/stores/{id}/employee_count/
 
 ## Employee
-- Tìm kiếm theo: first_name, last_name, phone, employee_code
-- Lọc theo: store, position
-- Sắp xếp theo: first_name, last_name, hire_date, created_at
+- Tìm kiếm theo: name, phone, employee_code
+- Lọc theo: store, position, is_manager
+- Sắp xếp theo: name, hire_date, created_at
 - Phân trang: Mặc định 10 items/trang
+
+# API Endpoints cho Inventory
+## Danh sách API
+GET /api/inventory/inventories/ - Lấy danh sách tồn kho (có phân trang)
+GET /api/inventory/inventories/list_all/ - Lấy tất cả tồn kho (không phân trang)
+GET /api/inventory/inventories/{id}/ - Lấy chi tiết một tồn kho
+POST /api/inventory/inventories/ - Tạo tồn kho mới
+PUT /api/inventory/inventories/{id}/ - Cập nhật tồn kho
+DELETE /api/inventory/inventories/{id}/ - Xóa tồn kho
+
+## Các API khác trong Inventory
+GET /api/inventory/inventory-transactions/ - Lấy danh sách giao dịch tồn kho
+GET /api/inventory/stock-takes/ - Lấy danh sách kiểm kê
+GET /api/inventory/stock-transfers/ - Lấy danh sách chuyển kho
+
+## Dữ liệu mẫu cho Inventory
+### GET /api/inventory/inventories/
+{
+    "count": 2,
+    "next": null,
+    "previous": null,
+    "results": [
+        {
+            "id": 1,
+            "product": {
+                "id": 1,
+                "name": "Rolex Submariner",
+                "brand": "Rolex",
+                "category": "Diving Watch",
+                "price": 85000000,
+                "description": "Classic diving watch with water resistance up to 300m"
+            },
+            "variant": {
+                "id": 1,
+                "sku": "ROLEX-SUB-001",
+                "attribute_values": [
+                    {
+                        "id": 1,
+                        "value": "Black",
+                        "attribute_type": {
+                            "id": 1,
+                            "name": "Color"
+                        }
+                    },
+                    {
+                        "id": 2,
+                        "value": "41mm",
+                        "attribute_type": {
+                            "id": 2,
+                            "name": "Size"
+                        }
+                    }
+                ],
+                "price_adjustment": 0,
+                "is_active": true
+            },
+            "store": 1,
+            "store_details": {
+                "id": 1,
+                "name": "Watch Store Hà Nội",
+                "address": "123 Nguyễn Huệ, Quận 1, Hà Nội",
+                "phone": "024-1234-5678",
+                "is_active": true
+            },
+            "quantity": 5,
+            "last_updated": "2024-03-15T10:30:00Z",
+            "created_at": "2024-03-15T08:00:00Z",
+            "updated_at": "2024-03-15T10:30:00Z",
+            "created_by": 1,
+            "created_by_details": {
+                "id": 1,
+                "username": "admin",
+                "email": "admin@watchstore.com",
+                "is_active": true
+            },
+            "updated_by": 1,
+            "updated_by_details": {
+                "id": 1,
+                "username": "admin",
+                "email": "admin@watchstore.com",
+                "is_active": true
+            }
+        }
+    ]
+}
+
+### POST /api/inventory/inventories/
+{
+    "product_variant": 1,  // ID của biến thể sản phẩm (ProductVariant)
+    "store": 1,            // ID của cửa hàng
+    "quantity": 5          // Số lượng tồn kho
+}
+
+### PUT /api/inventory/inventories/{id}/
+{
+    "product_variant": 1,  // ID của biến thể sản phẩm (ProductVariant)
+    "store": 1,            // ID của cửa hàng
+    "quantity": 10         // Số lượng tồn kho mới
+}
+
+# Các tính năng tìm kiếm và lọc
+## Inventory
+- Tìm kiếm theo: 
+  + Tên sản phẩm: `?search=keyword` (tìm trong `product_variant__product__name`)
+  + Mã SKU: `?search=keyword` (tìm trong `product_variant__sku`)
+  + Tên cửa hàng: `?search=keyword` (tìm trong `store__name`)
+- Lọc theo: 
+  + Cửa hàng: `?store=1`
+  + Biến thể sản phẩm: `?product_variant=1`
+- Sắp xếp theo: 
+  + Số lượng: `?ordering=quantity` hoặc `?ordering=-quantity`
+  + Thời gian cập nhật: `?ordering=last_updated` hoặc `?ordering=-last_updated`
+  + Thời gian tạo: `?ordering=created_at` hoặc `?ordering=-created_at`
+- Phân trang: Mặc định 10 items/trang
+- API list_all: Lấy tất cả tồn kho không phân trang
+
+# Quyền truy cập
+- Cho phép xem danh sách và chi tiết mà không cần đăng nhập
+- Yêu cầu đăng nhập cho các thao tác thêm/sửa/xóa
+- Tự động gán người tạo và người cập nhật khi thực hiện các thao tác

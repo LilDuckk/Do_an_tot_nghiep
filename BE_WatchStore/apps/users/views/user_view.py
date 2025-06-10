@@ -9,11 +9,11 @@ from apps.users.serializers.auth.change_password_serializer import ChangePasswor
 from rest_framework.permissions import DjangoModelPermissions
 
 class UserViewSet(viewsets.ModelViewSet):
-    queryset = UserAccount.objects.all()
+    queryset = UserAccount.objects.filter(is_deleted=False)
     serializer_class = UserSerializer
     permission_classes = [DjangoModelPermissions]
     filterset_fields = ['is_active', 'is_staff']
-    search_fields = ['username', 'email']  # ✅ Nếu model không có first_name, last_name
+    search_fields = ['username', 'email']
     ordering_fields = ['username', 'email', 'created_at']
     ordering = ['-created_at']
 
@@ -37,7 +37,7 @@ class UserViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], url_path='all', url_name='all')
     def list_all(self, request):
         """
-        Lấy tất cả user đang active với khả năng tìm kiếm và lọc
+        Lấy tất cả user đang active và chưa bị xóa với khả năng tìm kiếm và lọc
         """
         queryset = self.get_queryset().filter(is_active=True)
         

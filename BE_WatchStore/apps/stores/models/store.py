@@ -24,3 +24,12 @@ class Store(BaseModel):
 
     def __str__(self):
         return self.name
+
+    def delete(self, *args, **kwargs):
+        # Xóa mềm tất cả nhân viên của cửa hàng
+        for employee in self.employees.all():
+            employee.delete()
+        
+        # Xóa mềm cửa hàng
+        self.is_deleted = True
+        self.save()

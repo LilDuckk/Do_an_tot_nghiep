@@ -9,13 +9,13 @@ from apps.stores.serializers.employee_serializer import EmployeeSerializer
 from rest_framework.permissions import DjangoModelPermissions
 
 class EmployeeViewSet(viewsets.ModelViewSet):
-    queryset = Employee.objects.all()
+    queryset = Employee.objects.filter(is_deleted=False)
     serializer_class = EmployeeSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['store', 'position']
-    search_fields = ['first_name', 'last_name', 'phone', 'employee_code']
-    ordering_fields = ['first_name', 'last_name', 'hire_date', 'created_at']
+    filterset_fields = ['store', 'position', 'is_manager']
+    search_fields = ['name', 'phone', 'employee_code']
+    ordering_fields = ['name', 'hire_date', 'created_at']
     ordering = ['-created_at']
 
     def get_permissions(self):

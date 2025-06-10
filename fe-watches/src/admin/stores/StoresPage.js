@@ -115,8 +115,7 @@ const StoresPage = () => {
         name: values.name,
         address: values.address,
         phone: values.phone,
-        is_active: values.is_active ?? true,
-        manager_id: selectedManager?.id
+        is_active: values.is_active ?? true
       };
 
       if (editingId) {
@@ -154,7 +153,6 @@ const StoresPage = () => {
       }
       setModalVisible(false);
       form.resetFields();
-      setSelectedManager(null);
       fetchStores();
     } catch (error) {
       message.error('Có lỗi xảy ra');
@@ -188,7 +186,8 @@ const StoresPage = () => {
         const searchLower = searchManagerText.toLowerCase();
         return (
           (emp.name?.toLowerCase() || '').includes(searchLower) ||
-          (emp.employee_code?.toLowerCase() || '').includes(searchLower)
+          (emp.employee_code?.toLowerCase() || '').includes(searchLower) ||
+          (emp.is_manager === true)
         );
       })
       .map(emp => ({
@@ -216,10 +215,14 @@ const StoresPage = () => {
     },
     {
       title: 'Quản lý',
-      dataIndex: ['manager', 'name'],
-      key: 'manager',
-      render: (_, record) => 
-        record.manager ? `${record.manager.name} - ${record.manager.employee_code}` : '-',
+      dataIndex: 'managers',
+      key: 'managers',
+      render: (managers) => {
+        if (!managers || managers.length === 0) return '-';
+        return managers.map(manager => 
+          `${manager.name} - ${manager.employee_code}`
+        ).join(', ');
+      }
     },
     {
       title: 'Số nhân viên',
@@ -310,7 +313,6 @@ const StoresPage = () => {
         onCancel={() => {
           setModalVisible(false);
           form.resetFields();
-          setSelectedManager(null);
         }}
         footer={null}
       >
@@ -344,23 +346,6 @@ const StoresPage = () => {
           </Form.Item>
 
           <Form.Item
-            name="manager"
-            label="Quản lý"
-          >
-            <AutoComplete
-              options={getManagerOptions()}
-              value={searchManagerText}
-              onChange={setSearchManagerText}
-              onSelect={(value, option) => {
-                setSelectedManager(option.employee);
-                form.setFieldsValue({ manager: value });
-              }}
-              placeholder="Tìm kiếm quản lý..."
-              style={{ width: '100%' }}
-            />
-          </Form.Item>
-
-          <Form.Item
             name="is_active"
             label="Trạng thái"
             initialValue={true}
@@ -379,7 +364,6 @@ const StoresPage = () => {
               <Button onClick={() => {
                 setModalVisible(false);
                 form.resetFields();
-                setSelectedManager(null);
               }}>
                 Hủy
               </Button>

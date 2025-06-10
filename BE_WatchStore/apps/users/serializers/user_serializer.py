@@ -73,14 +73,14 @@ class UserSerializer(serializers.ModelSerializer):
         return attrs
 
     def get_employee_details(self, obj):
-        if hasattr(obj, 'employee_user_set') and obj.employee_user_set.exists():
-            employee = obj.employee_user_set.first()
+        if hasattr(obj, 'employee_user_set') and obj.employee_user_set.filter(is_deleted=False).exists():
+            employee = obj.employee_user_set.filter(is_deleted=False).first()
             return {
                 'id': employee.id,
                 'name': employee.name,
                 'employee_code': employee.employee_code,
                 'position': employee.position,
-                'store': employee.store.id if employee.store else None,
-                'store_name': employee.store.name if employee.store else None
+                'store': employee.store.id if employee.store and not employee.store.is_deleted else None,
+                'store_name': employee.store.name if employee.store and not employee.store.is_deleted else None
             }
         return None

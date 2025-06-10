@@ -35,6 +35,56 @@ class ProductViewSet(viewsets.ModelViewSet):
         return obj
     
     @action(detail=True, methods=['get'])
+    def get_variants(self, request, pk=None):
+        """
+        Lấy danh sách biến thể của một sản phẩm
+        """
+        product = self.get_object()
+        variants = product.variants.filter(is_deleted=False).select_related(
+            'product'
+        ).prefetch_related(
+            'attribute_values',
+            'attribute_values__attribute_type',
+            'images'
+        ).order_by('-id')
+
+        # Tìm kiếm theo giá trị thuộc tính
+        search = request.query_params.get('search', None)
+        if search:
+            variants = variants.filter(
+                Q(attribute_values__value__icontains=search) |
+                Q(sku__icontains=search)
+            ).distinct()
+
+        # Lọc theo thuộc tính
+        attr_values = request.query_params.getlist('attr_values', [])
+        if attr_values:
+            for value in attr_values:
+                variants = variants.filter(
+                    attribute_values__value__icontains=value
+                ).distinct()
+
+        # Lọc theo trạng thái
+        is_active = request.query_params.get('is_active', None)
+        if is_active is not None:
+            is_active_bool = is_active.lower() == 'true'
+            variants = variants.filter(is_active=is_active_bool)
+
+        # Sắp xếp
+        sort_by = request.query_params.get('sort_by', None)
+        if sort_by == 'sku':
+            variants = variants.order_by('sku')
+        elif sort_by == '-sku':
+            variants = variants.order_by('-sku')
+        elif sort_by == 'price':
+            variants = variants.order_by('price_adjustment')
+        elif sort_by == '-price':
+            variants = variants.order_by('-price_adjustment')
+
+        serializer = ProductVariantSerializer(variants, many=True)
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['get'])
     def get_attributes(self, request, pk=None):
         """
         Lấy danh sách attributes và values của sản phẩm
