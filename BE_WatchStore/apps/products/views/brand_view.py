@@ -3,11 +3,13 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from apps.products.models.brand import Brand
 from apps.products.serializers.brand_serializer import BrandSerializer
-from rest_framework.permissions import DjangoModelPermissions, AllowAny
+from apps.core.utils.permissions import IsAdminUser
+from rest_framework.permissions import IsAuthenticated
 
 class BrandViewSet(viewsets.ModelViewSet):
     queryset = Brand.objects.all()
     serializer_class = BrandSerializer
+    permission_classes = [IsAdminUser]
     filterset_fields = ['name']
     search_fields = ['name', 'description']
     ordering_fields = ['name', 'created_at']
@@ -15,12 +17,12 @@ class BrandViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         """
-        Cho phép truy cập public cho các action GET
-        Yêu cầu quyền admin cho các action thay đổi dữ liệu
+        Tùy chỉnh permission cho từng action
         """
         if self.action in ['list', 'retrieve', 'list_all']:
-            return [AllowAny()]
-        return [DjangoModelPermissions()]
+            # Cho phép user đã đăng nhập xem danh sách và chi tiết thương hiệu
+            return [IsAuthenticated()]
+        return super().get_permissions()
 
     @action(detail=False, methods=['get'])
     def list_all(self, request):

@@ -2,22 +2,33 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-
 from apps.users.models.user import UserAccount
 from apps.users.serializers.user_serializer import UserSerializer
 from apps.users.serializers.auth.change_password_serializer import ChangePasswordSerializer
-from rest_framework.permissions import DjangoModelPermissions
+from apps.core.utils.permissions import IsAdminUser, IsOwnerOrAdmin
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = UserAccount.objects.filter(is_deleted=False)
     serializer_class = UserSerializer
-    permission_classes = [DjangoModelPermissions]
+    permission_classes = [IsAdminUser]
     filterset_fields = ['is_active', 'is_staff']
     search_fields = ['username', 'email']
     ordering_fields = ['username', 'email', 'created_at']
     ordering = ['-created_at']
 
-    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def get_permissions(self):
+        """
+        Tùy chỉnh permission cho từng action
+        """
+        if self.action in ['change_password']:
+            # Cho phép user thay đổi mật khẩu của chính họ
+            return [IsOwnerOrAdmin()]
+        elif self.action in ['list_all']:
+            # Cho phép user có quyền view xem danh sách
+            return [IsAuthenticated()]
+        return super().get_permissions()
+
+    @action(detail=True, methods=['post'], permission_classes=[IsOwnerOrAdmin])
     def change_password(self, request, pk=None):
         user = self.get_object()
         serializer = ChangePasswordSerializer(data=request.data)

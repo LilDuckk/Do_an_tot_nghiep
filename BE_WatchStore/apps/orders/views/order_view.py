@@ -1,7 +1,8 @@
 from rest_framework import viewsets
 from apps.orders.models.order import Orders
 from apps.orders.serializers.order_serializer import OrderSerializer
-from rest_framework.permissions import DjangoModelPermissions
+from apps.core.utils.permissions import IsAdminUser
+from rest_framework.permissions import IsAuthenticated
 from apps.core.mixins import SoftDeleteMixin
 from django_filters import rest_framework as filters
 
@@ -15,8 +16,17 @@ class OrderFilter(filters.FilterSet):
 class OrderViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
     queryset = Orders.objects.all()
     serializer_class = OrderSerializer
-    permission_classes = [DjangoModelPermissions]
+    permission_classes = [IsAdminUser]
     filterset_class = OrderFilter
     search_fields = ['order_number']
     ordering_fields = ['order_number', 'created_at']
-    ordering = ['-created_at'] 
+    ordering = ['-created_at']
+
+    def get_permissions(self):
+        """
+        Tùy chỉnh permission cho từng action
+        """
+        if self.action in ['list', 'retrieve']:
+            # Cho phép user đã đăng nhập xem danh sách và chi tiết đơn hàng
+            return [IsAuthenticated()]
+        return super().get_permissions() 

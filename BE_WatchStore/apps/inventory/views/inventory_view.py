@@ -1,12 +1,12 @@
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
-from rest_framework.permissions import DjangoModelPermissions
 from rest_framework import serializers
 from rest_framework import status
+from apps.core.utils.permissions import IsAdminUser
 
 from apps.inventory.models.inventory import Inventory
 from apps.inventory.serializers.inventory_serializer import InventorySerializer
@@ -17,7 +17,7 @@ class InventoryViewSet(viewsets.ModelViewSet):
     """
     queryset = Inventory.objects.filter(is_deleted=False)
     serializer_class = InventorySerializer
-    permission_classes = [DjangoModelPermissions]
+    permission_classes = [IsAdminUser]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     
     # Các trường có thể lọc
@@ -32,12 +32,12 @@ class InventoryViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         """
-        Cho phép xem danh sách và chi tiết mà không cần đăng nhập
-        Các thao tác khác yêu cầu đăng nhập
+        Tùy chỉnh permission cho từng action
         """
         if self.action in ['list', 'retrieve', 'list_all']:
-            return [AllowAny()]
-        return [DjangoModelPermissions()]
+            # Cho phép user đã đăng nhập xem danh sách và chi tiết tồn kho
+            return [IsAuthenticated()]
+        return super().get_permissions()
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)

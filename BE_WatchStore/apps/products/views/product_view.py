@@ -15,10 +15,22 @@ from apps.products.utils import convert_to_png
 from django.http import Http404
 from apps.products.models.attribute import AttributeValue, AttributeType
 from django.db import models
+from apps.core.utils.permissions import IsAdminUser
+from rest_framework.permissions import IsAuthenticated
 
 class ProductViewSet(viewsets.ModelViewSet):
     queryset = Product.objects.filter(is_deleted=False)
     serializer_class = ProductSerializer
+    permission_classes = [IsAdminUser]
+    
+    def get_permissions(self):
+        """
+        Tùy chỉnh permission cho từng action
+        """
+        if self.action in ['list', 'retrieve', 'list_all', 'featured']:
+            # Cho phép user đã đăng nhập xem danh sách và chi tiết sản phẩm
+            return [IsAuthenticated()]
+        return super().get_permissions()
     
     def get_serializer_class(self):
         if self.action == 'retrieve':
@@ -272,12 +284,22 @@ class ProductViewSet(viewsets.ModelViewSet):
 class ProductVariantViewSet(viewsets.ModelViewSet):
     queryset = ProductVariant.objects.all()
     serializer_class = ProductVariantSerializer
+    permission_classes = [IsAdminUser]
 
+    def get_permissions(self):
+        """
+        Tùy chỉnh permission cho từng action
+        """
+        if self.action in ['list', 'retrieve', 'list_all']:
+            # Cho phép user đã đăng nhập xem danh sách và chi tiết biến thể
+            return [IsAuthenticated()]
+        return super().get_permissions()
+    
     @action(detail=False, methods=['get'])
     def list_all(self, request):
         queryset = self.filter_queryset(self.get_queryset())
         serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data) 
+        return Response(serializer.data)
     
     def get_queryset(self):
         queryset = super().get_queryset().select_related(
@@ -387,6 +409,16 @@ class ProductVariantViewSet(viewsets.ModelViewSet):
 class VariantImageViewSet(viewsets.ModelViewSet):
     queryset = VariantImage.objects.all()
     serializer_class = VariantImageSerializer
+    permission_classes = [IsAdminUser]
+    
+    def get_permissions(self):
+        """
+        Tùy chỉnh permission cho từng action
+        """
+        if self.action in ['list', 'retrieve']:
+            # Cho phép user đã đăng nhập xem danh sách và chi tiết ảnh
+            return [IsAuthenticated()]
+        return super().get_permissions()
     
     def get_queryset(self):
         queryset = super().get_queryset().select_related('variant', 'variant__product')

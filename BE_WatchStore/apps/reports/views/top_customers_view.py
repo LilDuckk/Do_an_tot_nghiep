@@ -1,10 +1,23 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
+from apps.core.utils.permissions import IsAdminUser
 from django.db import connection
 from apps.reports.serializers.top_customers_serializer import TopCustomersSerializer
 
 class TopCustomersView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def get_permissions(self):
+        """
+        Tùy chỉnh permission cho từng action
+        """
+        if self.request.method == 'GET':
+            # Cho phép user đã đăng nhập xem báo cáo khách hàng hàng đầu
+            return [IsAuthenticated()]
+        return super().get_permissions()
+
     def get(self, request):
         try:
             with connection.cursor() as cursor:

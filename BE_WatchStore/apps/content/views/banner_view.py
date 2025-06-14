@@ -2,15 +2,17 @@ from rest_framework import viewsets
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import DjangoModelPermissions, AllowAny
+from rest_framework.permissions import IsAuthenticated
 from apps.content.models.banner import Banner
 from apps.content.serializers.banner_serializer import BannerSerializer
+from apps.core.utils.permissions import IsAdminUser
 import os
 
 class BannerViewSet(viewsets.ModelViewSet):
     queryset = Banner.objects.all()
     serializer_class = BannerSerializer
     parser_classes = [MultiPartParser, FormParser]
+    permission_classes = [IsAdminUser]
     filterset_fields = ['title', 'banner_location', 'is_active']
     search_fields = ['title']
     ordering_fields = ['display_order', 'created_at']
@@ -18,12 +20,12 @@ class BannerViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         """
-        Cho phép truy cập public cho các action GET
-        Yêu cầu quyền admin cho các action thay đổi dữ liệu
+        Tùy chỉnh permission cho từng action
         """
         if self.action in ['list', 'retrieve', 'list_all']:
-            return [AllowAny()]
-        return [DjangoModelPermissions()]
+            # Cho phép user đã đăng nhập xem danh sách và chi tiết banner
+            return [IsAuthenticated()]
+        return super().get_permissions()
 
     @action(detail=False, methods=['get'], url_path='all', url_name='all')
     def list_all(self, request):
