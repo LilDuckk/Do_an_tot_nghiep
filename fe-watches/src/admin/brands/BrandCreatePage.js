@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { hasModulePermission } from '../../services/permission';
+import { PRODUCT_ENDPOINTS } from '../../config/api';
 import '../static/AdminCommon.css';
 
 export default function BrandCreatePage() {
@@ -28,7 +29,7 @@ export default function BrandCreatePage() {
     setError('');
     try {
       const token = localStorage.getItem('accessToken');
-      const res = await fetch('http://localhost:8000/api/products/brands/', {
+      const res = await fetch(PRODUCT_ENDPOINTS.BRANDS, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

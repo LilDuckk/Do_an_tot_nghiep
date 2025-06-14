@@ -16,7 +16,7 @@ from django.http import Http404
 from apps.products.models.attribute import AttributeValue, AttributeType
 from django.db import models
 from apps.core.utils.permissions import IsAdminUser
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 
 class ProductViewSet(viewsets.ModelViewSet):
     queryset = Product.objects.filter(is_deleted=False)
@@ -27,9 +27,9 @@ class ProductViewSet(viewsets.ModelViewSet):
         """
         Tùy chỉnh permission cho từng action
         """
-        if self.action in ['list', 'retrieve', 'list_all', 'featured']:
-            # Cho phép user đã đăng nhập xem danh sách và chi tiết sản phẩm
-            return [IsAuthenticated()]
+        if self.action in ['list', 'retrieve', 'list_all', 'featured', 'get_attributes', 'get_variants']:
+            # Cho phép tất cả người dùng xem danh sách và chi tiết sản phẩm
+            return [AllowAny()]
         return super().get_permissions()
     
     def get_serializer_class(self):
@@ -292,7 +292,7 @@ class ProductVariantViewSet(viewsets.ModelViewSet):
         """
         if self.action in ['list', 'retrieve', 'list_all']:
             # Cho phép user đã đăng nhập xem danh sách và chi tiết biến thể
-            return [IsAuthenticated()]
+            return [AllowAny()]
         return super().get_permissions()
     
     @action(detail=False, methods=['get'])
@@ -417,7 +417,7 @@ class VariantImageViewSet(viewsets.ModelViewSet):
         """
         if self.action in ['list', 'retrieve']:
             # Cho phép user đã đăng nhập xem danh sách và chi tiết ảnh
-            return [IsAuthenticated()]
+            return [AllowAny()]
         return super().get_permissions()
     
     def get_queryset(self):

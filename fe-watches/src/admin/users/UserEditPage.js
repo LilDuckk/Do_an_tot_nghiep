@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { USER_ENDPOINTS, AUTH_ENDPOINTS } from '../../config/api';
 import '../static/AdminCommon.css';
 
 export default function UserEditPage() {
@@ -18,7 +19,7 @@ export default function UserEditPage() {
       try {
         const token = localStorage.getItem('accessToken');
         // Lấy user
-        const res = await fetch(`http://localhost:8000/api/account/users/${id}/`, {
+        const res = await fetch(USER_ENDPOINTS.USER_DETAIL(id), {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (res.status === 403) {
@@ -31,7 +32,7 @@ export default function UserEditPage() {
         setUser(data);
         setSelectedGroups(Array.isArray(data.groups) ? data.groups.map(g => g.id) : []);
         // Lấy danh sách nhóm
-        const resGroups = await fetch('http://localhost:8000/api/account/auth/groups/', {
+        const resGroups = await fetch(AUTH_ENDPOINTS.GROUPS, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (resGroups.ok) {
@@ -70,7 +71,7 @@ export default function UserEditPage() {
         is_staff: e.target.is_staff.checked,
         groups_id: selectedGroups
       };
-      const res = await fetch(`http://localhost:8000/api/account/users/${id}/`, {
+      const res = await fetch(USER_ENDPOINTS.USER_DETAIL(id), {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,

@@ -5,6 +5,7 @@ import { Input, Button, Space, Empty } from 'antd';
 import { SearchOutlined, PlusOutlined } from '@ant-design/icons';
 import '../static/AdminCommon.css';
 import { useDebounce } from '../hooks/useDebounce';
+import { PRODUCT_ENDPOINTS } from '../../config/api';
 
 export default function VariantsPage() {
   const [variants, setVariants] = useState([]);
@@ -31,7 +32,7 @@ export default function VariantsPage() {
         page_size: ITEMS_PER_PAGE,
         search: debouncedSearchText
       });
-      const res = await fetch(`http://localhost:8000/api/products/variants/?${queryParams}`, {
+      const res = await fetch(`${PRODUCT_ENDPOINTS.VARIANTS}/?${queryParams}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.status === 403) {
@@ -90,7 +91,7 @@ export default function VariantsPage() {
         stock_alert_threshold: editingVariant.stock_alert_threshold === '' ? null : Number(editingVariant.stock_alert_threshold),
         is_active: editingVariant.is_active,
       };
-      const res = await fetch(`http://localhost:8000/api/products/variants/${v.id}/`, {
+      const res = await fetch(`${PRODUCT_ENDPOINTS.VARIANT_DETAIL(v.id)}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -114,7 +115,7 @@ export default function VariantsPage() {
     if (!window.confirm('Bạn chắc chắn muốn xóa biến thể này?')) return;
     try {
       const token = localStorage.getItem('accessToken');
-      const res = await fetch(`http://localhost:8000/api/products/variants/${id}/`, {
+      const res = await fetch(`${PRODUCT_ENDPOINTS.VARIANT_DETAIL(id)}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -140,7 +141,7 @@ export default function VariantsPage() {
         formData.append('images', file);
       });
 
-      const response = await fetch(`http://localhost:8000/api/products/variants/${variantId}/upload_images/`, {
+      const response = await fetch(`${PRODUCT_ENDPOINTS.VARIANT_UPLOAD_IMAGES(variantId)}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -164,7 +165,7 @@ export default function VariantsPage() {
     
     try {
       const token = localStorage.getItem('accessToken');
-      const response = await fetch(`http://localhost:8000/api/products/variants/${variantId}/delete_image/`, {
+      const response = await fetch(`${PRODUCT_ENDPOINTS.VARIANT_DELETE_IMAGE(variantId)}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -185,7 +186,7 @@ export default function VariantsPage() {
   const handleUpdateImageAltText = async (imageId, altText) => {
     try {
       const token = localStorage.getItem('accessToken');
-      const response = await fetch(`http://localhost:8000/api/products/variant-images/${imageId}/`, {
+      const response = await fetch(`${PRODUCT_ENDPOINTS.VARIANT_IMAGE_DETAIL(imageId)}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,

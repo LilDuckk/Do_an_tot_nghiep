@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { hasModulePermission } from '../../services/permission';
-import { Input, Button, Space, Empty, Tag } from 'antd';
+import { Input, Button, Space, Empty, Tag, Alert, message } from 'antd';
 import { SearchOutlined, PlusOutlined, UserOutlined, ShopOutlined } from '@ant-design/icons';
 import { useDebounce } from '../hooks/useDebounce';
 import '../static/AdminCommon.css';
@@ -9,7 +9,9 @@ import '../static/AdminCommon.css';
 export default function UsersListPage() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [hasAccess, setHasAccess] = useState(true);
+  const [accessErrorMsg, setAccessErrorMsg] = useState('');
+  const accessErrorShown = useRef(false);
   const [searchText, setSearchText] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -17,6 +19,15 @@ export default function UsersListPage() {
 
   const debouncedSearchText = useDebounce(searchText);
   const ITEMS_PER_PAGE = 20;
+
+  const showAccessError = useCallback((msg) => {
+    if (!accessErrorShown.current) {
+      setHasAccess(false);
+      setAccessErrorMsg(msg);
+      message.error(msg);
+      accessErrorShown.current = true;
+    }
+  }, []);
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -31,7 +42,7 @@ export default function UsersListPage() {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.status === 403) {
-        setError('Bạn không có quyền xem danh sách này.');
+        showAccessError('Bạn không có quyền xem danh sách này.');
         setUsers([]);
         setTotalPages(1);
         return;
@@ -48,13 +59,12 @@ export default function UsersListPage() {
         setTotalPages(Math.ceil(count / ITEMS_PER_PAGE));
       }
     } catch (err) {
-      setError(err.message);
       setUsers([]);
       setTotalPages(1);
     } finally {
       setLoading(false);
     }
-  }, [currentPage, debouncedSearchText]);
+  }, [currentPage, debouncedSearchText, showAccessError]);
 
   useEffect(() => {
     fetchUsers();
@@ -75,7 +85,7 @@ export default function UsersListPage() {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.status === 403) {
-        alert('Bạn không có quyền xóa mục này.');
+        showAccessError('Bạn không có quyền xóa mục này.');
         return;
       }
       if (res.status === 204) fetchUsers();
@@ -103,7 +113,7 @@ export default function UsersListPage() {
           key={i}
           onClick={() => setCurrentPage(i)}
           className={currentPage === i ? 'active' : ''}
-          disabled={currentPage === i}
+          disabled={currentPage === i || !hasAccess}
         >
           {i}
         </button>
@@ -111,19 +121,25 @@ export default function UsersListPage() {
     }
     return (
       <div className="admin-pagination">
-        <button onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1}>Trước</button>
+        <button onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1 || !hasAccess}>Trước</button>
         <div className="page-numbers">{pages}</div>
-        <button onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages}>Sau</button>
+        <button onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages || !hasAccess}>Sau</button>
         <span className="page-info">Trang {currentPage} / {totalPages}</span>
       </div>
     );
   };
 
-  if (loading && !users.length) return <div>Đang tải...</div>;
-  if (error) return <div className="admin-error">{error}</div>;
-
   return (
     <div className="admin-users-list">
+      {!hasAccess && (
+        <Alert
+          message={accessErrorMsg || "Không có quyền truy cập"}
+          description="Bạn không có quyền xem hoặc thực hiện các thao tác trên trang này. Vui lòng liên hệ quản trị viên để được cấp quyền."
+          type="error"
+          showIcon
+          style={{ marginBottom: 16, fontSize: 16, fontWeight: 500, padding: 16 }}
+        />
+      )}
       <div className="admin-list-header">
         <h2>Quản lý người dùng</h2>
         <div className="search-bar">
@@ -134,12 +150,14 @@ export default function UsersListPage() {
             onChange={(e) => setSearchText(e.target.value)}
             style={{ width: 300 }}
             allowClear
+            disabled={!hasAccess}
           />
           {hasModulePermission('user', 'create') && (
             <Button
               type="primary"
               icon={<PlusOutlined />}
               onClick={() => navigate('/admin/users/create')}
+              disabled={!hasAccess}
             >
               Thêm người dùng
             </Button>
@@ -193,12 +211,12 @@ export default function UsersListPage() {
                   </td>
                   <td>{u.is_active ? 'Hoạt động' : 'Khóa'}</td>
                   <td className="admin-table-actions">
-                    <button className="admin-btn" onClick={() => navigate(`/admin/users/${u.id}`)}>Xem</button>
+                    <button className="admin-btn" onClick={() => navigate(`/admin/users/${u.id}`)} disabled={!hasAccess}>Xem</button>
                     {hasModulePermission('user', 'edit') && (
-                      <button className="admin-btn" onClick={() => navigate(`/admin/users/${u.id}/edit`)}>Sửa</button>
+                      <button className="admin-btn" onClick={() => navigate(`/admin/users/${u.id}/edit`)} disabled={!hasAccess}>Sửa</button>
                     )}
                     {hasModulePermission('user', 'delete') && (
-                      <button className="admin-btn danger" onClick={() => handleDelete(u.id)}>Xóa</button>
+                      <button className="admin-btn danger" onClick={() => handleDelete(u.id)} disabled={!hasAccess}>Xóa</button>
                     )}
                   </td>
                 </tr>

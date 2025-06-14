@@ -427,7 +427,99 @@ GET /api/inventory/stock-transfers/ - Lấy danh sách chuyển kho
 - Phân trang: Mặc định 10 items/trang
 - API list_all: Lấy tất cả tồn kho không phân trang
 
+# API Endpoints cho Content
+## Banner
+GET /api/content/banners/ - Lấy danh sách banner (có phân trang)
+GET /api/content/banners/list_all/ - Lấy tất cả banner đang active (không phân trang)
+GET /api/content/banners/{id}/ - Lấy chi tiết một banner
+POST /api/content/banners/ - Tạo banner mới
+PUT /api/content/banners/{id}/ - Cập nhật banner
+DELETE /api/content/banners/{id}/ - Xóa banner
+
+## Contact Info
+GET /api/content/contact-infos/ - Lấy danh sách contact info (có phân trang)
+GET /api/content/contact-infos/list_all/ - Lấy tất cả contact info đang active (không phân trang)
+GET /api/content/contact-infos/{id}/ - Lấy chi tiết một contact info
+POST /api/content/contact-infos/ - Tạo contact info mới
+PUT /api/content/contact-infos/{id}/ - Cập nhật contact info
+DELETE /api/content/contact-infos/{id}/ - Xóa contact info
+
+## Footer
+### Footer Category
+GET /api/content/footer-categories/ - Lấy danh sách footer category (có phân trang)
+GET /api/content/footer-categories/list_all/ - Lấy tất cả footer category đang active (không phân trang)
+GET /api/content/footer-categories/{id}/ - Lấy chi tiết một footer category
+POST /api/content/footer-categories/ - Tạo footer category mới
+PUT /api/content/footer-categories/{id}/ - Cập nhật footer category
+DELETE /api/content/footer-categories/{id}/ - Xóa footer category
+
+### Footer Link
+GET /api/content/footer-links/ - Lấy danh sách footer link (có phân trang)
+GET /api/content/footer-links/list_all/ - Lấy tất cả footer link đang active (không phân trang)
+GET /api/content/footer-links/{id}/ - Lấy chi tiết một footer link
+POST /api/content/footer-links/ - Tạo footer link mới
+PUT /api/content/footer-links/{id}/ - Cập nhật footer link
+DELETE /api/content/footer-links/{id}/ - Xóa footer link
+
+## News
+GET /api/content/news/ - Lấy danh sách tin tức (có phân trang)
+GET /api/content/news/list_all/ - Lấy tất cả tin tức đang active (không phân trang)
+GET /api/content/news/{id}/ - Lấy chi tiết một tin tức
+POST /api/content/news/ - Tạo tin tức mới
+PUT /api/content/news/{id}/ - Cập nhật tin tức
+DELETE /api/content/news/{id}/ - Xóa tin tức
+
+# API Endpoints cho Reports
+## Best Selling Products
+GET /api/reports/best-selling/ - Lấy danh sách sản phẩm bán chạy nhất
+- Trả về top 10 sản phẩm bán chạy nhất
+- Bao gồm: product_id, product_name, brand_name, category_name, total_orders, total_quantity, total_revenue
+
+## Daily Revenue
+GET /api/reports/daily-revenue/ - Lấy báo cáo doanh thu theo ngày
+- Lọc theo:
+  + Khoảng thời gian: ?start_date=2024-01-01&end_date=2024-12-31
+  + Cửa hàng: ?store_id=1
+- Sắp xếp theo: date, total_revenue
+- Phân trang: Mặc định 10 items/trang
+
+## Top Products
+GET /api/reports/top-products/ - Lấy báo cáo sản phẩm hàng đầu
+- Lọc theo:
+  + Khoảng thời gian: ?start_date=2024-01-01&end_date=2024-12-31
+  + Cửa hàng: ?store_id=1
+- Sắp xếp theo: total_quantity, total_revenue
+- Phân trang: Mặc định 10 items/trang
+
+## Top Customers
+GET /api/reports/top-customers/ - Lấy danh sách khách hàng hàng đầu
+- Trả về top 10 khách hàng có tổng chi tiêu cao nhất
+- Bao gồm: customer_id, first_name, last_name, email, phone, total_orders, total_spent, last_order_date
+
+# API Endpoints cho Warranty
+## Warranty
+GET /api/warranty/warranties/ - Lấy danh sách bảo hành (có phân trang)
+GET /api/warranty/warranties/{id}/ - Lấy chi tiết một bảo hành
+POST /api/warranty/warranties/ - Tạo bảo hành mới
+PUT /api/warranty/warranties/{id}/ - Cập nhật bảo hành
+DELETE /api/warranty/warranties/{id}/ - Xóa bảo hành
+
+## Warranty Claim
+GET /api/warranty/warranty-claims/ - Lấy danh sách yêu cầu bảo hành (có phân trang)
+GET /api/warranty/warranty-claims/{id}/ - Lấy chi tiết một yêu cầu bảo hành
+POST /api/warranty/warranty-claims/ - Tạo yêu cầu bảo hành mới
+PUT /api/warranty/warranty-claims/{id}/ - Cập nhật yêu cầu bảo hành
+DELETE /api/warranty/warranty-claims/{id}/ - Xóa yêu cầu bảo hành
+
 # Quyền truy cập
-- Cho phép xem danh sách và chi tiết mà không cần đăng nhập
-- Yêu cầu đăng nhập cho các thao tác thêm/sửa/xóa
-- Tự động gán người tạo và người cập nhật khi thực hiện các thao tác
+## Content
+- Cho phép xem danh sách và chi tiết mà không cần đăng nhập (AllowAny)
+- Yêu cầu quyền admin cho các thao tác thêm/sửa/xóa (IsAdminUser)
+
+## Reports
+- Cho phép user đã đăng nhập xem báo cáo (IsAuthenticated)
+- Yêu cầu quyền admin cho các thao tác thay đổi dữ liệu (IsAdminUser)
+
+## Warranty
+- Cho phép user đã đăng nhập xem danh sách và chi tiết bảo hành (IsAuthenticated)
+- Yêu cầu quyền admin cho các thao tác thêm/sửa/xóa (IsAdminUser)

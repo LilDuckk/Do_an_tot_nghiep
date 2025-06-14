@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { AUTH_ENDPOINTS } from '../../config/api';
 import '../static/AdminCommon.css';
 
 export default function GroupEditPage() {
@@ -16,8 +17,8 @@ export default function GroupEditPage() {
     const fetchData = async () => {
       const token = localStorage.getItem('accessToken');
       const [groupRes, permsRes] = await Promise.all([
-        fetch(`http://localhost:8000/api/account/auth/groups/${id}/`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch('http://localhost:8000/api/account/auth/permissions/all/', { headers: { Authorization: `Bearer ${token}` } })
+        fetch(`${AUTH_ENDPOINTS.GROUPS}/${id}/`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${AUTH_ENDPOINTS.PERMISSIONS}/all/`, { headers: { Authorization: `Bearer ${token}` } })
       ]);
       if (groupRes.status === 403) {
         setError('Bạn không có quyền sửa mục này.');
@@ -59,7 +60,7 @@ export default function GroupEditPage() {
     setLoading(true);
     try {
       const token = localStorage.getItem('accessToken');
-      const res = await fetch(`http://localhost:8000/api/account/auth/groups/${id}/`, {
+      const res = await fetch(`${AUTH_ENDPOINTS.GROUPS}/${id}/`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,

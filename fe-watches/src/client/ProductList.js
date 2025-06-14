@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { PRODUCT_ENDPOINTS } from '../config/api';
 import Header from './Header';
 import Footer from './Footer';
 import './static/ProductList.css';
@@ -60,8 +61,8 @@ export default function ProductList() {
     const fetchBrandsAndCategories = async () => {
       try {
         const [brandsRes, categoriesRes] = await Promise.all([
-          fetch('http://localhost:8000/api/products/brands/list_all/'),
-          fetch('http://localhost:8000/api/products/categories/list_all/')
+          fetch(PRODUCT_ENDPOINTS.BRANDS_LIST_ALL),
+          fetch(PRODUCT_ENDPOINTS.CATEGORIES_LIST_ALL)
         ]);
         const brandsData = await brandsRes.json();
         const categoriesData = await categoriesRes.json();
@@ -96,7 +97,7 @@ export default function ProductList() {
       queryParams.append('page', page);
       queryParams.append('page_size', pageSize);
 
-      const response = await fetch(`http://localhost:8000/api/products/products/?${queryParams}`);
+      const response = await fetch(`${PRODUCT_ENDPOINTS.PRODUCTS}?${queryParams}`);
       if (!response.ok) {
         throw new Error('Lỗi khi tải dữ liệu sản phẩm');
       }

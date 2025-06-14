@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { hasModulePermission } from '../../services/permission';
+import { PRODUCT_ENDPOINTS } from '../../config/api';
 import '../static/AdminCommon.css';
 
 export default function BrandViewPage() {
@@ -14,7 +15,7 @@ export default function BrandViewPage() {
     const fetchBrand = async () => {
       try {
         const token = localStorage.getItem('accessToken');
-        const res = await fetch(`http://localhost:8000/api/products/brands/${id}/`, {
+        const res = await fetch(`${PRODUCT_ENDPOINTS.BRANDS}${id}/`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (res.ok) {

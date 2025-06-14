@@ -1,7 +1,7 @@
 from rest_framework import viewsets
 from apps.content.models.footer import FooterCategory, FooterLink
 from apps.content.serializers.footer_serializer import FooterCategorySerializer, FooterLinkSerializer
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny
 from apps.core.utils.permissions import IsAdminUser
 from rest_framework.response import Response
 from rest_framework.decorators import action
@@ -16,8 +16,8 @@ class FooterCategoryViewSet(viewsets.ModelViewSet):
         Tùy chỉnh permission cho từng action
         """
         if self.action in ['list', 'retrieve', 'list_all']:
-            # Cho phép user đã đăng nhập xem danh sách và chi tiết footer category
-            return [IsAuthenticated()]
+            # Cho phép tất cả người dùng xem danh sách và chi tiết footer category
+            return [AllowAny()]
         return super().get_permissions()
     
     @action(detail=False, methods=['get'], url_path='all', url_name='all')
@@ -40,8 +40,8 @@ class FooterLinkViewSet(viewsets.ModelViewSet):
         Tùy chỉnh permission cho từng action
         """
         if self.action in ['list', 'retrieve', 'list_all']:
-            # Cho phép user đã đăng nhập xem danh sách và chi tiết footer link
-            return [IsAuthenticated()]
+            # Cho phép tất cả người dùng xem danh sách và chi tiết footer link
+            return [AllowAny()]
         return super().get_permissions()
     
     @action(detail=False, methods=['get'], url_path='all', url_name='all')

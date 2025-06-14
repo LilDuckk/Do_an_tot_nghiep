@@ -15,6 +15,7 @@ import {
   Card,
 } from 'antd';
 import { EditOutlined, DeleteOutlined, PlusOutlined, SearchOutlined, MinusCircleOutlined, PlusCircleOutlined } from '@ant-design/icons';
+import { INVENTORY_ENDPOINTS, STORE_ENDPOINTS, PRODUCT_ENDPOINTS } from '../../config/api';
 import '../static/AdminCommon.css';
 
 const { Option } = Select;
@@ -54,7 +55,7 @@ const InventoriesPage = () => {
         queryParams.append('search', debouncedSearchText);
       }
       
-      const response = await fetch(`http://localhost:8000/api/inventory/inventories/?${queryParams}`, {
+      const response = await fetch(`${INVENTORY_ENDPOINTS.INVENTORIES}?${queryParams}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -77,7 +78,7 @@ const InventoriesPage = () => {
   const fetchStores = async () => {
     try {
       const token = localStorage.getItem('accessToken');
-      const response = await fetch('http://localhost:8000/api/stores/stores/list_all/', {
+      const response = await fetch(STORE_ENDPOINTS.STORES_LIST_ALL, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -94,7 +95,7 @@ const InventoriesPage = () => {
         search: value
       });
       
-      const response = await fetch(`http://localhost:8000/api/products/products/?${queryParams}`, {
+      const response = await fetch(`${PRODUCT_ENDPOINTS.PRODUCTS}?${queryParams}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
@@ -113,7 +114,7 @@ const InventoriesPage = () => {
   const fetchProductVariants = async (productId) => {
     try {
       const token = localStorage.getItem('accessToken');
-      const response = await fetch(`http://localhost:8000/api/products/products/${productId}/get_variants/`, {
+      const response = await fetch(`${PRODUCT_ENDPOINTS.PRODUCT_VARIANTS(productId)}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -132,11 +133,10 @@ const InventoriesPage = () => {
     try {
       const token = localStorage.getItem('accessToken');
       if (editingId) {
-        // Sửa: chỉ gửi quantity
         const formattedValues = {
           quantity: values.quantity
         };
-        const response = await fetch(`http://localhost:8000/api/inventory/inventories/${editingId}/`, {
+        const response = await fetch(`${INVENTORY_ENDPOINTS.INVENTORY_DETAIL(editingId)}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -150,14 +150,13 @@ const InventoriesPage = () => {
         }
         message.success('Cập nhật tồn kho thành công');
       } else {
-        // Thêm mới: gửi từng biến thể
         const promises = selectedVariants.map(variant => {
           const formattedValues = {
             product_variant: variant.id,
             store: selectedStore?.id,
             quantity: variant.quantity
           };
-          return fetch('http://localhost:8000/api/inventory/inventories/', {
+          return fetch(INVENTORY_ENDPOINTS.INVENTORIES, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -189,7 +188,7 @@ const InventoriesPage = () => {
   const handleDelete = async (id) => {
     try {
       const token = localStorage.getItem('accessToken');
-      const response = await fetch(`http://localhost:8000/api/inventory/inventories/${id}/`, {
+      const response = await fetch(`${INVENTORY_ENDPOINTS.INVENTORY_DETAIL(id)}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });

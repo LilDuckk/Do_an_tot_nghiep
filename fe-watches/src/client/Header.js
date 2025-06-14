@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { PRODUCT_ENDPOINTS } from '../config/api';
 import './static/Header.css';
 import DropdownMenu from './DropdownMenu';
 
@@ -12,7 +13,7 @@ export default function Header() {
 
   useEffect(() => {
     // Fetch brands
-    fetch('http://localhost:8000/api/products/brands/list_all')
+    fetch(PRODUCT_ENDPOINTS.BRANDS_LIST_ALL)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
@@ -30,7 +31,7 @@ export default function Header() {
       });
 
     // Fetch categories
-    fetch('http://localhost:8000/api/products/categories/list_all')
+    fetch(PRODUCT_ENDPOINTS.CATEGORIES_LIST_ALL)
       .then(res => res.json())
       .then(data => {
         const categoriesData = Array.isArray(data) ? data : (data && data.data && Array.isArray(data.data) ? data.data : []);

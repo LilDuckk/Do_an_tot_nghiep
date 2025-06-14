@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { hasModulePermission } from '../../services/permission';
 import { Input, Button, Space, Empty } from 'antd';
 import { SearchOutlined, PlusOutlined } from '@ant-design/icons';
+import { PRODUCT_ENDPOINTS } from '../../config/api';
 import '../static/AdminCommon.css';
 
 export default function BrandsPage() {
@@ -35,7 +36,7 @@ export default function BrandsPage() {
         page_size: ITEMS_PER_PAGE,
         search: debouncedSearchText
       });
-      const res = await fetch(`http://localhost:8000/api/products/brands/?${queryParams}`, {
+      const res = await fetch(`${PRODUCT_ENDPOINTS.BRANDS}?${queryParams}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.status === 403) {
@@ -78,7 +79,7 @@ export default function BrandsPage() {
     if (!window.confirm('Bạn chắc chắn muốn xóa thương hiệu này?')) return;
     try {
       const token = localStorage.getItem('accessToken');
-      const res = await fetch(`http://localhost:8000/api/products/brands/${id}/`, {
+      const res = await fetch(`${PRODUCT_ENDPOINTS.BRANDS}${id}/`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });

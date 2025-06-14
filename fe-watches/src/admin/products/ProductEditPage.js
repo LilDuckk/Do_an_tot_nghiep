@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { hasModulePermission } from '../../services/permission';
+import { PRODUCT_ENDPOINTS } from '../../config/api';
 import '../static/AdminCommon.css';
 
 export default function ProductEditPage() {
@@ -49,7 +50,7 @@ export default function ProductEditPage() {
         const token = localStorage.getItem('accessToken');
         
         // Fetch product với đầy đủ thông tin
-        const productRes = await fetch(`http://localhost:8000/api/products/products/${id}/`, {
+        const productRes = await fetch(`${PRODUCT_ENDPOINTS.PRODUCT_DETAIL(id)}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (productRes.ok) {
@@ -73,7 +74,7 @@ export default function ProductEditPage() {
         }
 
         // Fetch brands
-        const brandsRes = await fetch('http://localhost:8000/api/products/brands/list_all/', {
+        const brandsRes = await fetch(PRODUCT_ENDPOINTS.BRANDS_LIST_ALL, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (brandsRes.ok) {
@@ -81,7 +82,7 @@ export default function ProductEditPage() {
         }
 
         // Fetch categories
-        const categoriesRes = await fetch('http://localhost:8000/api/products/categories/list_all/', {
+        const categoriesRes = await fetch(PRODUCT_ENDPOINTS.CATEGORIES_LIST_ALL, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (categoriesRes.ok) {
@@ -89,7 +90,7 @@ export default function ProductEditPage() {
         }
 
         // Fetch current product attributes using new endpoint
-        const attributesRes = await fetch(`http://localhost:8000/api/products/products/${id}/get_attributes/`, {
+        const attributesRes = await fetch(`${PRODUCT_ENDPOINTS.PRODUCT_ATTRIBUTES(id)}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (attributesRes.ok) {
@@ -131,7 +132,7 @@ export default function ProductEditPage() {
     
     try {
       const token = localStorage.getItem('accessToken');
-      const res = await fetch(`http://localhost:8000/api/products/product-images/${imageId}/`, {
+      const res = await fetch(`${PRODUCT_ENDPOINTS.PRODUCT_IMAGE_DETAIL(imageId)}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -148,7 +149,7 @@ export default function ProductEditPage() {
   const handleSetPrimaryImage = async (imageId) => {
     try {
       const token = localStorage.getItem('accessToken');
-      const res = await fetch(`http://localhost:8000/api/products/products/${id}/set_primary_image/`, {
+      const res = await fetch(`${PRODUCT_ENDPOINTS.PRODUCT_SET_PRIMARY_IMAGE(id)}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -249,7 +250,7 @@ export default function ProductEditPage() {
       );
       formData.append('attribute_value_groups', JSON.stringify(attributeValueGroups));
 
-      const productRes = await fetch(`http://localhost:8000/api/products/products/${id}/`, {
+      const productRes = await fetch(`${PRODUCT_ENDPOINTS.PRODUCT_DETAIL(id)}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`

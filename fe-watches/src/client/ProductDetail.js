@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
+import { PRODUCT_ENDPOINTS } from '../config/api';
 import Header from './Header';
 import Footer from './Footer';
 import './static/ProductDetail.css';
@@ -22,7 +23,7 @@ export default function ProductDetail() {
   // Hàm lấy danh sách thuộc tính của sản phẩm
   const fetchAttributes = useCallback(async () => {
     try {
-      const response = await fetch(`http://localhost:8000/api/products/products/${id}/get_attributes/`);
+      const response = await fetch(PRODUCT_ENDPOINTS.PRODUCT_ATTRIBUTES(id));
       if (!response.ok) throw new Error('Lỗi khi tải thuộc tính');
       const data = await response.json();
       setAttributes(data);
@@ -34,7 +35,7 @@ export default function ProductDetail() {
   // Hàm lấy danh sách biến thể
   const fetchVariants = useCallback(async () => {
     try {
-      const response = await fetch(`http://localhost:8000/api/products/variants/list_all/?product=${id}`);
+      const response = await fetch(PRODUCT_ENDPOINTS.PRODUCT_VARIANTS(id));
       if (!response.ok) throw new Error('Lỗi khi tải biến thể');
       const data = await response.json();
       console.log('API variants data:', data);
@@ -49,7 +50,7 @@ export default function ProductDetail() {
   // Hàm lấy ảnh của biến thể
   const fetchVariantImages = useCallback(async () => {
     try {
-      const response = await fetch(`http://localhost:8000/api/products/variant-images/?product=${id}`);
+      const response = await fetch(`${PRODUCT_ENDPOINTS.VARIANT_IMAGES}?product=${id}`);
       if (!response.ok) throw new Error('Lỗi khi tải ảnh biến thể');
       const data = await response.json();
       // Lấy mảng ảnh từ data.results nếu có
@@ -206,7 +207,7 @@ export default function ProductDetail() {
   const fetchProductDetail = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:8000/api/products/products/${id}/`);
+      const response = await fetch(PRODUCT_ENDPOINTS.PRODUCT_DETAIL(id));
       if (!response.ok) throw new Error('Lỗi khi tải thông tin sản phẩm');
       const data = await response.json();
       setProduct(data);

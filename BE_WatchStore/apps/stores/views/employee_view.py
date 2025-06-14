@@ -22,9 +22,9 @@ class EmployeeViewSet(viewsets.ModelViewSet):
         """
         Tùy chỉnh permission cho từng action
         """
-        if self.action in ['list', 'retrieve', 'list_all']:
-            # Cho phép user đã đăng nhập xem danh sách và chi tiết nhân viên
-            return [IsAuthenticated()]
+        # if self.action in ['list', 'retrieve', 'list_all']:
+        #     # Cho phép user đã đăng nhập xem danh sách và chi tiết nhân viên
+        #     return [IsAuthenticated()]
         return super().get_permissions()
 
     def perform_create(self, serializer):

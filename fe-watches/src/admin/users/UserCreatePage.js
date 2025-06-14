@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { USER_ENDPOINTS, AUTH_ENDPOINTS } from '../../config/api';
 import '../static/AdminCommon.css';
 
 export default function UserCreatePage() {
@@ -22,7 +23,7 @@ export default function UserCreatePage() {
     const fetchGroups = async () => {
       try {
         const token = localStorage.getItem('accessToken');
-        const response = await axios.get('http://localhost:8000/api/account/auth/groups/', {
+        const response = await axios.get(AUTH_ENDPOINTS.GROUPS, {
           headers: { 
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
@@ -61,7 +62,7 @@ export default function UserCreatePage() {
 
     try {
       const token = localStorage.getItem('accessToken');
-      await axios.post('http://localhost:8000/api/account/users/', {
+      await axios.post(USER_ENDPOINTS.USERS, {
         ...form,
         groups_id: form.groups_id
       }, {

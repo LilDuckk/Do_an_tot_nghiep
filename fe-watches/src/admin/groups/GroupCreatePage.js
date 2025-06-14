@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { AUTH_ENDPOINTS } from '../../config/api';
 import '../static/AdminCommon.css';
 
 export default function GroupCreatePage() {
@@ -13,7 +14,7 @@ export default function GroupCreatePage() {
   useEffect(() => {
     const fetchPermissions = async () => {
       const token = localStorage.getItem('accessToken');
-      const res = await fetch('http://localhost:8000/api/account/auth/permissions/all/', {
+      const res = await fetch(`${AUTH_ENDPOINTS.PERMISSIONS}/all/`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
@@ -42,7 +43,7 @@ export default function GroupCreatePage() {
     setError('');
     try {
       const token = localStorage.getItem('accessToken');
-      const res = await fetch('http://localhost:8000/api/account/auth/groups/', {
+      const res = await fetch(AUTH_ENDPOINTS.GROUPS, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

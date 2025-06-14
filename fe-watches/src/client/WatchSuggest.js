@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { PRODUCT_ENDPOINTS } from '../config/api';
 import './static/WatchSuggest.css';
 
 export default function WatchSuggest() {
@@ -9,7 +10,7 @@ export default function WatchSuggest() {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await fetch('http://localhost:8000/api/products/products/list_all/');
+        const response = await fetch(PRODUCT_ENDPOINTS.PRODUCTS_LIST_ALL);
         if (!response.ok) {
           throw new Error('Không thể tải dữ liệu sản phẩm');
         }

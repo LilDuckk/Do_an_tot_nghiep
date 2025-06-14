@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { hasModulePermission } from '../../services/permission';
+import { AUTH_ENDPOINTS } from '../../config/api';
+import '../static/AdminCommon.css';
 
 export default function GroupViewPage() {
   const { id } = useParams();
@@ -15,7 +17,7 @@ export default function GroupViewPage() {
       setLoading(true);
       try {
         const token = localStorage.getItem('accessToken');
-        const res = await fetch(`http://localhost:8000/api/account/auth/groups/${id}/`, {
+        const res = await fetch(`${AUTH_ENDPOINTS.GROUPS}/${id}/`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (res.status === 403) {
@@ -37,7 +39,9 @@ export default function GroupViewPage() {
   useEffect(() => {
     const fetchPermissions = async () => {
       const token = localStorage.getItem('accessToken');
-      const res = await fetch('http://localhost:8000/api/account/auth/permissions/all/', { headers: { Authorization: `Bearer ${token}` } });
+      const res = await fetch(`${AUTH_ENDPOINTS.PERMISSIONS}/all/`, { 
+        headers: { Authorization: `Bearer ${token}` } 
+      });
       if (res.ok) {
         const data = await res.json();
         setPermissions(Array.isArray(data) ? data : []);

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { hasModulePermission } from '../../services/permission';
 import { Input, Button, Space, Empty } from 'antd';
 import { SearchOutlined, PlusOutlined } from '@ant-design/icons';
+import { PRODUCT_ENDPOINTS } from '../../config/api';
 import '../static/AdminCommon.css';
 import { useDebounce } from '../hooks/useDebounce';
 
@@ -13,10 +14,34 @@ export default function CategoriesPage() {
   const [searchText, setSearchText] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [parentCategories, setParentCategories] = useState({});
   const navigate = useNavigate();
 
   const debouncedSearchText = useDebounce(searchText);
   const ITEMS_PER_PAGE = 20;
+
+  const fetchParentCategories = async (ids) => {
+    try {
+      const token = localStorage.getItem('accessToken');
+      const uniqueIds = [...new Set(ids.filter(id => id))];
+      if (uniqueIds.length === 0) return;
+
+      const promises = uniqueIds.map(id => 
+        fetch(`${PRODUCT_ENDPOINTS.CATEGORY_DETAIL(id)}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }).then(res => res.json())
+      );
+
+      const results = await Promise.all(promises);
+      const parentMap = {};
+      results.forEach(category => {
+        parentMap[category.id] = category.name;
+      });
+      setParentCategories(parentMap);
+    } catch (err) {
+      console.error('Lỗi khi lấy thông tin danh mục cha:', err);
+    }
+  };
 
   const fetchCategories = useCallback(async () => {
     try {
@@ -27,7 +52,7 @@ export default function CategoriesPage() {
         page_size: ITEMS_PER_PAGE,
         search: debouncedSearchText
       });
-      const res = await fetch(`http://localhost:8000/api/products/categories/?${queryParams}`, {
+      const res = await fetch(`${PRODUCT_ENDPOINTS.CATEGORIES}?${queryParams}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.status === 403) {
@@ -41,6 +66,11 @@ export default function CategoriesPage() {
       const count = data.count || 0;
       const results = data.results || [];
       setCategories(results);
+      
+      // Lấy thông tin danh mục cha
+      const parentIds = results.map(cat => cat.parent).filter(id => id);
+      await fetchParentCategories(parentIds);
+
       if (count === 0) {
         setTotalPages(1);
         if (currentPage !== 1) setCurrentPage(1);
@@ -70,7 +100,7 @@ export default function CategoriesPage() {
     if (!window.confirm('Bạn chắc chắn muốn xóa danh mục này?')) return;
     try {
       const token = localStorage.getItem('accessToken');
-      const res = await fetch(`http://localhost:8000/api/products/categories/${id}/`, {
+      const res = await fetch(PRODUCT_ENDPOINTS.CATEGORY_DETAIL(id), {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -172,7 +202,7 @@ export default function CategoriesPage() {
                   <td>{c.id}</td>
                   <td>{c.name}</td>
                   <td>{c.description}</td>
-                  <td>{c.parent ? c.parent.name : 'Không có'}</td>
+                  <td>{c.parent ? parentCategories[c.parent] || 'Đang tải...' : 'Không có'}</td>
                   <td>{c.display_order}</td>
                   <td>{c.is_active ? 'Hoạt động' : 'Ẩn'}</td>
                   <td className="admin-table-actions">

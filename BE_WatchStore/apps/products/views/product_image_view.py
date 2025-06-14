@@ -2,7 +2,7 @@ from rest_framework import viewsets
 from apps.products.models.product import ProductImage
 from apps.products.serializers.product_image_serializer import ProductImageSerializer
 from apps.core.utils.permissions import IsAdminUser
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 
 class ProductImageViewSet(viewsets.ModelViewSet):
     queryset = ProductImage.objects.all()
@@ -19,5 +19,5 @@ class ProductImageViewSet(viewsets.ModelViewSet):
         """
         if self.action in ['list', 'retrieve']:
             # Cho phép user đã đăng nhập xem danh sách và chi tiết ảnh sản phẩm
-            return [IsAuthenticated()]
+            return [AllowAny()]
         return super().get_permissions() 

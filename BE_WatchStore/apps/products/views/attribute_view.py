@@ -6,7 +6,7 @@ from apps.products.serializers.attribute_serializer import (
     AttributeValueSerializer, AttributeTypeSerializer
 )
 from apps.core.utils.permissions import IsAdminUser
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 
 
 class AttributeValueViewSet(viewsets.ModelViewSet):
@@ -24,7 +24,7 @@ class AttributeValueViewSet(viewsets.ModelViewSet):
         """
         if self.action in ['list', 'retrieve', 'list_all']:
             # Cho phép user đã đăng nhập xem danh sách và chi tiết giá trị thuộc tính
-            return [IsAuthenticated()]
+            return [AllowAny()]
         return super().get_permissions()
 
     @action(detail=False, methods=['get'])
@@ -48,7 +48,7 @@ class AttributeTypeViewSet(viewsets.ModelViewSet):
         """
         if self.action in ['list', 'retrieve', 'list_all']:
             # Cho phép user đã đăng nhập xem danh sách và chi tiết loại thuộc tính
-            return [IsAuthenticated()]
+            return [AllowAny()]
         return super().get_permissions()
 
     @action(detail=False, methods=['get'])

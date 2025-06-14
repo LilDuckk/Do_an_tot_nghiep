@@ -1,15 +1,18 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { hasModulePermission } from '../../services/permission';
-import { Input, Space, Empty } from 'antd';
+import { Input, Space, Empty, Alert, message } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
 import { useDebounce } from '../hooks/useDebounce';
+import { AUTH_ENDPOINTS } from '../../config/api';
 import '../static/AdminCommon.css';
 
 export default function PermissionsListPage() {
   const [permissions, setPermissions] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [hasAccess, setHasAccess] = useState(true);
+  const [accessErrorMsg, setAccessErrorMsg] = useState('');
+  const accessErrorShown = useRef(false);
   const [searchText, setSearchText] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -17,6 +20,15 @@ export default function PermissionsListPage() {
 
   const debouncedSearchText = useDebounce(searchText);
   const ITEMS_PER_PAGE = 20;
+
+  const showAccessError = useCallback((msg) => {
+    if (!accessErrorShown.current) {
+      setHasAccess(false);
+      setAccessErrorMsg(msg);
+      message.error(msg);
+      accessErrorShown.current = true;
+    }
+  }, []);
 
   const fetchPermissions = useCallback(async () => {
     try {
@@ -27,11 +39,11 @@ export default function PermissionsListPage() {
         page_size: ITEMS_PER_PAGE,
         search: debouncedSearchText
       });
-      const res = await fetch(`http://localhost:8000/api/account/auth/permissions/?${queryParams}`, {
+      const res = await fetch(`${AUTH_ENDPOINTS.PERMISSIONS}/?${queryParams}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.status === 403) {
-        setError('Bạn không có quyền xem danh sách này.');
+        showAccessError('Bạn không có quyền xem danh sách này.');
         setPermissions([]);
         setTotalPages(1);
         return;
@@ -52,13 +64,12 @@ export default function PermissionsListPage() {
         setTotalPages(Math.ceil(count / ITEMS_PER_PAGE));
       }
     } catch (err) {
-      setError(err.message);
       setPermissions([]);
       setTotalPages(1);
     } finally {
       setLoading(false);
     }
-  }, [currentPage, debouncedSearchText]);
+  }, [currentPage, debouncedSearchText, showAccessError]);
 
   useEffect(() => {
     fetchPermissions();
@@ -88,7 +99,7 @@ export default function PermissionsListPage() {
           key={i}
           onClick={() => setCurrentPage(i)}
           className={currentPage === i ? 'active' : ''}
-          disabled={currentPage === i}
+          disabled={currentPage === i || !hasAccess}
         >
           {i}
         </button>
@@ -96,19 +107,25 @@ export default function PermissionsListPage() {
     }
     return (
       <div className="admin-pagination">
-        <button onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1}>Trước</button>
+        <button onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1 || !hasAccess}>Trước</button>
         <div className="page-numbers">{pages}</div>
-        <button onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages}>Sau</button>
+        <button onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages || !hasAccess}>Sau</button>
         <span className="page-info">Trang {currentPage} / {totalPages}</span>
       </div>
     );
   };
 
-  if (loading && !permissions.length) return <div>Đang tải...</div>;
-  if (error) return <div className="admin-error">{error}</div>;
-
   return (
     <div className="admin-permissions-list">
+      {!hasAccess && (
+        <Alert
+          message={accessErrorMsg || "Không có quyền truy cập"}
+          description="Bạn không có quyền xem hoặc thực hiện các thao tác trên trang này. Vui lòng liên hệ quản trị viên để được cấp quyền."
+          type="error"
+          showIcon
+          style={{ marginBottom: 16, fontSize: 16, fontWeight: 500, padding: 16 }}
+        />
+      )}
       <div className="admin-list-header">
         <h2>Quản lý quyền</h2>
         <div className="search-bar">
@@ -119,6 +136,7 @@ export default function PermissionsListPage() {
             onChange={(e) => setSearchText(e.target.value)}
             style={{ width: 300 }}
             allowClear
+            disabled={!hasAccess}
           />
         </div>
       </div>

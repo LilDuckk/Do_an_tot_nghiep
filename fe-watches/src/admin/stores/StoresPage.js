@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Table,
   Button,
@@ -11,9 +11,13 @@ import {
   Popconfirm,
   AutoComplete,
   Badge,
+  Alert,
 } from 'antd';
 import { EditOutlined, DeleteOutlined, PlusOutlined, SearchOutlined, TeamOutlined } from '@ant-design/icons';
+import { STORE_ENDPOINTS } from '../../config/api';
 import '../static/AdminCommon.css';
+
+
 
 const { Option } = Select;
 
@@ -29,6 +33,8 @@ const StoresPage = () => {
   const [searchManagerText, setSearchManagerText] = useState('');
   const [selectedManager, setSelectedManager] = useState(null);
   const [employeeCounts, setEmployeeCounts] = useState({});
+  const [hasAccess, setHasAccess] = useState(true);
+  const accessErrorShown = useRef(false);
 
   // Debounce search text
   useEffect(() => {
@@ -39,12 +45,60 @@ const StoresPage = () => {
     return () => clearTimeout(timer);
   }, [searchText]);
 
-  const fetchEmployeeCount = async (storeId) => {
+  const showAccessError = useCallback((msg) => {
+    if (!accessErrorShown.current) {
+      message.error(msg);
+      accessErrorShown.current = true;
+    }
+  }, []);
+
+  const fetchStores = useCallback(async () => {
+    if (!hasAccess || accessErrorShown.current) return false;
     try {
+      setLoading(true);
       const token = localStorage.getItem('accessToken');
-      const response = await fetch(`http://localhost:8000/api/stores/stores/${storeId}/employee_count/`, {
+      const queryParams = new URLSearchParams();
+      if (debouncedSearchText) {
+        queryParams.append('search', debouncedSearchText);
+      }
+      const response = await fetch(`${STORE_ENDPOINTS.STORES}/?${queryParams}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      if (response.status === 403 || response.status === 401) {
+        setHasAccess(false);
+        showAccessError('Bạn không có quyền xem danh sách cửa hàng.');
+        setStores([]);
+        return false;
+      }
+      const data = await response.json();
+      const storesData = Array.isArray(data.results) ? data.results : [];
+      setStores(storesData);
+      // Gọi API lấy số lượng nhân viên cho từng cửa hàng
+      storesData.forEach(store => {
+        fetchEmployeeCount(store.id);
+      });
+      return true;
+    } catch (error) {
+      message.error('Lỗi khi tải danh sách cửa hàng');
+      setStores([]);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, [debouncedSearchText, hasAccess, showAccessError]);
+  
+  const fetchEmployeeCount = async (storeId) => {
+    if (!hasAccess || accessErrorShown.current) return;
+    try {
+      const token = localStorage.getItem('accessToken');
+      const response = await fetch(STORE_ENDPOINTS.STORE_EMPLOYEE_COUNT(storeId), {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.status === 403 || response.status === 401) {
+        setHasAccess(false);
+        showAccessError('Bạn không có quyền xem số lượng nhân viên.');
+        return;
+      }
       const data = await response.json();
       setEmployeeCounts(prev => ({
         ...prev,
@@ -54,59 +108,40 @@ const StoresPage = () => {
       console.error('Lỗi khi lấy số lượng nhân viên:', error);
     }
   };
+  
 
-  const fetchStores = useCallback(async () => {
-    try {
-      setLoading(true);
-      const token = localStorage.getItem('accessToken');
-      const queryParams = new URLSearchParams();
-      if (debouncedSearchText) {
-        queryParams.append('search', debouncedSearchText);
-      }
-      
-      const response = await fetch(`http://localhost:8000/api/stores/stores/?${queryParams}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (response.status === 403) {
-        message.error('Bạn không có quyền xem danh sách này.');
-        setStores([]);
-        return;
-      }
-
-      const data = await response.json();
-      const storesData = Array.isArray(data.results) ? data.results : [];
-      setStores(storesData);
-      
-      // Lấy số lượng nhân viên cho mỗi cửa hàng
-      storesData.forEach(store => {
-        fetchEmployeeCount(store.id);
-      });
-    } catch (error) {
-      message.error('Lỗi khi tải danh sách cửa hàng');
-      setStores([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [debouncedSearchText]);
+  
 
   const fetchEmployees = async () => {
+    if (!hasAccess || accessErrorShown.current) return;
     try {
       const token = localStorage.getItem('accessToken');
       const response = await fetch('http://localhost:8000/api/stores/employees/list_all/', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      if (response.status === 403 || response.status === 401) {
+        setHasAccess(false);
+        showAccessError('Bạn không có quyền xem danh sách nhân viên.');
+        return;
+      }
       const data = await response.json();
       setEmployees(data || []);
     } catch (error) {
       message.error('Lỗi khi tải danh sách nhân viên');
     }
   };
+  
 
   useEffect(() => {
-    fetchStores();
-    fetchEmployees();
-  }, [fetchStores]);
+    if (!hasAccess || accessErrorShown.current) return;
+    const fetchAll = async () => {
+      const ok = await fetchStores();
+      if (ok) {
+        fetchEmployees();
+      }
+    };
+    fetchAll();
+  }, [debouncedSearchText, hasAccess, showAccessError]);
 
   const handleSubmit = async (values) => {
     try {
@@ -119,7 +154,7 @@ const StoresPage = () => {
       };
 
       if (editingId) {
-        const response = await fetch(`http://localhost:8000/api/stores/stores/${editingId}/`, {
+        const response = await fetch(STORE_ENDPOINTS.STORE_DETAIL(editingId), {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -135,7 +170,7 @@ const StoresPage = () => {
 
         message.success('Cập nhật cửa hàng thành công');
       } else {
-        const response = await fetch('http://localhost:8000/api/stores/stores/', {
+        const response = await fetch(STORE_ENDPOINTS.STORES, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -153,6 +188,7 @@ const StoresPage = () => {
       }
       setModalVisible(false);
       form.resetFields();
+      if (!hasAccess || accessErrorShown.current) return;
       fetchStores();
     } catch (error) {
       message.error('Có lỗi xảy ra');
@@ -162,7 +198,7 @@ const StoresPage = () => {
   const handleDelete = async (id) => {
     try {
       const token = localStorage.getItem('accessToken');
-      const response = await fetch(`http://localhost:8000/api/stores/stores/${id}/`, {
+      const response = await fetch(STORE_ENDPOINTS.STORE_DETAIL(id), {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -173,6 +209,7 @@ const StoresPage = () => {
       }
 
       message.success('Xóa cửa hàng thành công');
+      if (!hasAccess || accessErrorShown.current) return;
       fetchStores();
     } catch (error) {
       message.error('Có lỗi xảy ra khi xóa');
@@ -274,6 +311,15 @@ const StoresPage = () => {
 
   return (
     <div className="coupon-page">
+      {!hasAccess && (
+        <Alert
+          message="Không có quyền truy cập"
+          description="Bạn không có quyền xem hoặc thực hiện các thao tác trên trang này. Vui lòng liên hệ quản trị viên để được cấp quyền."
+          type="error"
+          showIcon
+          style={{ marginBottom: 16 }}
+        />
+      )}
       <div className="coupon-header">
         <h2>Quản lý cửa hàng</h2>
         <Space>
@@ -284,6 +330,7 @@ const StoresPage = () => {
             onChange={(e) => setSearchText(e.target.value)}
             style={{ width: 300 }}
             allowClear
+            disabled={!hasAccess}
           />
           <Button
             type="primary"
@@ -294,6 +341,7 @@ const StoresPage = () => {
               setSelectedManager(null);
               setModalVisible(true);
             }}
+            disabled={!hasAccess}
           >
             Thêm cửa hàng
           </Button>

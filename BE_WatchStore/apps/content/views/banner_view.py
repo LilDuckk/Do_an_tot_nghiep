@@ -2,7 +2,7 @@ from rest_framework import viewsets
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny
 from apps.content.models.banner import Banner
 from apps.content.serializers.banner_serializer import BannerSerializer
 from apps.core.utils.permissions import IsAdminUser
@@ -23,8 +23,8 @@ class BannerViewSet(viewsets.ModelViewSet):
         Tùy chỉnh permission cho từng action
         """
         if self.action in ['list', 'retrieve', 'list_all']:
-            # Cho phép user đã đăng nhập xem danh sách và chi tiết banner
-            return [IsAuthenticated()]
+            # Cho phép tất cả người dùng xem danh sách và chi tiết banner
+            return [AllowAny()]
         return super().get_permissions()
 
     @action(detail=False, methods=['get'], url_path='all', url_name='all')

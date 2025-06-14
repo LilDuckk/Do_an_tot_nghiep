@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import { USER_ENDPOINTS } from '../../config/api';
 import '../static/AdminCommon.css';
 import { hasModulePermission } from '../../services/permission';
 
@@ -17,7 +18,7 @@ export default function UserViewPage() {
         if (!token) {
           throw new Error('No access token found');
         }
-        const res = await fetch(`http://localhost:8000/api/account/users/${id}/`, {
+        const res = await fetch(USER_ENDPOINTS.USER_DETAIL(id), {
           method: 'GET',
           headers: { 
             'Authorization': `Bearer ${token}`,

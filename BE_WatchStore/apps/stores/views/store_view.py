@@ -23,9 +23,9 @@ class StoreViewSet(viewsets.ModelViewSet):
         """
         Tùy chỉnh permission cho từng action
         """
-        if self.action in ['list', 'retrieve', 'list_all', 'employee_count']:
-            # Cho phép user đã đăng nhập xem danh sách và chi tiết cửa hàng
-            return [IsAuthenticated()]
+        # if self.action in ['list', 'retrieve', 'list_all', 'employee_count']:
+        #     # Cho phép user đã đăng nhập xem danh sách và chi tiết cửa hàng
+        #     return [IsAuthenticated()]
         return super().get_permissions()
 
     def perform_create(self, serializer):

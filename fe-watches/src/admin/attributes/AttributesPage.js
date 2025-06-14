@@ -4,6 +4,7 @@ import { hasModulePermission } from '../../services/permission';
 import { useDebounce } from '../hooks/useDebounce';
 import { Input, Button, Space, Empty } from 'antd';
 import { SearchOutlined, PlusOutlined } from '@ant-design/icons';
+import { PRODUCT_ENDPOINTS } from '../../config/api';
 import '../static/AdminCommon.css';
 
 export default function AttributesPage() {
@@ -74,7 +75,7 @@ export default function AttributesPage() {
         search: debouncedTypeSearchText,
         timestamp: new Date().getTime()
       });
-      const res = await fetch(`http://localhost:8000/api/products/attribute-types/?${queryParams}`, {
+      const res = await fetch(`${PRODUCT_ENDPOINTS.ATTRIBUTE_TYPES}?${queryParams}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.status === 403) {
@@ -103,7 +104,7 @@ export default function AttributesPage() {
         search: debouncedValueSearchText,
         timestamp: new Date().getTime()
       });
-      const res = await fetch(`http://localhost:8000/api/products/attribute-values/?${queryParams}`, {
+      const res = await fetch(`${PRODUCT_ENDPOINTS.ATTRIBUTE_VALUES}?${queryParams}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!res.ok) throw new Error('Lỗi khi lấy danh sách giá trị thuộc tính');
@@ -159,7 +160,7 @@ export default function AttributesPage() {
     if (!window.confirm('Bạn chắc chắn muốn xóa loại thuộc tính này?')) return;
     try {
       const token = localStorage.getItem('accessToken');
-      const res = await fetch(`http://localhost:8000/api/products/attribute-types/${id}/`, {
+      const res = await fetch(`${PRODUCT_ENDPOINTS.ATTRIBUTE_TYPES}${id}/`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -188,7 +189,7 @@ export default function AttributesPage() {
     if (!window.confirm('Bạn chắc chắn muốn xóa giá trị thuộc tính này?')) return;
     try {
       const token = localStorage.getItem('accessToken');
-      const res = await fetch(`http://localhost:8000/api/products/attribute-values/${id}/`, {
+      const res = await fetch(`${PRODUCT_ENDPOINTS.ATTRIBUTE_VALUES}${id}/`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -217,7 +218,7 @@ export default function AttributesPage() {
     e.preventDefault();
     try {
       const token = localStorage.getItem('accessToken');
-      const res = await fetch('http://localhost:8000/api/products/attribute-types/', {
+      const res = await fetch(PRODUCT_ENDPOINTS.ATTRIBUTE_TYPES, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -239,7 +240,7 @@ export default function AttributesPage() {
     e.preventDefault();
     try {
       const token = localStorage.getItem('accessToken');
-      const res = await fetch('http://localhost:8000/api/products/attribute-values/', {
+      const res = await fetch(PRODUCT_ENDPOINTS.ATTRIBUTE_VALUES, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -261,7 +262,7 @@ export default function AttributesPage() {
     try {
       const token = localStorage.getItem('accessToken');
       const typeToUpdate = attributeTypes.find(t => t.id === id);
-      const res = await fetch(`http://localhost:8000/api/products/attribute-types/${id}/`, {
+      const res = await fetch(`${PRODUCT_ENDPOINTS.ATTRIBUTE_TYPES}${id}/`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -281,7 +282,7 @@ export default function AttributesPage() {
     try {
       const token = localStorage.getItem('accessToken');
       const valueToUpdate = attributeValues.find(v => v.id === id);
-      const res = await fetch(`http://localhost:8000/api/products/attribute-values/${id}/`, {
+      const res = await fetch(`${PRODUCT_ENDPOINTS.ATTRIBUTE_VALUES}${id}/`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,

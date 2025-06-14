@@ -13,6 +13,7 @@ import {
 } from 'antd';
 import { EditOutlined, DeleteOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
+import { ORDER_ENDPOINTS } from '../../config/api';
 import '../static/AdminCommon.css';
 
 const { Option } = Select;
@@ -44,7 +45,7 @@ const CustomersListPage = () => {
         queryParams.append('search', debouncedSearchText);
       }
       
-      const response = await fetch(`http://localhost:8000/api/orders/customers/?${queryParams}`, {
+      const response = await fetch(`${ORDER_ENDPOINTS.CUSTOMERS}?${queryParams}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -83,7 +84,7 @@ const CustomersListPage = () => {
       };
 
       if (editingId) {
-        const response = await fetch(`http://localhost:8000/api/orders/customers/${editingId}/`, {
+        const response = await fetch(`${ORDER_ENDPOINTS.CUSTOMER_DETAIL(editingId)}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -99,7 +100,7 @@ const CustomersListPage = () => {
 
         message.success('Cập nhật khách hàng thành công');
       } else {
-        const response = await fetch('http://localhost:8000/api/orders/customers/', {
+        const response = await fetch(ORDER_ENDPOINTS.CUSTOMERS, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -126,7 +127,7 @@ const CustomersListPage = () => {
   const handleDelete = async (id) => {
     try {
       const token = localStorage.getItem('accessToken');
-      const response = await fetch(`http://localhost:8000/api/orders/customers/${id}/`, {
+      const response = await fetch(`${ORDER_ENDPOINTS.CUSTOMER_DETAIL(id)}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });

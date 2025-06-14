@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { hasModulePermission } from '../../services/permission';
+import { PRODUCT_ENDPOINTS } from '../../config/api';
 
 export default function ProductViewPage() {
   const { id } = useParams();
@@ -18,7 +19,7 @@ export default function ProductViewPage() {
         const token = localStorage.getItem('accessToken');
         
         // Fetch product với đầy đủ thông tin
-        const productRes = await fetch(`http://localhost:8000/api/products/products/${id}/`, {
+        const productRes = await fetch(`${PRODUCT_ENDPOINTS.PRODUCT_DETAIL(id)}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (productRes.ok) {
@@ -48,7 +49,7 @@ export default function ProductViewPage() {
         }
 
         // Fetch product attributes
-        const attributesRes = await fetch(`http://localhost:8000/api/variant-attributes/?product_variant__product=${id}`, {
+        const attributesRes = await fetch(`${PRODUCT_ENDPOINTS.VARIANT_ATTRIBUTES}?product_variant__product=${id}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (attributesRes.ok) {

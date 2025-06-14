@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { AUTH_ENDPOINTS } from '../../config/api';
 
 export default function ProfilePage() {
   const [user, setUser] = useState(null);
@@ -8,7 +9,7 @@ export default function ProfilePage() {
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
     if (!token) return;
-    fetch('http://localhost:8000/api/account/auth/me/', {
+    fetch(AUTH_ENDPOINTS.ME, {
       headers: { 'Authorization': `Bearer ${token}` }
     })
       .then(res => res.json())

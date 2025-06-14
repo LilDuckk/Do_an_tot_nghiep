@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { hasModulePermission } from '../../services/permission';
+import { PRODUCT_ENDPOINTS } from '../../config/api';
 import '../static/AdminCommon.css';
 
 export default function BrandEditPage() {
@@ -20,7 +21,7 @@ export default function BrandEditPage() {
     const fetchBrand = async () => {
       try {
         const token = localStorage.getItem('accessToken');
-        const res = await fetch(`http://localhost:8000/api/products/brands/${id}/`, {
+        const res = await fetch(PRODUCT_ENDPOINTS.BRAND_DETAIL(id), {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (res.ok) {
@@ -57,7 +58,7 @@ export default function BrandEditPage() {
     setError('');
     try {
       const token = localStorage.getItem('accessToken');
-      const res = await fetch(`http://localhost:8000/api/products/brands/${id}/`, {
+      const res = await fetch(PRODUCT_ENDPOINTS.BRAND_DETAIL(id), {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
