@@ -36,6 +36,12 @@ const InventoriesPage = () => {
   const [selectedVariants, setSelectedVariants] = useState([]);
   const [productSearchValue, setProductSearchValue] = useState('');
   const [productOptions, setProductOptions] = useState([]);
+  const [selectedStoreFilter, setSelectedStoreFilter] = useState(null);
+
+  const user = JSON.parse(localStorage.getItem('adminUser') || '{}');
+  const userPermissions = JSON.parse(localStorage.getItem('user_permission_codenames') || '[]');
+  const isSuperUser = localStorage.getItem('is_superuser') === 'true';
+  const canViewAllInventory = isSuperUser || userPermissions.includes('view_all_inventory');
 
   // Debounce search text
   useEffect(() => {
@@ -54,17 +60,17 @@ const InventoriesPage = () => {
       if (debouncedSearchText) {
         queryParams.append('search', debouncedSearchText);
       }
-      
+      if (selectedStoreFilter) {
+        queryParams.append('store', selectedStoreFilter);
+      }
       const response = await fetch(`${INVENTORY_ENDPOINTS.INVENTORIES}?${queryParams}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-
       if (response.status === 403) {
         message.error('Bạn không có quyền xem danh sách này.');
         setInventories([]);
         return;
       }
-
       const data = await response.json();
       setInventories(Array.isArray(data.results) ? data.results : []);
     } catch (error) {
@@ -73,7 +79,7 @@ const InventoriesPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [debouncedSearchText]);
+  }, [debouncedSearchText, selectedStoreFilter]);
 
   const fetchStores = async () => {
     try {
@@ -82,9 +88,10 @@ const InventoriesPage = () => {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
-      setStores(data || []);
+      setStores(Array.isArray(data) ? data : []);
     } catch (error) {
       message.error('Lỗi khi tải danh sách cửa hàng');
+      setStores([]);
     }
   };
 
@@ -257,7 +264,13 @@ const InventoriesPage = () => {
       key: 'attribute_name',
       render: (_, record) => {
         const attrs = record.variant?.attribute_values_detail || record.attribute_values_detail || [];
-        return attrs.length > 0 ? attrs[0].attribute_type?.name || '' : '';
+        return (
+          <div>
+            {attrs.map((attr, idx) => (
+              <div key={idx}>{attr.attribute_type?.name || ''}</div>
+            ))}
+          </div>
+        );
       }
     },
     {
@@ -265,7 +278,13 @@ const InventoriesPage = () => {
       key: 'attribute_value',
       render: (_, record) => {
         const attrs = record.variant?.attribute_values_detail || record.attribute_values_detail || [];
-        return attrs.length > 0 ? attrs[0].value || '' : '';
+        return (
+          <div>
+            {attrs.map((attr, idx) => (
+              <div key={idx}>{attr.value || ''}</div>
+            ))}
+          </div>
+        );
       }
     },
     {
@@ -310,6 +329,19 @@ const InventoriesPage = () => {
       <div className="coupon-header">
         <h2>Quản lý tồn kho</h2>
         <Space>
+          {canViewAllInventory && (
+            <Select
+              placeholder="Chọn cửa hàng để lọc"
+              allowClear
+              style={{ width: 200 }}
+              value={selectedStoreFilter}
+              onChange={value => setSelectedStoreFilter(value)}
+            >
+              {Array.isArray(stores) && stores.map(store => (
+                <Option key={store.id} value={store.id}>{store.name}</Option>
+              ))}
+            </Select>
+          )}
           <Input
             placeholder="Tìm kiếm tồn kho..."
             prefix={<SearchOutlined />}

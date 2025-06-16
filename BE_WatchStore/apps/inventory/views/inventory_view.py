@@ -7,6 +7,9 @@ from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework import serializers
 from rest_framework import status
 from apps.core.utils.permissions import IsAdminUser
+from django.contrib.auth.models import Permission
+from django.contrib.contenttypes.models import ContentType
+from apps.stores.models.employee import Employee
 
 from apps.inventory.models.inventory import Inventory
 from apps.inventory.serializers.inventory_serializer import InventorySerializer
@@ -29,6 +32,46 @@ class InventoryViewSet(viewsets.ModelViewSet):
     # Các trường có thể sắp xếp
     ordering_fields = ['quantity', 'last_updated', 'created_at']
     ordering = ['-last_updated']  # Mặc định sắp xếp theo thời gian cập nhật mới nhất
+
+    def get_queryset(self):
+        """
+        Lọc dữ liệu tồn kho dựa trên quyền và cửa hàng của người dùng
+        """
+        queryset = super().get_queryset()
+        user = self.request.user
+
+        # print("=== DEBUG INVENTORY VIEW ===")
+        # print(f"User ID: {user.id}")
+        # print(f"Username: {user.username}")
+        # print(f"Is superuser: {user.is_superuser}")
+        # print(f"Has view_all_inventory: {user.has_perm('inventory.view_all_inventory')}")
+        # print(f"Has view_inventory: {user.has_perm('inventory.view_inventory')}")
+        
+        # Nếu là superuser hoặc có quyền view_all_inventory, trả về tất cả dữ liệu
+        if user.is_superuser or user.has_perm('inventory.view_all_inventory'):
+            # print("Returning all inventory data")
+            return queryset
+
+        # Lấy employee của user
+        try:
+            employee = Employee.objects.get(user=user, is_deleted=False)
+            user_store = employee.store
+            # print(f"Employee found - ID: {employee.id}")
+            # print(f"Store ID: {user_store.id}")
+            # print(f"Store name: {user_store.name}")
+
+            if user_store and user.has_perm('inventory.view_inventory'):
+                # Chỉ trả về dữ liệu tồn kho của cửa hàng người dùng thuộc về
+                filtered_queryset = queryset.filter(store=user_store)
+                # print(f"Filtered inventory count: {filtered_queryset.count()}")
+                # print("Returning filtered inventory data")
+                return filtered_queryset
+        except Employee.DoesNotExist:
+            print("No employee found for this user")
+            
+        # Nếu người dùng không thuộc cửa hàng nào hoặc không có quyền view_inventory, trả về queryset rỗng
+        print("Returning empty queryset")
+        return Inventory.objects.none()
 
     def get_permissions(self):
         """

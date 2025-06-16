@@ -310,6 +310,11 @@ class ProductVariantViewSet(viewsets.ModelViewSet):
             'images'
         ).order_by('-id')  # Sắp xếp theo ID giảm dần
 
+        # Lọc theo product_id
+        product_id = self.request.query_params.get('product_id', None)
+        if product_id:
+            queryset = queryset.filter(product_id=product_id)
+
         # Tìm kiếm theo tên sản phẩm
         search = self.request.query_params.get('search', None)
         if search:

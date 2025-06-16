@@ -8,10 +8,10 @@ class OrderDetail(BaseModel):
     order = models.ForeignKey(Orders, models.DO_NOTHING, blank=True, null=True)
     product_variant = models.ForeignKey(ProductVariant, models.DO_NOTHING, blank=True, null=True)
     quantity = models.IntegerField()
-    unit_price = models.DecimalField(max_digits=10, decimal_places=2)
-    discount = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    unit_price = models.DecimalField(max_digits=25, decimal_places=2)
+    discount = models.DecimalField(max_digits=25, decimal_places=2, blank=True, null=True)
     coupon = models.ForeignKey(Coupon, models.DO_NOTHING, blank=True, null=True)
-    final_price = models.DecimalField(max_digits=10, decimal_places=2)
+    final_price = models.DecimalField(max_digits=25, decimal_places=2)
 
     class Meta:
         managed = True

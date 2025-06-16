@@ -107,18 +107,25 @@
 .admin-form label {
   display: flex;
   flex-direction: column;
-  font-weight: 500;
-  color: var(--text);
+  gap: 4px;
+  margin: 0;
 }
 .admin-form input,
-.admin-form select {
-  margin-top: 6px;
-  padding: 8px;
+.admin-form select,
+.admin-form textarea {
+  width: 100%;
+  padding: 8px 12px;
   border: 1px solid var(--border);
   border-radius: 4px;
-  background: whitesmoke;
-  color: var(--text);
-  font-size: 1rem;
+  background: var(--input-bg);
+  color: var(--input-text);
+  font-size: 14px;
+  transition: all 0.3s;
+  box-sizing: border-box;
+  height: auto;
+  min-height: auto;
+  flex-grow: 0;
+  flex-shrink: 0;
 }
 .admin-form input[type="checkbox"] {
   width: auto;
@@ -127,11 +134,30 @@
 
 .admin-error {
   color: #ff4d4f;
-  padding: 10px;
-  margin: 10px 0;
-  border: 1px solid #ff4d4f;
-  border-radius: 4px;
   background: #fff2f0;
+  padding: 12px 16px;
+  margin: 0;
+  border: 1px solid #ffccc7;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.admin-error::before {
+  content: "!";
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background: #ff4d4f;
+  color: white;
+  border-radius: 50%;
+  font-weight: bold;
+  font-size: 12px;
+  flex-shrink: 0;
 }
 
 @media (max-width: 600px) {
@@ -1316,3 +1342,90 @@
 .admin-layout option{
   color: black;
 }
+
+.admin-layout input,
+.admin-layout select,
+.admin-layout textarea,
+input.ant-input,
+textarea.ant-input,
+.ant-input,
+.ant-select-selection-placeholder,
+.ant-select-arrow,
+.ant-select-clear,
+.admin-layout .ant-select-arrow > span,
+.admin-layout .ant-select-arrow svg,
+.ant-select-clear > span,
+.ant-select-clear svg,
+.ant-input-suffix > span,
+.ant-input-suffix svg,
+.ant-input-prefix input,
+.ant-select-selection-item,
+.admin-layout input::placeholder,
+.admin-layout textarea::placeholder,
+input.ant-input::placeholder,
+textarea.ant-input::placeholder,
+.ant-input::placeholder,
+.ant-select-selector {
+  color: var(--input-text) !important;
+  fill: var(--input-text) !important;
+}
+
+/* Form Error Styles */
+.admin-form input.error,
+.admin-form select.error,
+.admin-form textarea.error {
+  border-color: #ff4d4f;
+  background-color: #fff2f0;
+}
+
+.admin-form input.error:focus,
+.admin-form select.error:focus,
+.admin-form textarea.error:focus {
+  border-color: #ff4d4f;
+  box-shadow: 0 0 0 2px rgba(255, 77, 79, 0.2);
+}
+
+.error-message {
+  color: #ff4d4f;
+  font-size: 12px;
+  line-height: 1.5;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+}
+
+.error-message::before {
+  content: "•";
+  color: #ff4d4f;
+  font-weight: bold;
+}
+
+/* .admin-error {
+  color: #ff4d4f;
+  background: #fff2f0;
+  padding: 12px 16px;
+  margin: 0;
+  border: 1px solid #ffccc7;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.admin-error::before {
+  content: "!";
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background: #ff4d4f;
+  color: white;
+  border-radius: 50%;
+  font-weight: bold;
+  font-size: 12px;
+  flex-shrink: 0;
+} */

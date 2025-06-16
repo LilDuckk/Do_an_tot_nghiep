@@ -10,7 +10,7 @@ class ReturnOrder(BaseModel):
     return_date = models.DateTimeField(blank=True, null=True)
     reason = models.TextField(blank=True, null=True)
     status = models.CharField(max_length=50, blank=True, null=True)
-    refund_amount = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    refund_amount = models.DecimalField(max_digits=25, decimal_places=2, blank=True, null=True)
     refund_method = models.CharField(max_length=50, blank=True, null=True)
     refund_status = models.CharField(max_length=50, blank=True, null=True)
     created_by = models.ForeignKey(UserAccount, models.DO_NOTHING, db_column='created_by', blank=True, null=True)

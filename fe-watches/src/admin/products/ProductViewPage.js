@@ -25,36 +25,32 @@ export default function ProductViewPage() {
         if (productRes.ok) {
           const data = await productRes.json();
           setProduct(data);
-          
-          // Lấy thông tin variants và attributes từ response
-          if (data.variants) {
-            setVariants(data.variants);
-            
-            // Lấy thông tin attributes từ variants
-            const allAttributes = [];
-            data.variants.forEach(variant => {
-              if (variant.attributes) {
-                variant.attributes.forEach(attr => {
-                  allAttributes.push({
-                    ...attr,
-                    variant_id: variant.id
-                  });
-                });
-              }
-            });
-            setAttributes(allAttributes);
-          }
         } else {
           setError('Không tìm thấy sản phẩm');
         }
 
-        // Fetch product attributes
-        const attributesRes = await fetch(`${PRODUCT_ENDPOINTS.VARIANT_ATTRIBUTES}?product_variant__product=${id}`, {
+        // Fetch variants của sản phẩm
+        const variantsRes = await fetch(PRODUCT_ENDPOINTS.PRODUCT_VARIANTS(id), {
           headers: { 'Authorization': `Bearer ${token}` }
         });
-        if (attributesRes.ok) {
-          const attributesData = await attributesRes.json();
-          setProductAttributes(attributesData.results || attributesData);
+        if (variantsRes.ok) {
+          const variantsData = await variantsRes.json();
+          setVariants(Array.isArray(variantsData) ? variantsData : []);
+          
+          // Lấy thông tin attributes từ variants
+          const allAttributes = [];
+          variantsData.forEach(variant => {
+            if (variant.attribute_values_detail) {
+              variant.attribute_values_detail.forEach(attr => {
+                allAttributes.push({
+                  attribute_type_name: attr.attribute_type.name,
+                  value: attr.value,
+                  variant_id: variant.id
+                });
+              });
+            }
+          });
+          setAttributes(allAttributes);
         }
 
       } catch (error) {
@@ -124,7 +120,7 @@ export default function ProductViewPage() {
       )}
 
       {/* Thuộc tính sản phẩm */}
-      {productAttributes.length > 0 && (
+      {/* {attributes.length > 0 && (
         <div className="form-section">
           <h3>Thuộc tính sản phẩm</h3>
           <table className="admin-table">
@@ -136,17 +132,17 @@ export default function ProductViewPage() {
               </tr>
             </thead>
             <tbody>
-              {productAttributes.map((attr, index) => (
+              {attributes.map((attr, index) => (
                 <tr key={index}>
-                  <td>{attr.attribute_value?.attribute_type_name || 'N/A'}</td>
-                  <td>{attr.attribute_value?.value || 'N/A'}</td>
-                  <td>{attr.product_variant?.sku || 'N/A'}</td>
+                  <td>{attr.attribute_type_name || 'N/A'}</td>
+                  <td>{attr.value || 'N/A'}</td>
+                  <td>{variants.find(v => v.id === attr.variant_id)?.sku || 'N/A'}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      )}
+      )} */}
 
       {/* Biến thể sản phẩm */}
       {variants.length > 0 && (

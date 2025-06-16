@@ -7,7 +7,7 @@ class InventoryTransaction(BaseModel):
     inventory = models.ForeignKey(Inventory, models.DO_NOTHING, blank=True, null=True)
     transaction_type = models.CharField(max_length=20)
     quantity = models.IntegerField()
-    unit_price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    unit_price = models.DecimalField(max_digits=25, decimal_places=2, blank=True, null=True)
     reference_id = models.IntegerField(blank=True, null=True)
     reference_type = models.CharField(max_length=50, blank=True, null=True)
     note = models.TextField(blank=True, null=True)

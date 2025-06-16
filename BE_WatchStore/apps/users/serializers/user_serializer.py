@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from apps.users.models.user import UserAccount
 from django.contrib.auth.models import Group
+from django.db import IntegrityError
 
 
 class GroupInfoSerializer(serializers.ModelSerializer):
@@ -43,7 +44,13 @@ class UserSerializer(serializers.ModelSerializer):
         user = UserAccount(**validated_data)
         if password:
             user.set_password(password)
-        user.save()
+        try:
+            user.save()
+        except IntegrityError as e:
+            if 'useraccount_email_key' in str(e):
+                raise serializers.ValidationError({'email': 'Email đã tồn tại.'})
+            raise e # Re-raise other integrity errors
+
         if groups_data:
             user.groups.set(groups_data)
         return user

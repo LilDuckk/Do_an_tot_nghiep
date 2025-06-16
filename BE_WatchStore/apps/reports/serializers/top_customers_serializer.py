@@ -7,5 +7,5 @@ class TopCustomersSerializer(serializers.Serializer):
     email = serializers.EmailField(allow_null=True)
     phone = serializers.CharField(allow_null=True)
     total_orders = serializers.IntegerField()
-    total_spent = serializers.DecimalField(max_digits=10, decimal_places=2)
+    total_spent = serializers.DecimalField(max_digits=25, decimal_places=2)
     last_order_date = serializers.DateTimeField(allow_null=True) 

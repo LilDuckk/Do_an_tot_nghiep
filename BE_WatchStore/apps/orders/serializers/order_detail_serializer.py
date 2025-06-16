@@ -16,6 +16,10 @@ class OrderDetailSerializer(serializers.ModelSerializer):
         required=False,
         allow_null=True
     )
+    unit_price = serializers.DecimalField(max_digits=25, decimal_places=2, read_only=True)
+    discount = serializers.DecimalField(max_digits=25, decimal_places=2, read_only=True)
+    final_price = serializers.DecimalField(max_digits=25, decimal_places=2, read_only=True)
+    quantity = serializers.IntegerField(required=False, allow_null=True, min_value=0)
     
     class Meta:
         model = OrderDetail
@@ -40,7 +44,8 @@ class OrderDetailSerializer(serializers.ModelSerializer):
                     raise serializers.ValidationError({
                         'product_variant': 'Vui lòng chọn sản phẩm'
                     })
-                total_amount = product_variant.product.base_price * data['quantity']
+                quantity = data.get('quantity', 0) or 0  # Mặc định là 0 nếu quantity là null
+                total_amount = product_variant.product.base_price * quantity
                 if total_amount < coupon.minimum_order_amount:
                     raise serializers.ValidationError({
                         'coupon': f'Đơn hàng phải có giá trị tối thiểu {coupon.minimum_order_amount}'
@@ -67,7 +72,7 @@ class OrderDetailSerializer(serializers.ModelSerializer):
             validated_data['discount'] = Decimal('0')
 
         # Tính toán final_price
-        quantity = validated_data['quantity']
+        quantity = validated_data.get('quantity', 0) or 0  # Mặc định là 0 nếu quantity là null
         unit_price = validated_data['unit_price']
         discount = validated_data['discount']
         validated_data['final_price'] = (unit_price - discount) * quantity
@@ -92,7 +97,7 @@ class OrderDetailSerializer(serializers.ModelSerializer):
             validated_data['discount'] = Decimal('0')
 
         # Tính toán lại final_price
-        quantity = validated_data.get('quantity', instance.quantity)
+        quantity = validated_data.get('quantity', instance.quantity) or 0  # Mặc định là 0 nếu quantity là null
         unit_price = validated_data.get('unit_price', instance.unit_price)
         discount = validated_data.get('discount', instance.discount)
         validated_data['final_price'] = (unit_price - discount) * quantity

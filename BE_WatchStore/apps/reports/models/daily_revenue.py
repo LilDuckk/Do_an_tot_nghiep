@@ -3,9 +3,9 @@ from django.db import models
 class DailyRevenue(models.Model):
     date = models.DateField()
     store_id = models.IntegerField()
-    total_revenue = models.DecimalField(max_digits=10, decimal_places=2)
+    total_revenue = models.DecimalField(max_digits=25, decimal_places=2)
     total_orders = models.IntegerField()
-    average_order_value = models.DecimalField(max_digits=10, decimal_places=2)
+    average_order_value = models.DecimalField(max_digits=25, decimal_places=2)
 
     class Meta:
         managed = False

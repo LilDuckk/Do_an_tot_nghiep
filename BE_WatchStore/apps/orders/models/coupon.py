@@ -10,8 +10,8 @@ class Coupon(BaseModel):
         ('percentage', 'Percentage'),
         ('fixed', 'Fixed Amount')
     ])
-    discount_value = models.DecimalField(max_digits=10, decimal_places=2)
-    minimum_order_amount = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    discount_value = models.DecimalField(max_digits=25, decimal_places=2)
+    minimum_order_amount = models.DecimalField(max_digits=25, decimal_places=2, blank=True, null=True)
     start_date = models.DateTimeField()
     expires_at = models.DateTimeField()
     usage_limit = models.IntegerField(default=1)

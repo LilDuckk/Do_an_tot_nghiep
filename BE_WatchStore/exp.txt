@@ -523,3 +523,547 @@ DELETE /api/warranty/warranty-claims/{id}/ - Xóa yêu cầu bảo hành
 ## Warranty
 - Cho phép user đã đăng nhập xem danh sách và chi tiết bảo hành (IsAuthenticated)
 - Yêu cầu quyền admin cho các thao tác thêm/sửa/xóa (IsAdminUser)
+
+# API Endpoints cho Orders
+## Danh sách API
+GET /api/orders/orders/ - Lấy danh sách đơn hàng (có phân trang)
+GET /api/orders/orders/list_all/ - Lấy tất cả đơn hàng (không phân trang)
+GET /api/orders/orders/{id}/ - Lấy chi tiết một đơn hàng
+POST /api/orders/orders/ - Tạo đơn hàng mới
+PUT /api/orders/orders/{id}/ - Cập nhật đơn hàng
+DELETE /api/orders/orders/{id}/ - Xóa đơn hàng
+
+## Dữ liệu mẫu cho Orders
+### GET /api/orders/orders/
+{
+    "count": 2,
+    "next": null,
+    "previous": null,
+    "results": [
+        {
+            "id": 1,
+            "order_number": "ORD202403150001",
+            "customer": {
+                "id": 1,
+                "first_name": "Nguyễn",
+                "last_name": "Văn A",
+                "email": "nguyenvana@example.com",
+                "phone": "0987654321"
+            },
+            "store": {
+                "id": 1,
+                "name": "Watch Store Hà Nội",
+                "address": "123 Nguyễn Huệ, Quận 1, Hà Nội",
+                "phone": "024-1234-5678"
+            },
+            "status": "pending",
+            "payment_method": "cash",
+            "total_amount": 85000000,
+            "shipping_address": "789 Trần Hưng Đạo, Hà Nội",
+            "shipping_phone": "0987654321",
+            "shipping_name": "Nguyễn Văn A",
+            "note": "Giao hàng giờ hành chính",
+            "order_details": [
+                {
+                    "id": 1,
+                    "product_variant": {
+                        "id": 1,
+                        "sku": "ROLEX-SUB-001",
+                        "product": {
+                            "id": 1,
+                            "name": "Rolex Submariner",
+                            "brand": "Rolex",
+                            "category": "Diving Watch"
+                        }
+                    },
+                    "quantity": 1,
+                    "price": 85000000,
+                    "total": 85000000
+                }
+            ],
+            "created_at": "2024-03-15T10:30:00Z",
+            "updated_at": "2024-03-15T10:30:00Z",
+            "created_by": 1,
+            "created_by_details": {
+                "id": 1,
+                "username": "staff.hn",
+                "email": "staff.hn@watchstore.com"
+            },
+            "updated_by": 1,
+            "updated_by_details": {
+                "id": 1,
+                "username": "staff.hn",
+                "email": "staff.hn@watchstore.com"
+            }
+        }
+    ]
+}
+
+### POST /api/orders/orders/
+{
+    "customer": 1,
+    "store": 1,
+    "payment_method": "cash",
+    "shipping_address": "789 Trần Hưng Đạo, Hà Nội",
+    "shipping_phone": "0987654321",
+    "shipping_name": "Nguyễn Văn A",
+    "note": "Giao hàng giờ hành chính",
+    "order_details": [
+        {
+            "product_variant": 1,
+            "quantity": 1,
+            "price": 85000000
+        }
+    ]
+}
+
+### PUT /api/orders/orders/{id}/
+{
+    "status": "processing",
+    "payment_method": "cash",
+    "shipping_address": "789 Trần Hưng Đạo, Hà Nội",
+    "shipping_phone": "0987654321",
+    "shipping_name": "Nguyễn Văn A",
+    "note": "Giao hàng giờ hành chính"
+}
+
+# API Endpoints cho OrderDetails
+## Danh sách API
+GET /api/orders/order-details/ - Lấy danh sách chi tiết đơn hàng (có phân trang)
+GET /api/orders/order-details/list_all/ - Lấy tất cả chi tiết đơn hàng (không phân trang)
+GET /api/orders/order-details/{id}/ - Lấy chi tiết một chi tiết đơn hàng
+POST /api/orders/order-details/ - Tạo chi tiết đơn hàng mới
+PUT /api/orders/order-details/{id}/ - Cập nhật chi tiết đơn hàng
+DELETE /api/orders/order-details/{id}/ - Xóa chi tiết đơn hàng
+
+## Dữ liệu mẫu cho OrderDetails
+### GET /api/orders/order-details/
+{
+    "count": 2,
+    "next": null,
+    "previous": null,
+    "results": [
+        {
+            "id": 1,
+            "order": {
+                "id": 1,
+                "order_number": "ORD202403150001",
+                "status": "pending",
+                "total_amount": 85000000
+            },
+            "product_variant": {
+                "id": 1,
+                "sku": "ROLEX-SUB-001",
+                "product": {
+                    "id": 1,
+                    "name": "Rolex Submariner",
+                    "brand": "Rolex",
+                    "category": "Diving Watch"
+                }
+            },
+            "quantity": 1,
+            "price": 85000000,
+            "total": 85000000,
+            "created_at": "2024-03-15T10:30:00Z",
+            "updated_at": "2024-03-15T10:30:00Z",
+            "created_by": 1,
+            "created_by_details": {
+                "id": 1,
+                "username": "staff.hn",
+                "email": "staff.hn@watchstore.com"
+            },
+            "updated_by": 1,
+            "updated_by_details": {
+                "id": 1,
+                "username": "staff.hn",
+                "email": "staff.hn@watchstore.com"
+            }
+        }
+    ]
+}
+
+### POST /api/orders/order-details/
+{
+    "order": 1,
+    "product_variant": 1,
+    "quantity": 1,
+    "price": 85000000
+}
+
+### PUT /api/orders/order-details/{id}/
+{
+    "quantity": 2,
+    "price": 85000000
+}
+
+# Các tính năng tìm kiếm và lọc
+## Orders
+- Tìm kiếm theo: 
+  + Mã đơn hàng: `?search=keyword` (tìm trong `order_number`)
+  + Tên khách hàng: `?customer_first_name=keyword` (tìm trong `customer__first_name`)
+- Lọc theo: 
+  + Khách hàng: `?customer=1`
+  + Trạng thái: `?status=pending`
+  + Phương thức thanh toán: `?payment_method=cash`
+  + Cửa hàng: `?store=1`
+- Sắp xếp theo: 
+  + Mã đơn hàng: `?ordering=order_number` hoặc `?ordering=-order_number`
+  + Thời gian tạo: `?ordering=created_at` hoặc `?ordering=-created_at`
+- Phân trang: Mặc định 10 items/trang
+- API list_all: Lấy tất cả đơn hàng không phân trang
+
+## OrderDetails
+- Tìm kiếm theo: 
+  + Mã đơn hàng: `?search=keyword` (tìm trong `order__order_number`)
+  + Mã SKU: `?search=keyword` (tìm trong `product_variant__sku`)
+- Lọc theo: 
+  + Đơn hàng: `?order=1`
+  + Biến thể sản phẩm: `?product_variant=1`
+- Sắp xếp theo: 
+  + Thời gian tạo: `?ordering=created_at` hoặc `?ordering=-created_at`
+- Phân trang: Mặc định 10 items/trang
+- API list_all: Lấy tất cả chi tiết đơn hàng không phân trang
+
+# Quyền truy cập
+## Orders
+- Cho phép user đã đăng nhập xem danh sách và chi tiết đơn hàng (IsAuthenticated)
+- Yêu cầu quyền admin cho các thao tác thêm/sửa/xóa (IsAdminUser)
+- Người dùng thông thường chỉ có thể xem đơn hàng của cửa hàng họ thuộc về
+- Superuser có thể xem và quản lý tất cả đơn hàng
+
+## OrderDetails
+- Cho phép user đã đăng nhập xem danh sách và chi tiết chi tiết đơn hàng (IsAuthenticated)
+- Yêu cầu quyền admin cho các thao tác thêm/sửa/xóa (IsAdminUser)
+- Người dùng thông thường chỉ có thể xem chi tiết đơn hàng của cửa hàng họ thuộc về
+- Superuser có thể xem và quản lý tất cả chi tiết đơn hàng
+
+# API Endpoints cho Products
+## Danh sách API
+GET /api/products/products/ - Lấy danh sách sản phẩm (có phân trang)
+GET /api/products/products/list_all/ - Lấy tất cả sản phẩm (không phân trang)
+GET /api/products/products/{id}/ - Lấy chi tiết một sản phẩm
+GET /api/products/products/{id}/get_variants/ - Lấy danh sách biến thể của sản phẩm
+GET /api/products/products/{id}/get_attributes/ - Lấy danh sách thuộc tính của sản phẩm
+POST /api/products/products/ - Tạo sản phẩm mới
+PUT /api/products/products/{id}/ - Cập nhật sản phẩm
+DELETE /api/products/products/{id}/ - Xóa sản phẩm
+
+## Dữ liệu mẫu cho Products
+### GET /api/products/products/
+{
+    "count": 2,
+    "next": null,
+    "previous": null,
+    "results": [
+        {
+            "id": 1,
+            "name": "Rolex Submariner",
+            "description": "Classic diving watch with water resistance up to 300m",
+            "brand": {
+                "id": 1,
+                "name": "Rolex",
+                "logo": "brands/rolex-logo.png"
+            },
+            "category": {
+                "id": 1,
+                "name": "Diving Watch",
+                "description": "Professional diving watches"
+            },
+            "base_price": 85000000,
+            "is_active": true,
+            "is_featured": true,
+            "default_variant": {
+                "id": 1,
+                "sku": "ROLEX-SUB-001",
+                "price_adjustment": 0
+            },
+            "images": [
+                {
+                    "id": 1,
+                    "image": "products/rolex-submariner-1.jpg",
+                    "alt_text": "Rolex Submariner Black Dial",
+                    "is_primary": true
+                },
+                {
+                    "id": 2,
+                    "image": "products/rolex-submariner-2.jpg",
+                    "alt_text": "Rolex Submariner Side View",
+                    "is_primary": false
+                }
+            ],
+            "created_at": "2024-03-15T08:00:00Z",
+            "updated_at": "2024-03-15T08:00:00Z",
+            "created_by": 1,
+            "created_by_details": {
+                "id": 1,
+                "username": "admin",
+                "email": "admin@watchstore.com"
+            },
+            "updated_by": 1,
+            "updated_by_details": {
+                "id": 1,
+                "username": "admin",
+                "email": "admin@watchstore.com"
+            }
+        }
+    ]
+}
+
+### GET /api/products/products/{id}/get_variants/
+{
+    "count": 2,
+    "next": null,
+    "previous": null,
+    "results": [
+        {
+            "id": 1,
+            "sku": "ROLEX-SUB-001",
+            "product": {
+                "id": 1,
+                "name": "Rolex Submariner"
+            },
+            "attribute_values": [
+                {
+                    "id": 1,
+                    "value": "Black",
+                    "attribute_type": {
+                        "id": 1,
+                        "name": "Color"
+                    }
+                },
+                {
+                    "id": 2,
+                    "value": "41mm",
+                    "attribute_type": {
+                        "id": 2,
+                        "name": "Size"
+                    }
+                }
+            ],
+            "price_adjustment": 0,
+            "is_active": true,
+            "images": [
+                {
+                    "id": 1,
+                    "image": "variants/rolex-sub-black-41-1.jpg",
+                    "alt_text": "Rolex Submariner Black 41mm"
+                }
+            ],
+            "created_at": "2024-03-15T08:00:00Z",
+            "updated_at": "2024-03-15T08:00:00Z"
+        }
+    ]
+}
+
+### GET /api/products/products/{id}/get_attributes/
+{
+    "attributes": [
+        {
+            "id": 1,
+            "name": "Color",
+            "description": "Watch color options",
+            "values": [
+                {
+                    "id": 1,
+                    "value": "Black"
+                },
+                {
+                    "id": 2,
+                    "value": "Blue"
+                }
+            ]
+        },
+        {
+            "id": 2,
+            "name": "Size",
+            "description": "Watch case size",
+            "values": [
+                {
+                    "id": 3,
+                    "value": "41mm"
+                },
+                {
+                    "id": 4,
+                    "value": "43mm"
+                }
+            ]
+        }
+    ]
+}
+
+### POST /api/products/products/
+{
+    "name": "Omega Seamaster",
+    "description": "Professional diving watch with co-axial movement",
+    "brand": 2,
+    "category": 1,
+    "base_price": 75000000,
+    "is_active": true,
+    "is_featured": false,
+    "images": [
+        {
+            "image": "products/omega-seamaster-1.jpg",
+            "alt_text": "Omega Seamaster Blue Dial"
+        }
+    ],
+    "variants": [
+        {
+            "attribute_values": [1, 3],  // Black color, 41mm size
+            "price_adjustment": 0,
+            "is_active": true,
+            "images": [
+                {
+                    "image": "variants/omega-seam-black-41-1.jpg",
+                    "alt_text": "Omega Seamaster Black 41mm"
+                }
+            ]
+        }
+    ]
+}
+
+### PUT /api/products/products/{id}/
+{
+    "name": "Rolex Submariner Professional",
+    "description": "Updated description for Rolex Submariner",
+    "base_price": 90000000,
+    "is_active": true,
+    "is_featured": true
+}
+
+# API Endpoints cho ProductVariants
+## Danh sách API
+GET /api/products/variants/ - Lấy danh sách biến thể sản phẩm (có phân trang)
+GET /api/products/variants/list_all/ - Lấy tất cả biến thể sản phẩm (không phân trang)
+GET /api/products/variants/{id}/ - Lấy chi tiết một biến thể
+POST /api/products/variants/ - Tạo biến thể mới
+PUT /api/products/variants/{id}/ - Cập nhật biến thể
+DELETE /api/products/variants/{id}/ - Xóa biến thể
+
+## Dữ liệu mẫu cho ProductVariants
+### GET /api/products/variants/
+{
+    "count": 2,
+    "next": null,
+    "previous": null,
+    "results": [
+        {
+            "id": 1,
+            "sku": "ROLEX-SUB-001",
+            "product": {
+                "id": 1,
+                "name": "Rolex Submariner",
+                "brand": "Rolex",
+                "category": "Diving Watch"
+            },
+            "attribute_values": [
+                {
+                    "id": 1,
+                    "value": "Black",
+                    "attribute_type": {
+                        "id": 1,
+                        "name": "Color"
+                    }
+                },
+                {
+                    "id": 2,
+                    "value": "41mm",
+                    "attribute_type": {
+                        "id": 2,
+                        "name": "Size"
+                    }
+                }
+            ],
+            "price_adjustment": 0,
+            "is_active": true,
+            "images": [
+                {
+                    "id": 1,
+                    "image": "variants/rolex-sub-black-41-1.jpg",
+                    "alt_text": "Rolex Submariner Black 41mm"
+                }
+            ],
+            "created_at": "2024-03-15T08:00:00Z",
+            "updated_at": "2024-03-15T08:00:00Z",
+            "created_by": 1,
+            "created_by_details": {
+                "id": 1,
+                "username": "admin",
+                "email": "admin@watchstore.com"
+            },
+            "updated_by": 1,
+            "updated_by_details": {
+                "id": 1,
+                "username": "admin",
+                "email": "admin@watchstore.com"
+            }
+        }
+    ]
+}
+
+### POST /api/products/variants/
+{
+    "product": 1,
+    "attribute_values": [1, 3],  // Black color, 41mm size
+    "price_adjustment": 0,
+    "is_active": true,
+    "images": [
+        {
+            "image": "variants/rolex-sub-black-41-1.jpg",
+            "alt_text": "Rolex Submariner Black 41mm"
+        }
+    ]
+}
+
+### PUT /api/products/variants/{id}/
+{
+    "price_adjustment": 5000000,
+    "is_active": true,
+    "images": [
+        {
+            "image": "variants/rolex-sub-black-41-2.jpg",
+            "alt_text": "Rolex Submariner Black 41mm - New Angle"
+        }
+    ]
+}
+
+# Các tính năng tìm kiếm và lọc
+## Products
+- Tìm kiếm theo: 
+  + Tên sản phẩm: `?search=keyword` (tìm trong `name`, `description`)
+  + Thương hiệu: `?brand=1`
+  + Danh mục: `?category=1`
+- Lọc theo: 
+  + Giá: `?min_price=1000000&max_price=100000000`
+  + Trạng thái: `?is_active=true`
+  + Nổi bật: `?is_featured=true`
+- Sắp xếp theo: 
+  + Tên: `?ordering=name` hoặc `?ordering=-name`
+  + Giá: `?ordering=base_price` hoặc `?ordering=-base_price`
+  + Thời gian tạo: `?ordering=created_at` hoặc `?ordering=-created_at`
+- Phân trang: Mặc định 10 items/trang
+- API list_all: Lấy tất cả sản phẩm không phân trang
+
+## ProductVariants
+- Tìm kiếm theo: 
+  + Mã SKU: `?search=keyword` (tìm trong `sku`)
+  + Tên sản phẩm: `?search=keyword` (tìm trong `product__name`)
+  + Giá trị thuộc tính: `?search=keyword` (tìm trong `attribute_values__value`)
+- Lọc theo: 
+  + Sản phẩm: `?product=1`
+  + Thuộc tính: `?attr_values=Black,41mm`
+  + Loại thuộc tính: `?attr_type=Color`
+  + Trạng thái: `?is_active=true`
+- Sắp xếp theo: 
+  + Tên sản phẩm: `?sort_by=product_name` hoặc `?sort_by=-product_name`
+  + Giá trị thuộc tính: `?sort_by=attr_value`
+- Phân trang: Mặc định 10 items/trang
+- API list_all: Lấy tất cả biến thể không phân trang
+
+# Quyền truy cập
+## Products
+- Cho phép tất cả người dùng xem danh sách và chi tiết sản phẩm (AllowAny)
+- Yêu cầu quyền admin cho các thao tác thêm/sửa/xóa (IsAdminUser)
+
+## ProductVariants
+- Cho phép tất cả người dùng xem danh sách và chi tiết biến thể (AllowAny)
+- Yêu cầu quyền admin cho các thao tác thêm/sửa/xóa (IsAdminUser)

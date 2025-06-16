@@ -11,7 +11,7 @@ class ProductVariant(BaseModel):
     product = models.ForeignKey(Product, models.DO_NOTHING, blank=True, null=True, related_name='variants')
     attribute_values = models.ManyToManyField(AttributeValue, related_name='variants')
     sku = models.CharField(unique=True, max_length=100)
-    price_adjustment = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    price_adjustment = models.DecimalField(max_digits=25, decimal_places=2, blank=True, null=True)
     stock_alert_threshold = models.IntegerField(blank=True, null=True)
     barcode = models.CharField(max_length=100, blank=True, null=True)
     is_active = models.BooleanField(default=True)

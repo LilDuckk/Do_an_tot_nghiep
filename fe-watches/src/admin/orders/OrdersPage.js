@@ -15,6 +15,7 @@ import {
 } from 'antd';
 import { EditOutlined, DeleteOutlined, PlusOutlined, SearchOutlined, EyeOutlined, ShoppingCartOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
+import { ORDER_ENDPOINTS, STORE_ENDPOINTS, PRODUCT_ENDPOINTS, CUSTOMER_ENDPOINTS } from '../../config/api';
 import '../static/AdminCommon.css';
 
 const { Option } = Select;
@@ -40,6 +41,15 @@ const OrdersPage = () => {
   const [variants, setVariants] = useState([]);
   const [coupons, setCoupons] = useState([]);
   const [orderDetailLoading, setOrderDetailLoading] = useState(false);
+  const [editingOrderDetail, setEditingOrderDetail] = useState(null);
+  const [selectedProductId, setSelectedProductId] = useState(null);
+  const [selectedVariant, setSelectedVariant] = useState(null);
+  const [filteredEmployees, setFilteredEmployees] = useState([]);
+  const [showAddProductForm, setShowAddProductForm] = useState(false);
+
+  const user = JSON.parse(localStorage.getItem('adminUser') || '{}');
+  const isSuperUser = localStorage.getItem('is_superuser') === 'true';
+  const userEmployeeId = user.employee?.id || user.employee_id || null;
 
   // Debounce search text
   useEffect(() => {
@@ -59,7 +69,7 @@ const OrdersPage = () => {
         queryParams.append('customer_first_name', debouncedSearchText);
       }
       
-      const response = await fetch(`http://localhost:8000/api/orders/orders/?${queryParams}`, {
+      const response = await fetch(`${ORDER_ENDPOINTS.ORDERS}?${queryParams}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -83,7 +93,7 @@ const OrdersPage = () => {
     try {
       setCustomerSearchLoading(true);
       const token = localStorage.getItem('accessToken');
-      const response = await fetch(`http://localhost:8000/api/orders/customers/?search=${searchText}`, {
+      const response = await fetch(`${CUSTOMER_ENDPOINTS.CUSTOMERS}?search=${searchText}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -106,23 +116,48 @@ const OrdersPage = () => {
     return () => clearTimeout(timer);
   }, [customerSearchText]);
 
-  const fetchEmployees = async () => {
+  const fetchStores = async () => {
     try {
       const token = localStorage.getItem('accessToken');
-      const response = await fetch('http://localhost:8000/api/stores/employees/', {
+      const response = await fetch(STORE_ENDPOINTS.STORES_LIST_ALL, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
-      setEmployees(Array.isArray(data.results) ? data.results : []);
+      setStores(Array.isArray(data) ? data : []);
+    } catch (error) {
+      message.error('Lỗi khi tải danh sách cửa hàng');
+      setStores([]);
+    }
+  };
+
+  const fetchEmployees = async () => {
+    try {
+      const token = localStorage.getItem('accessToken');
+      const response = await fetch(STORE_ENDPOINTS.EMPLOYEES_LIST_ALL, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+      setEmployees(Array.isArray(data) ? data : []);
     } catch (error) {
       message.error('Lỗi khi tải danh sách nhân viên');
+      setEmployees([]);
     }
+  };
+
+  // Thêm hàm lọc nhân viên theo cửa hàng
+  const filterEmployeesByStore = (storeId) => {
+    if (!storeId) {
+      setFilteredEmployees([]);
+      return;
+    }
+    const filtered = employees.filter(emp => emp.store === storeId);
+    setFilteredEmployees(filtered);
   };
 
   const fetchProducts = async () => {
     try {
       const token = localStorage.getItem('accessToken');
-      const response = await fetch('http://localhost:8000/api/products/products/', {
+      const response = await fetch(PRODUCT_ENDPOINTS.PRODUCTS, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -135,7 +170,7 @@ const OrdersPage = () => {
   const fetchVariants = async (productId) => {
     try {
       const token = localStorage.getItem('accessToken');
-      const response = await fetch(`http://localhost:8000/api/products/variants/list_all/?product=${productId}`, {
+      const response = await fetch(PRODUCT_ENDPOINTS.PRODUCT_VARIANTS(productId), {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -143,24 +178,44 @@ const OrdersPage = () => {
       setVariants(Array.isArray(data) ? data : []);
     } catch (error) {
       message.error('Lỗi khi tải danh sách biến thể');
+      setVariants([]);
     }
   };
 
   const fetchCoupons = async () => {
     try {
       const token = localStorage.getItem('accessToken');
-      const response = await fetch('http://localhost:8000/api/orders/coupons/', {
+      const response = await fetch(ORDER_ENDPOINTS.COUPONS, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
       setCoupons(Array.isArray(data.results) ? data.results : []);
     } catch (error) {
       message.error('Lỗi khi tải danh sách mã giảm giá');
+      setCoupons([]);
+    }
+  };
+
+  const fetchOrderDetails = async (orderId) => {
+    try {
+      setOrderDetailLoading(true);
+      const token = localStorage.getItem('accessToken');
+      const response = await fetch(`${ORDER_ENDPOINTS.ORDER_DETAILS}?order=${orderId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+      setOrderDetails(Array.isArray(data.results) ? data.results : []);
+    } catch (error) {
+      message.error('Lỗi khi tải chi tiết đơn hàng');
+      setOrderDetails([]);
+    } finally {
+      setOrderDetailLoading(false);
     }
   };
 
   useEffect(() => {
     fetchOrders();
+    fetchStores();
     fetchEmployees();
     fetchProducts();
     fetchCoupons();
@@ -172,25 +227,31 @@ const OrdersPage = () => {
       const formattedValues = {
         customer: values.customer || null,
         store: values.store || null,
-        employee: values.employee || null,
-        order_date: values.order_date ? values.order_date.format('YYYY-MM-DD HH:mm:ss') : null,
+        employee_id: isSuperUser ? values.employee : userEmployeeId,
+        order_date: values.order_date ? values.order_date.format('YYYY-MM-DDTHH:mm:ss[Z]') : null,
         status: values.status || null,
         payment_method: values.payment_method || null,
         payment_status: values.payment_status || null,
         shipping_address: values.shipping_address || null,
         shipping_method: values.shipping_method || null,
         tracking_number: values.tracking_number || null,
-        subtotal: parseFloat(values.subtotal) || 0,
-        tax: parseFloat(values.tax) || 0,
-        shipping_fee: parseFloat(values.shipping_fee) || 0,
-        discount: parseFloat(values.discount) || 0,
-        total_amount: parseFloat(values.total_amount) || 0,
+        subtotal: values.subtotal ? parseFloat(values.subtotal).toFixed(2) : "0.00",
+        tax: values.tax ? parseFloat(values.tax).toFixed(2) : "0.00",
+        shipping_fee: values.shipping_fee ? parseFloat(values.shipping_fee).toFixed(2) : "0.00",
+        discount: values.discount ? parseFloat(values.discount).toFixed(2) : "0.00",
+        total_amount: values.total_amount ? parseFloat(values.total_amount).toFixed(2) : "0.00",
         note: values.note || null,
-        is_online_order: values.is_online_order || false
+        is_online_order: values.is_online_order || false,
+        order_details: orderDetails.map(detail => ({
+          id: detail.id,
+          product_variant: detail.variant?.id || detail.product_variant,
+          quantity: detail.quantity,
+          coupon_id: detail.coupon?.id || null
+        }))
       };
 
       if (editingId) {
-        const response = await fetch(`http://localhost:8000/api/orders/orders/${editingId}/`, {
+        const response = await fetch(`${ORDER_ENDPOINTS.ORDERS}${editingId}/`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -206,7 +267,7 @@ const OrdersPage = () => {
 
         message.success('Cập nhật đơn hàng thành công');
       } else {
-        const response = await fetch('http://localhost:8000/api/orders/orders/', {
+        const response = await fetch(ORDER_ENDPOINTS.ORDERS, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -233,7 +294,7 @@ const OrdersPage = () => {
   const handleDelete = async (id) => {
     try {
       const token = localStorage.getItem('accessToken');
-      const response = await fetch(`http://localhost:8000/api/orders/orders/${id}/`, {
+      const response = await fetch(ORDER_ENDPOINTS.ORDER_DETAIL_ITEM(id), {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -250,22 +311,6 @@ const OrdersPage = () => {
     }
   };
 
-  const fetchOrderDetails = async (orderId) => {
-    try {
-      setOrderDetailLoading(true);
-      const token = localStorage.getItem('accessToken');
-      const response = await fetch(`http://localhost:8000/api/orders/order-details/?order=${orderId}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await response.json();
-      setOrderDetails(Array.isArray(data.results) ? data.results : []);
-    } catch (error) {
-      message.error('Lỗi khi tải chi tiết đơn hàng');
-    } finally {
-      setOrderDetailLoading(false);
-    }
-  };
-
   const handleProductChange = (productId) => {
     if (productId) {
       fetchVariants(productId);
@@ -277,38 +322,60 @@ const OrdersPage = () => {
   const handleOrderDetailSubmit = async (values) => {
     try {
       const token = localStorage.getItem('accessToken');
-      const response = await fetch('http://localhost:8000/api/orders/order-details/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          order: selectedOrderId,
-          product_variant: values.product_variant,
-          quantity: values.quantity,
-          coupon_id: values.coupon_id || null
-        }),
-      });
+      const orderDetailData = {
+        product_variant: values.product_variant,
+        quantity: values.quantity,
+        coupon_id: values.coupon_id || null
+      };
 
-      if (response.status === 403) {
-        message.error('Bạn không có quyền thêm chi tiết đơn hàng.');
-        return;
+      if (editingOrderDetail) {
+        // Update
+        const response = await fetch(ORDER_ENDPOINTS.ORDER_DETAIL_ITEM(editingOrderDetail.id), {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            ...orderDetailData,
+            id: editingOrderDetail.id
+          }),
+        });
+        if (response.status === 403) {
+          message.error('Bạn không có quyền sửa chi tiết đơn hàng.');
+          return;
+        }
+        message.success('Cập nhật chi tiết đơn hàng thành công');
+      } else {
+        // Thêm mới
+        const response = await fetch(ORDER_ENDPOINTS.ORDER_DETAILS, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            ...orderDetailData,
+            order: selectedOrderId
+          }),
+        });
+        if (response.status === 403) {
+          message.error('Bạn không có quyền thêm chi tiết đơn hàng.');
+          return;
+        }
+        message.success('Thêm chi tiết đơn hàng thành công');
       }
-
-      message.success('Thêm chi tiết đơn hàng thành công');
-      setOrderDetailModalVisible(false);
-      orderDetailForm.resetFields();
-      fetchOrderDetails(selectedOrderId);
+      return true; // Trả về true nếu thêm/sửa thành công
     } catch (error) {
-      message.error('Có lỗi xảy ra khi thêm chi tiết đơn hàng');
+      message.error('Có lỗi xảy ra khi thêm/sửa chi tiết đơn hàng');
+      return false; // Trả về false nếu có lỗi
     }
   };
 
   const handleDeleteOrderDetail = async (id) => {
     try {
       const token = localStorage.getItem('accessToken');
-      const response = await fetch(`http://localhost:8000/api/orders/order-details/${id}/`, {
+      const response = await fetch(ORDER_ENDPOINTS.ORDER_DETAIL_ITEM(id), {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -325,29 +392,25 @@ const OrdersPage = () => {
     }
   };
 
+  const formatCurrency = (amount) => {
+    if (!amount) return '-';
+    return `${parseFloat(amount).toLocaleString('vi-VN', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    })}đ`;
+  };
+
   const orderDetailColumns = [
     {
       title: 'Sản phẩm',
-      dataIndex: 'product',
-      key: 'product',
-      render: (product) => product?.name || '-',
+      dataIndex: 'variant',
+      key: 'product_name',
+      render: (variant) => variant?.product_name || '-',
     },
     {
-      title: 'Biến thể',
+      title: 'SKU',
       dataIndex: 'variant',
-      key: 'variant',
-      render: (variant) => {
-        if (!variant) return '-';
-        const attributes = variant.attribute_values_detail?.map(attr => 
-          `${attr.attribute_type.name}: ${attr.value}`
-        ).join(', ');
-        return attributes || variant.sku || '-';
-      },
-    },
-    {
-      title: 'Mã biến thể',
-      dataIndex: 'variant',
-      key: 'variant_sku',
+      key: 'sku',
       render: (variant) => variant?.sku || '-',
     },
     {
@@ -359,72 +422,157 @@ const OrdersPage = () => {
       title: 'Đơn giá',
       dataIndex: 'unit_price',
       key: 'unit_price',
-      render: (price) => `${price.toLocaleString('vi-VN')}đ`,
-    },
-    {
-      title: 'Giảm giá',
-      dataIndex: 'discount',
-      key: 'discount',
-      render: (discount) => discount ? `${discount.toLocaleString('vi-VN')}đ` : '-',
+      render: (price) => formatCurrency(price),
     },
     {
       title: 'Thành tiền',
       dataIndex: 'final_price',
       key: 'final_price',
-      render: (price) => `${price.toLocaleString('vi-VN')}đ`,
+      render: (total) => formatCurrency(total),
     },
     {
       title: 'Thao tác',
       key: 'action',
       render: (_, record) => (
-        <Popconfirm
-          title="Bạn có chắc chắn muốn xóa?"
-          onConfirm={() => handleDeleteOrderDetail(record.id)}
-        >
-          <Button danger icon={<DeleteOutlined />} />
-        </Popconfirm>
+        <Space>
+          <Button
+            icon={<EditOutlined />}
+            onClick={() => {
+              setEditingOrderDetail(record);
+              const productId = record.variant?.product || record.product?.id;
+              setSelectedProductId(productId);
+              fetchVariants(productId).then(() => {
+                orderDetailForm.setFieldsValue({
+                  product: productId,
+                  product_variant: record.variant?.id || record.product_variant,
+                  quantity: record.quantity,
+                  coupon_id: record.coupon?.id || null,
+                });
+                setSelectedVariant(record.variant || null);
+              });
+            }}
+          />
+          <Popconfirm
+            title="Bạn có chắc chắn muốn xóa?"
+            onConfirm={() => handleDeleteOrderDetail(record.id)}
+          >
+            <Button danger icon={<DeleteOutlined />} />
+          </Popconfirm>
+        </Space>
       ),
     },
   ];
 
+  const handleEdit = async (record) => {
+    try {
+      setEditingId(record.id);
+      const token = localStorage.getItem('accessToken');
+      
+      // Lấy thông tin chi tiết đơn hàng
+      const response = await fetch(`${ORDER_ENDPOINTS.ORDERS}${record.id}/`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (response.status === 403) {
+        message.error('Bạn không có quyền xem thông tin đơn hàng này.');
+        return;
+      }
+
+      const orderData = await response.json();
+      
+      // Lọc nhân viên theo cửa hàng
+      if (orderData.store) {
+        filterEmployeesByStore(orderData.store);
+      }
+
+      // Set giá trị cho form
+      form.setFieldsValue({
+        customer: orderData.customer,
+        store: orderData.store,
+        employee: orderData.employee_id || null,
+        order_date: orderData.order_date ? dayjs(orderData.order_date) : null,
+        status: orderData.status,
+        payment_method: orderData.payment_method,
+        payment_status: orderData.payment_status,
+        shipping_address: orderData.shipping_address,
+        shipping_method: orderData.shipping_method,
+        tracking_number: orderData.tracking_number,
+        subtotal: orderData.subtotal,
+        tax: orderData.tax,
+        shipping_fee: orderData.shipping_fee,
+        discount: orderData.discount,
+        total_amount: orderData.total_amount,
+        note: orderData.note,
+        is_online_order: orderData.is_online_order
+      });
+
+      setModalVisible(true);
+    } catch (error) {
+      message.error('Có lỗi xảy ra khi lấy thông tin đơn hàng');
+    }
+  };
+
   const columns = [
     {
       title: 'Mã đơn',
-      dataIndex: 'order_number',
-      key: 'order_number',
+      dataIndex: 'id',
+      key: 'id',
     },
     {
       title: 'Khách hàng',
       dataIndex: 'customer_first_name',
       key: 'customer_first_name',
-      render: (text, record) => record.customer_first_name || '-',
+    },
+    {
+      title: 'Cửa hàng',
+      dataIndex: 'store_name',
+      key: 'store_name',
     },
     {
       title: 'Trạng thái',
       dataIndex: 'status',
       key: 'status',
+      render: (status) => {
+        const statusMap = {
+          'pending': 'Chờ xử lý',
+          'processing': 'Đang xử lý',
+          'shipped': 'Đã giao hàng',
+          'delivered': 'Đã nhận hàng',
+          'cancelled': 'Đã hủy'
+        };
+        return statusMap[status] || status;
+      }
     },
     {
       title: 'Phương thức thanh toán',
       dataIndex: 'payment_method',
       key: 'payment_method',
-    },
-    {
-      title: 'Trạng thái thanh toán',
-      dataIndex: 'payment_status',
-      key: 'payment_status',
+      render: (method) => {
+        const methodMap = {
+          'cash': 'Tiền mặt',
+          'credit_card': 'Thẻ tín dụng',
+          'bank_transfer': 'Chuyển khoản'
+        };
+        return methodMap[method] || '-';
+      }
     },
     {
       title: 'Tổng tiền',
       dataIndex: 'total_amount',
       key: 'total_amount',
-      render: (amount) => `${amount.toLocaleString('vi-VN')}đ`,
+      render: (amount) => formatCurrency(amount),
     },
     {
       title: 'Ngày tạo',
       dataIndex: 'created_at',
       key: 'created_at',
       render: (date) => dayjs(date).format('DD/MM/YYYY HH:mm'),
+    },
+    {
+      title: 'Nhân viên',
+      dataIndex: 'employee',
+      key: 'employee',
+      render: (employee) => employee || '-'
     },
     {
       title: 'Thao tác',
@@ -443,14 +591,7 @@ const OrdersPage = () => {
           <Button
             type="primary"
             icon={<EditOutlined />}
-            onClick={() => {
-              setEditingId(record.id);
-              form.setFieldsValue({
-                ...record,
-                order_date: record.order_date ? dayjs(record.order_date) : null,
-              });
-              setModalVisible(true);
-            }}
+            onClick={() => handleEdit(record)}
           />
           <Popconfirm
             title="Bạn có chắc chắn muốn xóa?"
@@ -531,7 +672,14 @@ const OrdersPage = () => {
             name="store"
             label="Cửa hàng"
           >
-            <Select allowClear>
+            <Select 
+              allowClear
+              onChange={(storeId) => {
+                filterEmployeesByStore(storeId);
+                // Reset employee field when store changes
+                form.setFieldsValue({ employee: undefined });
+              }}
+            >
               {stores.map(store => (
                 <Option key={store.id} value={store.id}>
                   {store.name}
@@ -544,10 +692,23 @@ const OrdersPage = () => {
             name="employee"
             label="Nhân viên"
           >
-            <Select allowClear>
-              {employees.map(employee => (
+            <Select
+              showSearch
+              allowClear
+              placeholder="Tìm kiếm nhân viên"
+              filterOption={(input, option) =>
+                (option.children || '').toLowerCase().indexOf(input.toLowerCase()) >= 0
+              }
+              disabled={!isSuperUser || !form.getFieldValue('store')}
+              value={isSuperUser ? undefined : userEmployeeId}
+            >
+              {filteredEmployees.map(employee => (
                 <Option key={employee.id} value={employee.id}>
-                  {`${employee.first_name} ${employee.last_name}`}
+                  {employee.name
+                    || [employee.first_name, employee.last_name].filter(Boolean).join(' ')
+                    || employee.employee_code
+                    || (employee.user_details && employee.user_details.username)
+                    || ''}
                 </Option>
               ))}
             </Select>
@@ -686,7 +847,15 @@ const OrdersPage = () => {
       <Modal
         title="Chi tiết đơn hàng"
         open={orderDetailModalVisible}
-        onCancel={() => setOrderDetailModalVisible(false)}
+        onCancel={() => {
+          setOrderDetailModalVisible(false);
+          setEditingOrderDetail(null);
+          setSelectedProductId(null);
+          setSelectedVariant(null);
+          setShowAddProductForm(false);
+          orderDetailForm.resetFields();
+          fetchOrders();
+        }}
         footer={null}
         width={1200}
       >
@@ -694,7 +863,14 @@ const OrdersPage = () => {
           <Button
             type="primary"
             icon={<PlusOutlined />}
-            onClick={() => orderDetailForm.resetFields()}
+            onClick={() => {
+              setShowAddProductForm(true);
+              setEditingOrderDetail(null);
+              orderDetailForm.resetFields();
+              setSelectedProductId(null);
+              setVariants([]);
+              setSelectedVariant(null);
+            }}
           >
             Thêm sản phẩm
           </Button>
@@ -707,99 +883,144 @@ const OrdersPage = () => {
           rowKey="id"
         />
 
-        <Form
-          form={orderDetailForm}
-          onFinish={handleOrderDetailSubmit}
-          layout="vertical"
-          style={{ marginTop: 16 }}
-        >
-          <Form.Item
-            name="product"
-            label="Sản phẩm"
-            rules={[{ required: true, message: 'Vui lòng chọn sản phẩm' }]}
-          >
-            <Select
-              placeholder="Chọn sản phẩm"
-              onChange={handleProductChange}
-              showSearch
-              filterOption={(input, option) =>
-                option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+        {showAddProductForm && (
+          <Form
+            form={orderDetailForm}
+            onFinish={async (values) => {
+              const success = await handleOrderDetailSubmit(values);
+              if (success) {
+                // Chỉ reset form và cập nhật danh sách nếu thêm thành công
+                orderDetailForm.resetFields();
+                setSelectedProductId(null);
+                setVariants([]);
+                setSelectedVariant(null);
+                fetchOrderDetails(selectedOrderId);
               }
+            }}
+            layout="vertical"
+            style={{ marginTop: 16 }}
+          >
+            <Form.Item
+              name="product"
+              label="Sản phẩm"
+              rules={[{ required: true, message: 'Vui lòng chọn sản phẩm' }]}
             >
-              {products.map(product => (
-                <Option key={product.id} value={product.id}>
-                  {product.name}
-                </Option>
-              ))}
-            </Select>
-          </Form.Item>
+              <Select
+                placeholder="Chọn sản phẩm"
+                onChange={(productId) => {
+                  setSelectedProductId(productId);
+                  if (productId) {
+                    fetchVariants(productId);
+                  } else {
+                    setVariants([]);
+                  }
+                  orderDetailForm.setFieldsValue({ 
+                    product_variant: undefined,
+                    quantity: undefined 
+                  });
+                  setSelectedVariant(null);
+                }}
+                showSearch
+                filterOption={(input, option) =>
+                  option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                }
+                value={selectedProductId}
+              >
+                {products.map(product => (
+                  <Option key={product.id} value={product.id}>
+                    {product.name}
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
 
-          <Form.Item
-            name="product_variant"
-            label="Biến thể"
-            rules={[{ required: true, message: 'Vui lòng chọn biến thể' }]}
-          >
-            <Select
-              placeholder="Chọn biến thể"
-              disabled={!variants.length}
-              showSearch
-              filterOption={(input, option) =>
-                option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
-              }
+            <Form.Item
+              name="product_variant"
+              label="Biến thể"
+              rules={[{ required: true, message: 'Vui lòng chọn biến thể' }]}
             >
-              {variants && variants.length > 0 ? (
-                variants.map(variant => (
+              <Select
+                placeholder="Chọn biến thể"
+                disabled={!selectedProductId || !variants.length}
+                showSearch
+                filterOption={(input, option) =>
+                  option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                }
+                onChange={(variantId) => {
+                  const variant = variants.find(v => v.id === variantId);
+                  setSelectedVariant(variant);
+                  orderDetailForm.setFieldsValue({ quantity: 1 });
+                }}
+                value={orderDetailForm.getFieldValue('product_variant')}
+              >
+                {variants.map(variant => (
                   <Option key={variant.id} value={variant.id}>
                     {variant.attribute_values_detail?.map(attr => 
                       `${attr.attribute_type.name}: ${attr.value}`
                     ).join(', ')}
                   </Option>
-                ))
-              ) : (
-                <Option disabled>Không có biến thể</Option>
-              )}
-            </Select>
-          </Form.Item>
+                ))}
+              </Select>
+            </Form.Item>
 
-          <Form.Item
-            name="quantity"
-            label="Số lượng"
-            rules={[{ required: true, message: 'Vui lòng nhập số lượng' }]}
-          >
-            <InputNumber min={1} style={{ width: '100%' }} />
-          </Form.Item>
+            {selectedVariant && (
+              <div style={{ marginBottom: 16, padding: 12, background: '#f6f6f6', borderRadius: 6 }}>
+                <div><b>Tên sản phẩm:</b> {selectedVariant.product_name}</div>
+                <div><b>SKU:</b> {selectedVariant.sku}</div>
+                <div><b>Giá:</b> {selectedVariant.price_adjustment ? formatCurrency(selectedVariant.price_adjustment) : 'Không có'}</div>
+                <div><b>Thuộc tính:</b> {selectedVariant.attribute_values_detail?.map(attr => `${attr.attribute_type.name}: ${attr.value}`).join(', ')}</div>
+                {selectedVariant.images && selectedVariant.images.length > 0 && (
+                  <img src={selectedVariant.images[0].image} alt="" style={{ maxWidth: 120, marginTop: 8 }} />
+                )}
+              </div>
+            )}
 
-          <Form.Item
-            name="coupon_id"
-            label="Mã giảm giá"
-          >
-            <Select
-              placeholder="Chọn mã giảm giá (không bắt buộc)"
-              allowClear
-              showSearch
-              filterOption={(input, option) =>
-                option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
-              }
+            <Form.Item
+              name="quantity"
+              label="Số lượng"
+              rules={[{ required: true, message: 'Vui lòng nhập số lượng' }]}
             >
-              {coupons.map(coupon => (
-                <Option key={coupon.id} value={coupon.id}>
-                  {`${coupon.code} - ${coupon.discount_value}%`}
-                </Option>
-              ))}
-            </Select>
-          </Form.Item>
+              <InputNumber min={1} style={{ width: '100%' }} />
+            </Form.Item>
 
-          <Form.Item>
-            <Space>
-              <Button type="primary" htmlType="submit">
-                Thêm vào đơn hàng
-              </Button>
-              <Button onClick={() => setOrderDetailModalVisible(false)}>
-                Đóng
-              </Button>
-            </Space>
-          </Form.Item>
-        </Form>
+            <Form.Item
+              name="coupon_id"
+              label="Mã giảm giá"
+            >
+              <Select
+                placeholder="Chọn mã giảm giá (không bắt buộc)"
+                allowClear
+                showSearch
+                filterOption={(input, option) =>
+                  option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                }
+              >
+                {coupons.map(coupon => (
+                  <Option key={coupon.id} value={coupon.id}>
+                    {`${coupon.code} - ${coupon.discount_value}%`}
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
+
+            <Form.Item>
+              <Space>
+                <Button type="primary" htmlType="submit">
+                  Thêm vào đơn hàng
+                </Button>
+                <Button onClick={() => {
+                  setShowAddProductForm(false);
+                  orderDetailForm.resetFields();
+                  setSelectedProductId(null);
+                  setVariants([]);
+                  setSelectedVariant(null);
+                }}>
+                  Hủy
+                </Button>
+              </Space>
+            </Form.Item>
+          </Form>
+        )}
       </Modal>
     </div>
   );

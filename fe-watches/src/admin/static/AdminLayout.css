@@ -11,6 +11,8 @@
   --light-shadow: rgba(0, 0, 0, 0.1);
   --light-dropdown-bg: #ffffff;
   --light-icon: #555555;
+  --light-input-text: #222222;
+  --light-input-bg: #adadad;
   
   /* Dark Theme Variables */
   --dark-bg: #1a1a1a;
@@ -23,6 +25,8 @@
   --dark-shadow: rgba(0, 0, 0, 0.3);
   --dark-dropdown-bg: #383838;
   --dark-icon: #bbbbbb;
+  --dark-input-text: #222222;
+  --dark-input-bg: #acacac;
 }
 
 /* Theme Application */
@@ -49,6 +53,8 @@ body[data-admin-theme="light"] .admin-layout {
   --shadow: var(--light-shadow);
   --dropdown-bg: var(--light-dropdown-bg);
   --icon: var(--light-icon);
+  --input-text: var(--light-input-text);
+  --input-bg: var(--light-input-bg);
 }
 
 .admin-layout[data-admin-theme="dark"],
@@ -63,6 +69,8 @@ body[data-admin-theme="dark"] .admin-layout {
   --shadow: var(--dark-shadow);
   --dropdown-bg: var(--dark-dropdown-bg);
   --icon: var(--dark-icon);
+  --input-text: var(--dark-input-text);
+  --input-bg: var(--dark-input-bg);
 }
 
 /* Layout Structure */

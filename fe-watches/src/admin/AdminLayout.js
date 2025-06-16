@@ -16,7 +16,7 @@ const menuConfig = [
     { label: 'Biến thể', to: '/admin/variants', requiredPermissions: ['view_variant'] },
     { label: 'Thuộc tính', to: '/admin/attributes', requiredPermissions: ['view_attribute'] },
   ]},
-  { label: 'Đơn hàng', icon: '🧾', requiredPermissions: ['view_order', 'view_returnorder', 'view_coupon', 'view_customer'], children: [
+  { label: 'Đơn hàng', icon: '🧾', requiredPermissions: ['view_orders', 'view_returnorder', 'view_coupon', 'view_customer'], children: [
     { label: 'Quản lý đơn hàng', to: '/admin/orders', requiredPermissions: ['view_order'] },
     { label: 'Trả hàng', to: '/admin/return-orders', requiredPermissions: ['view_returnorder'] },
     { label: 'Quản lý khuyến mãi', to: '/admin/coupons', requiredPermissions: ['view_coupon'] },

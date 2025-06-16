@@ -82,7 +82,7 @@ class Product(BaseModel):
     description = models.TextField(blank=True, null=True)
     category = models.ForeignKey(Category, models.DO_NOTHING, blank=True, null=True)
     brand = models.ForeignKey(Brand, models.DO_NOTHING, blank=True, null=True)
-    base_price = models.DecimalField(max_digits=10, decimal_places=2)
+    base_price = models.DecimalField(max_digits=25, decimal_places=2)
     warranty_period = models.IntegerField(blank=True, null=True)
     slug = models.CharField(unique=True, max_length=255, blank=True, null=True)
     meta_title = models.CharField(max_length=255, blank=True, null=True)

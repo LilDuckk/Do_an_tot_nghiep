@@ -5,7 +5,7 @@ class TopProduct(models.Model):
     product_name = models.CharField(max_length=255)
     store_id = models.IntegerField()
     total_quantity = models.IntegerField()
-    total_revenue = models.DecimalField(max_digits=10, decimal_places=2)
+    total_revenue = models.DecimalField(max_digits=25, decimal_places=2)
     date = models.DateField()
 
     class Meta:

@@ -13,7 +13,7 @@ export const AUTH_ENDPOINTS = {
 
 // User endpoints
 export const USER_ENDPOINTS = {
-  USERS: `${API_BASE_URL}/account/users`,
+  USERS: `${API_BASE_URL}/account/users/`,
   USERS_ALL: `${API_BASE_URL}/account/users/all`,
   USER_DETAIL: (id) => `${API_BASE_URL}/account/users/${id}/`,
   USER_GROUPS: (id) => `${API_BASE_URL}/account/users/${id}/groups`,
@@ -24,8 +24,11 @@ export const USER_ENDPOINTS = {
 export const STORE_ENDPOINTS = {
   STORES: `${API_BASE_URL}/stores/stores`,
   STORES_LIST_ALL: `${API_BASE_URL}/stores/stores/list_all`,
-  STORE_DETAIL: (id) => `${API_BASE_URL}/stores/stores/${id}/`,
   STORE_EMPLOYEE_COUNT: (id) => `${API_BASE_URL}/stores/stores/${id}/employee_count`,
+  STORE_DETAIL: (id) => `${API_BASE_URL}/stores/stores/${id}/`,
+  EMPLOYEES: `${API_BASE_URL}/stores/employees`,
+  EMPLOYEES_LIST_ALL: `${API_BASE_URL}/stores/employees/list_all`,
+  EMPLOYEE_DETAIL: (id) => `${API_BASE_URL}/stores/employees/${id}/`,
 };
 
 // Employee endpoints
@@ -85,16 +88,24 @@ export const PRODUCT_ENDPOINTS = {
 
 // Order endpoints
 export const ORDER_ENDPOINTS = {
-  ORDERS: `${API_BASE_URL}/orders`,
-  ORDER_DETAIL: (id) => `${API_BASE_URL}/orders/${id}/`,
-  ORDER_STATUS: (id) => `${API_BASE_URL}/orders/${id}/status`,
-  CUSTOMERS: `${API_BASE_URL}/orders/customers`,
+  ORDERS: `${API_BASE_URL}/orders/orders/`,
+  ORDER_DETAIL: (id) => `${API_BASE_URL}/orders/orders/${id}/`,
+  ORDER_STATUS: (id) => `${API_BASE_URL}/orders/orders/${id}/status`,
+  ORDER_DETAILS: `${API_BASE_URL}/orders/order-details/`,
+  ORDER_DETAIL_ITEM: (id) => `${API_BASE_URL}/orders/order-details/${id}/`,
+  COUPONS: `${API_BASE_URL}/orders/coupons/`,
+  COUPON_DETAIL: (id) => `${API_BASE_URL}/orders/coupons/${id}/`,
+};
+
+// Customer endpoints
+export const CUSTOMER_ENDPOINTS = {
+  CUSTOMERS: `${API_BASE_URL}/orders/customers/`,
   CUSTOMER_DETAIL: (id) => `${API_BASE_URL}/orders/customers/${id}/`,
 };
 
 // Inventory endpoints
 export const INVENTORY_ENDPOINTS = {
-  INVENTORIES: `${API_BASE_URL}/inventory/inventories`,
+  INVENTORIES: `${API_BASE_URL}/inventory/inventories/`,
   INVENTORY_DETAIL: (id) => `${API_BASE_URL}/inventory/inventories/${id}/`,
 };
 
