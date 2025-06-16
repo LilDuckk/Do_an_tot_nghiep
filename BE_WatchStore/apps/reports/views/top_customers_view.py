@@ -1,13 +1,12 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
-from apps.core.utils.permissions import IsAdminUser
+from rest_framework.permissions import IsAuthenticated, OR
+from apps.core.utils.permissions import IsSuperUser, IsStoreEmployee
 from django.db import connection
 from apps.reports.serializers.top_customers_serializer import TopCustomersSerializer
 
 class TopCustomersView(APIView):
-    permission_classes = [IsAdminUser]
 
     def get_permissions(self):
         """
@@ -15,7 +14,7 @@ class TopCustomersView(APIView):
         """
         if self.request.method == 'GET':
             # Cho phép user đã đăng nhập xem báo cáo khách hàng hàng đầu
-            return [IsAuthenticated()]
+            return [OR(IsSuperUser(), IsStoreEmployee())]
         return super().get_permissions()
 
     def get(self, request):

@@ -49,7 +49,8 @@ const OrdersPage = () => {
 
   const user = JSON.parse(localStorage.getItem('adminUser') || '{}');
   const isSuperUser = localStorage.getItem('is_superuser') === 'true';
-  const userEmployeeId = user.employee?.id || user.employee_id || null;
+  const userEmployeeId = user.employee_id || null;
+  const userStoreId = user.store_id || null;
 
   // Debounce search text
   useEffect(() => {
@@ -226,7 +227,7 @@ const OrdersPage = () => {
       const token = localStorage.getItem('accessToken');
       const formattedValues = {
         customer: values.customer || null,
-        store: values.store || null,
+        store: isSuperUser ? values.store : userStoreId,
         employee_id: isSuperUser ? values.employee : userEmployeeId,
         order_date: values.order_date ? values.order_date.format('YYYY-MM-DDTHH:mm:ss[Z]') : null,
         status: values.status || null,
@@ -285,6 +286,14 @@ const OrdersPage = () => {
       }
       setModalVisible(false);
       form.resetFields();
+      setOrderDetails([]);
+      if (!isSuperUser) {
+        form.setFieldsValue({
+          employee: userEmployeeId,
+          store: userStoreId
+        });
+        filterEmployeesByStore(userStoreId);
+      }
       fetchOrders();
     } catch (error) {
       message.error('Có lỗi xảy ra');
@@ -294,7 +303,7 @@ const OrdersPage = () => {
   const handleDelete = async (id) => {
     try {
       const token = localStorage.getItem('accessToken');
-      const response = await fetch(ORDER_ENDPOINTS.ORDER_DETAIL_ITEM(id), {
+      const response = await fetch(ORDER_ENDPOINTS.ORDER_DETAIL(id), {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -623,6 +632,14 @@ const OrdersPage = () => {
             onClick={() => {
               setEditingId(null);
               form.resetFields();
+              setOrderDetails([]);
+              if (!isSuperUser) {
+                form.setFieldsValue({
+                  employee: userEmployeeId,
+                  store: userStoreId
+                });
+                filterEmployeesByStore(userStoreId);
+              }
               setModalVisible(true);
             }}
           >

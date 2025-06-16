@@ -1,17 +1,16 @@
 from rest_framework import viewsets
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny, OR
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 from apps.stores.models.employee import Employee
 from apps.stores.serializers.employee_serializer import EmployeeSerializer
-from apps.core.utils.permissions import IsAdminUser
+from apps.core.utils.permissions import IsSuperUser, IsStoreEmployee
 
 class EmployeeViewSet(viewsets.ModelViewSet):
-    queryset = Employee.objects.filter(is_deleted=False)
+    queryset = Employee.objects.all()
     serializer_class = EmployeeSerializer
-    permission_classes = [IsAdminUser]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ['store', 'position', 'is_manager']
     search_fields = ['name', 'phone', 'employee_code']
@@ -22,9 +21,12 @@ class EmployeeViewSet(viewsets.ModelViewSet):
         """
         Tùy chỉnh permission cho từng action
         """
-        # if self.action in ['list', 'retrieve', 'list_all']:
-        #     # Cho phép user đã đăng nhập xem danh sách và chi tiết nhân viên
-        #     return [IsAuthenticated()]
+        if self.action in ['list', 'retrieve']:
+            # Cho phép tất cả người dùng xem danh sách và chi tiết nhân viên
+            return [IsStoreEmployee()]
+        elif self.action in ['create', 'update', 'partial_update', 'destroy']:
+            # Cho phép superuser hoặc nhân viên cửa hàng có quyền tương ứng
+            return [OR(IsSuperUser(), IsStoreEmployee())]
         return super().get_permissions()
 
     def perform_create(self, serializer):

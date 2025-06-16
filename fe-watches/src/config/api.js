@@ -22,7 +22,7 @@ export const USER_ENDPOINTS = {
 
 // Store endpoints
 export const STORE_ENDPOINTS = {
-  STORES: `${API_BASE_URL}/stores/stores`,
+  STORES: `${API_BASE_URL}/stores/stores/`,
   STORES_LIST_ALL: `${API_BASE_URL}/stores/stores/list_all`,
   STORE_EMPLOYEE_COUNT: (id) => `${API_BASE_URL}/stores/stores/${id}/employee_count`,
   STORE_DETAIL: (id) => `${API_BASE_URL}/stores/stores/${id}/`,
@@ -33,7 +33,7 @@ export const STORE_ENDPOINTS = {
 
 // Employee endpoints
 export const EMPLOYEE_ENDPOINTS = {
-  EMPLOYEES: `${API_BASE_URL}/stores/employees`,
+  EMPLOYEES: `${API_BASE_URL}/stores/employees/`,
   EMPLOYEES_LIST_ALL: `${API_BASE_URL}/stores/employees/list_all`,
   EMPLOYEE_DETAIL: (id) => `${API_BASE_URL}/stores/employees/${id}/`,
 };
@@ -41,7 +41,7 @@ export const EMPLOYEE_ENDPOINTS = {
 // Product endpoints
 export const PRODUCT_ENDPOINTS = {
   // Products
-  PRODUCTS: `${API_BASE_URL}/products/products`,
+  PRODUCTS: `${API_BASE_URL}/products/products/`,
   PRODUCTS_LIST_ALL: `${API_BASE_URL}/products/products/list_all`,
   PRODUCT_FEATURED: `${API_BASE_URL}/products/products/featured`,
   PRODUCT_DETAIL: (id) => `${API_BASE_URL}/products/products/${id}/`,
@@ -51,32 +51,32 @@ export const PRODUCT_ENDPOINTS = {
   PRODUCT_SET_PRIMARY_IMAGE: (id) => `${API_BASE_URL}/products/products/${id}/set_primary_image`,
 
   // Categories
-  CATEGORIES: `${API_BASE_URL}/products/categories`,
+  CATEGORIES: `${API_BASE_URL}/products/categories/`,
   CATEGORIES_LIST_ALL: `${API_BASE_URL}/products/categories/list_all`,
   CATEGORY_DETAIL: (id) => `${API_BASE_URL}/products/categories/${id}/`,
 
   // Brands
-  BRANDS: `${API_BASE_URL}/products/brands`,
+  BRANDS: `${API_BASE_URL}/products/brands/`,
   BRANDS_LIST_ALL: `${API_BASE_URL}/products/brands/list_all`,
   BRAND_DETAIL: (id) => `${API_BASE_URL}/products/brands/${id}/`,
 
   // Attribute Types
-  ATTRIBUTE_TYPES: `${API_BASE_URL}/products/attribute-types`,
+  ATTRIBUTE_TYPES: `${API_BASE_URL}/products/attribute-types/`,
   ATTRIBUTE_TYPES_LIST_ALL: `${API_BASE_URL}/products/attribute-types/list_all`,
   ATTRIBUTE_TYPE_DETAIL: (id) => `${API_BASE_URL}/products/attribute-types/${id}/`,
 
   // Attribute Values
-  ATTRIBUTE_VALUES: `${API_BASE_URL}/products/attribute-values`,
+  ATTRIBUTE_VALUES: `${API_BASE_URL}/products/attribute-values/`,
   ATTRIBUTE_VALUES_LIST_ALL: `${API_BASE_URL}/products/attribute-values/list_all`,
   ATTRIBUTE_VALUE_DETAIL: (id) => `${API_BASE_URL}/products/attribute-values/${id}/`,
 
   // Product Images
-  PRODUCT_IMAGES: `${API_BASE_URL}/products/product-images`,
+  PRODUCT_IMAGES: `${API_BASE_URL}/products/product-images/`,
   PRODUCT_IMAGE_DETAIL: (id) => `${API_BASE_URL}/products/product-images/${id}/`,
 
   // Variants
   VARIANTS: `${API_BASE_URL}/products/variants`,
-  VARIANTS_LIST_ALL: `${API_BASE_URL}/products/variants/list_all`,
+  VARIANTS_LIST_ALL: `${API_BASE_URL}/products/variants/list_all/`,
   VARIANT_DETAIL: (id) => `${API_BASE_URL}/products/variants/${id}/`,
   VARIANT_DELETE_IMAGE: (id) => `${API_BASE_URL}/products/variants/${id}/delete_image/`,
   VARIANT_UPLOAD_IMAGES: (id) => `${API_BASE_URL}/products/variants/${id}/upload_images/`,

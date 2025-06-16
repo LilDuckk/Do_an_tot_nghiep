@@ -1,15 +1,14 @@
 from rest_framework import viewsets
 from apps.content.models.contact_info import ContactInfo
 from apps.content.serializers.contact_info_serializer import ContactInfoSerializer
-from rest_framework.permissions import AllowAny
-from apps.core.utils.permissions import IsAdminUser
+from rest_framework.permissions import AllowAny, OR
+from apps.core.utils.permissions import IsSuperUser, IsStoreEmployee
 from rest_framework.response import Response
 from rest_framework.decorators import action
 
 class ContactInfoViewSet(viewsets.ModelViewSet):
     queryset = ContactInfo.objects.all()
     serializer_class = ContactInfoSerializer
-    permission_classes = [IsAdminUser]
     filterset_fields = ['title', 'type', 'is_active']
     search_fields = ['title', 'content']
     ordering_fields = ['type', 'created_at']
@@ -19,9 +18,12 @@ class ContactInfoViewSet(viewsets.ModelViewSet):
         """
         Tùy chỉnh permission cho từng action
         """
-        if self.action in ['list', 'retrieve', 'list_all']:
-            # Cho phép tất cả người dùng xem danh sách và chi tiết contact info
+        if self.action in ['list', 'retrieve']:
+            # Cho phép tất cả người dùng xem danh sách và chi tiết thông tin liên hệ
             return [AllowAny()]
+        elif self.action in ['create', 'update', 'partial_update', 'destroy']:
+            # Cho phép superuser hoặc nhân viên cửa hàng có quyền tương ứng
+            return [OR(IsSuperUser(), IsStoreEmployee())]
         return super().get_permissions()
     
     @action(detail=False, methods=['get'], url_path='all', url_name='all')

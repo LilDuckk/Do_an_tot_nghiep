@@ -2,6 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import './static/AdminLayout.css';
 
+function hasAnyPermission(userPermissions, requiredPermissions) {
+  if (localStorage.getItem('is_superuser') === 'true') return true;
+  if (!requiredPermissions || requiredPermissions.length === 0) return true;
+  return requiredPermissions.some(p => userPermissions.includes(p));
+}
+
 const menuConfig = [
   { label: 'Dashboard', to: '/admin/dashboard', icon: '🏠' },
   { label: 'Người dùng', icon: '👤', requiredPermissions: ['view_useraccount', 'view_group', 'view_permission'], children: [
@@ -9,15 +15,15 @@ const menuConfig = [
     { label: 'Nhóm quyền', to: '/admin/groups', requiredPermissions: ['view_group'] },
     { label: 'Quyền', to: '/admin/permissions', requiredPermissions: ['view_permission'] },
   ]},
-  { label: 'Sản phẩm', icon: '⌚', requiredPermissions: ['view_product', 'view_category', 'view_brand', 'view_variant', 'view_attribute'], children: [
+  { label: 'Sản phẩm', icon: '⌚', requiredPermissions: ['view_product', 'view_category', 'view_brand', 'view_productvariant', 'view_attributetype', 'view_attributevalue'], children: [
     { label: 'Quản lý sản phẩm', to: '/admin/products', requiredPermissions: ['view_product'] },
     { label: 'Danh mục', to: '/admin/categories', requiredPermissions: ['view_category'] },
     { label: 'Thương hiệu', to: '/admin/brands', requiredPermissions: ['view_brand'] },
-    { label: 'Biến thể', to: '/admin/variants', requiredPermissions: ['view_variant'] },
-    { label: 'Thuộc tính', to: '/admin/attributes', requiredPermissions: ['view_attribute'] },
+    { label: 'Biến thể', to: '/admin/variants', requiredPermissions: ['view_productvariant'] },
+    { label: 'Thuộc tính', to: '/admin/attributes', requiredPermissions: ['view_attributetype', 'view_attributevalue'] },
   ]},
   { label: 'Đơn hàng', icon: '🧾', requiredPermissions: ['view_orders', 'view_returnorder', 'view_coupon', 'view_customer'], children: [
-    { label: 'Quản lý đơn hàng', to: '/admin/orders', requiredPermissions: ['view_order'] },
+    { label: 'Quản lý đơn hàng', to: '/admin/orders', requiredPermissions: ['view_orders'] },
     { label: 'Trả hàng', to: '/admin/return-orders', requiredPermissions: ['view_returnorder'] },
     { label: 'Quản lý khuyến mãi', to: '/admin/coupons', requiredPermissions: ['view_coupon'] },
     { label: 'Quản lý khách hàng', to: '/admin/customers', requiredPermissions: ['view_customer'] },
@@ -29,22 +35,16 @@ const menuConfig = [
     { label: 'Kiểm kê', to: '/admin/stock-takes', requiredPermissions: ['view_stocktake'] },
     { label: 'Chuyển kho', to: '/admin/stock-transfers', requiredPermissions: ['view_stocktransfer'] },
   ]},
-  { label: 'Hệ thống', icon: '⚙️', requiredPermissions: ['view_banner', 'view_contact', 'view_footer', 'view_news'], children: [
+  { label: 'Hệ thống', icon: '⚙️', requiredPermissions: ['view_banner', 'view_contactinfo', 'view_footercategory', 'view_footerlink', 'view_news'], children: [
     { label: 'Quản lý ảnh bìa', to: '/admin/system/banners', requiredPermissions: ['view_banner'] },
-    { label: 'Thông tin liên hệ', to: '/admin/system/contact', requiredPermissions: ['view_contact'] },
-    { label: 'Thông tin chân trang', to: '/admin/system/footer', requiredPermissions: ['view_footer'] },
+    { label: 'Thông tin liên hệ', to: '/admin/system/contact', requiredPermissions: ['view_contactinfo'] },
+    { label: 'Thông tin chân trang', to: '/admin/system/footer', requiredPermissions: ['view_footercategory', 'view_footerlink'] },
     { label: 'Quản lý tin tức', to: '/admin/system/news', requiredPermissions: ['view_news'] },
   ]},
   { label: 'Bảo hành', icon: '🛡️', to: '/admin/warranties', requiredPermissions: ['view_warranty'] },
   { label: 'Lịch sử thao tác', icon: '📜', to: '/admin/audit-logs', requiredPermissions: ['view_auditlog'] },
   { label: 'Đăng xuất', icon: '🚪', to: '/admin/logout' },
 ];
-
-function hasAnyPermission(userPermissions, requiredPermissions) {
-  if (localStorage.getItem('is_superuser') === 'true') return true;
-  if (!requiredPermissions || requiredPermissions.length === 0) return true;
-  return requiredPermissions.some(p => userPermissions.includes(p));
-}
 
 export default function AdminLayout() {
   const user = JSON.parse(localStorage.getItem('adminUser') || '{}');

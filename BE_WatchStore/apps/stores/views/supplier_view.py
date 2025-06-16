@@ -1,11 +1,11 @@
 from rest_framework import viewsets
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny, OR
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 
 from apps.stores.models.supplier import Supplier
 from apps.stores.serializers.supplier_serializer import SupplierSerializer
-from apps.core.utils.permissions import IsAdminUser
+from apps.core.utils.permissions import IsSuperUser, IsStoreEmployee
 
 class SupplierViewSet(viewsets.ModelViewSet):
     """
@@ -13,7 +13,7 @@ class SupplierViewSet(viewsets.ModelViewSet):
     """
     queryset = Supplier.objects.filter(is_deleted=False)
     serializer_class = SupplierSerializer
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsSuperUser, IsStoreEmployee]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     
     # Các trường có thể lọc
@@ -31,6 +31,9 @@ class SupplierViewSet(viewsets.ModelViewSet):
         Tùy chỉnh permission cho từng action
         """
         if self.action in ['list', 'retrieve']:
-            # Cho phép user đã đăng nhập xem danh sách và chi tiết nhà cung cấp
+            # Cho phép tất cả người dùng xem danh sách và chi tiết nhà cung cấp
             return [IsAuthenticated()]
+        elif self.action in ['create', 'update', 'partial_update', 'destroy']:
+            # Cho phép superuser hoặc nhân viên cửa hàng có quyền tương ứng
+            return [OR(IsSuperUser(), IsStoreEmployee())]
         return super().get_permissions() 

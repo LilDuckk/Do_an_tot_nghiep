@@ -1,7 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from apps.users.views.user_view import UserViewSet
-from apps.users.views.auth_view import LoginAPIView, MeAPIView, ChangePasswordAPIView
+from apps.users.views.auth_view import LoginAPIView, MeAPIView, ChangePasswordAPIView, CheckPermissionAPIView
 from apps.users.views.group_permission_view import GroupViewSet, PermissionViewSet
 
 router = DefaultRouter()
@@ -17,4 +17,5 @@ urlpatterns = [
     path('auth/login/', LoginAPIView.as_view(), name='login'),
     path('auth/me/', MeAPIView.as_view(), name='me'),
     path('auth/change-password/', ChangePasswordAPIView.as_view(), name='change-password'),
+    path('auth/check-permissions/', CheckPermissionAPIView.as_view(), name='check-permissions'),
 ]

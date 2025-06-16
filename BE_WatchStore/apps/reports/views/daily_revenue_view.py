@@ -2,8 +2,8 @@ from rest_framework import viewsets
 from django_filters import rest_framework as filters
 from apps.reports.models.daily_revenue import DailyRevenue
 from apps.reports.serializers.daily_revenue_serializer import DailyRevenueSerializer
-from apps.core.utils.permissions import IsAdminUser
-from rest_framework.permissions import IsAuthenticated
+from apps.core.utils.permissions import IsSuperUser, IsStoreEmployee
+from rest_framework.permissions import IsAuthenticated, OR
 
 class DailyRevenueFilter(filters.FilterSet):
     start_date = filters.DateFilter(field_name='date', lookup_expr='gte')
@@ -17,7 +17,6 @@ class DailyRevenueFilter(filters.FilterSet):
 class DailyRevenueViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = DailyRevenue.objects.all()
     serializer_class = DailyRevenueSerializer
-    permission_classes = [IsAdminUser]
     filterset_class = DailyRevenueFilter
     ordering_fields = ['date', 'total_revenue']
     ordering = ['-date']
@@ -28,5 +27,5 @@ class DailyRevenueViewSet(viewsets.ReadOnlyModelViewSet):
         """
         if self.action in ['list', 'retrieve']:
             # Cho phép user đã đăng nhập xem báo cáo doanh thu
-            return [IsAuthenticated()]
+            return [OR(IsSuperUser(), IsStoreEmployee())]
         return super().get_permissions() 

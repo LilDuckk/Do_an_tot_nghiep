@@ -6,7 +6,8 @@ from rest_framework.filters import SearchFilter
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db.models import Count
-from apps.core.utils.permissions import IsAdminUser
+from apps.core.utils.permissions import IsSuperUser, IsStoreEmployee
+from rest_framework.permissions import IsAuthenticated, AllowAny, OR
 
 
 class GroupSerializer(serializers.ModelSerializer):
@@ -27,17 +28,17 @@ class PermissionSerializer(serializers.ModelSerializer):
 class GroupViewSet(viewsets.ModelViewSet):
     queryset = Group.objects.all()
     serializer_class = GroupSerializer
-    permission_classes = [IsAdminUser]
-    search_fields = ['name']
-    ordering_fields = ['name']
 
     def get_permissions(self):
         """
         Tùy chỉnh permission cho từng action
         """
-        if self.action in ['all']:
-            # Cho phép user có quyền view xem danh sách
-            return [IsAdminUser()]
+        if self.action in ['list', 'retrieve']:
+            # Cho phép tất cả người dùng xem danh sách và chi tiết nhóm
+            return [AllowAny()]
+        elif self.action in ['create', 'update', 'partial_update', 'destroy']:
+            # Cho phép superuser hoặc nhân viên cửa hàng có quyền tương ứng
+            return [OR(IsSuperUser(), IsStoreEmployee())]
         return super().get_permissions()
 
     @action(detail=False, methods=['get'])
@@ -50,7 +51,6 @@ class GroupViewSet(viewsets.ModelViewSet):
 class PermissionViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Permission.objects.all()
     serializer_class = PermissionSerializer
-    permission_classes = [IsAdminUser]
     filter_backends = [SearchFilter, DjangoFilterBackend]
     search_fields = ['name']
     filterset_fields = ['content_type']
@@ -60,9 +60,9 @@ class PermissionViewSet(viewsets.ReadOnlyModelViewSet):
         """
         Tùy chỉnh permission cho từng action
         """
-        if self.action in ['all']:
-            # Cho phép user có quyền view xem danh sách
-            return [IsAdminUser()]
+        if self.action in ['list', 'retrieve']:
+            # Cho phép tất cả người dùng xem danh sách và chi tiết quyền
+            return [IsStoreEmployee()]
         return super().get_permissions()
 
     @action(detail=False, methods=['get'])

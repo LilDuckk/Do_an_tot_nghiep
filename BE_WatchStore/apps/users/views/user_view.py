@@ -1,16 +1,15 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny, OR
 from apps.users.models.user import UserAccount
 from apps.users.serializers.user_serializer import UserSerializer
 from apps.users.serializers.auth.change_password_serializer import ChangePasswordSerializer
-from apps.core.utils.permissions import IsAdminUser, IsOwnerOrAdmin
+from apps.core.utils.permissions import IsSuperUser, IsStoreEmployee
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = UserAccount.objects.filter(is_deleted=False)
     serializer_class = UserSerializer
-    permission_classes = [IsAdminUser]
     filterset_fields = ['is_active', 'is_staff']
     search_fields = ['username', 'email']
     ordering_fields = ['username', 'email', 'created_at']
@@ -20,17 +19,30 @@ class UserViewSet(viewsets.ModelViewSet):
         """
         Tùy chỉnh permission cho từng action
         """
-        if self.action in ['change_password']:
+        if self.action in ['list', 'retrieve']:
+            # Cho phép tất cả người dùng xem danh sách và chi tiết người dùng
+            return [IsStoreEmployee()]
+        elif self.action in ['create', 'update', 'partial_update', 'destroy']:
+            # Cho phép superuser hoặc nhân viên cửa hàng có quyền tương ứng
+            return [OR(IsSuperUser(), IsStoreEmployee())]
+        elif self.action in ['change_password']:
             # Cho phép user thay đổi mật khẩu của chính họ
-            return [IsOwnerOrAdmin()]
+            return [IsAuthenticated()]
         elif self.action in ['list_all']:
-            # Cho phép user có quyền view xem danh sách
+            # Cho phép user đã đăng nhập xem danh sách
             return [IsAuthenticated()]
         return super().get_permissions()
 
-    @action(detail=True, methods=['post'], permission_classes=[IsOwnerOrAdmin])
+    @action(detail=True, methods=['post'])
     def change_password(self, request, pk=None):
         user = self.get_object()
+        # Chỉ cho phép user thay đổi mật khẩu của chính họ
+        if user != request.user and not request.user.is_superuser:
+            return Response(
+                {"detail": "Bạn không có quyền thay đổi mật khẩu của người khác"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+            
         serializer = ChangePasswordSerializer(data=request.data)
         if serializer.is_valid():
             # Kiểm tra mật khẩu cũ

@@ -1,12 +1,12 @@
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny, OR
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework import serializers
 from rest_framework import status
-from apps.core.utils.permissions import IsAdminUser
+from apps.core.utils.permissions import IsSuperUser, IsStoreEmployee
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from apps.stores.models.employee import Employee
@@ -20,7 +20,7 @@ class InventoryViewSet(viewsets.ModelViewSet):
     """
     queryset = Inventory.objects.filter(is_deleted=False)
     serializer_class = InventorySerializer
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsSuperUser, IsStoreEmployee]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     
     # Các trường có thể lọc
@@ -77,9 +77,12 @@ class InventoryViewSet(viewsets.ModelViewSet):
         """
         Tùy chỉnh permission cho từng action
         """
-        if self.action in ['list', 'retrieve', 'list_all']:
-            # Cho phép user đã đăng nhập xem danh sách và chi tiết tồn kho
-            return [IsAuthenticated()]
+        if self.action in ['list', 'retrieve']:
+            # Cho phép tất cả người dùng có quyền xem danh sách và chi tiết tồn kho
+            return [IsStoreEmployee()]
+        elif self.action in ['create', 'update', 'partial_update', 'destroy']:
+            # Cho phép superuser hoặc nhân viên cửa hàng có quyền tương ứng
+            return [OR(IsSuperUser(), IsStoreEmployee())]
         return super().get_permissions()
 
     def create(self, request, *args, **kwargs):

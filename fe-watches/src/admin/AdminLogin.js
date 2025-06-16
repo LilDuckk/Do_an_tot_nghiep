@@ -22,9 +22,30 @@ export default function AdminLogin() {
           // Lấy thông tin user từ API
           const response = await axiosInstance.get('/account/auth/me/');
           if (response.data) {
-            localStorage.setItem('adminUser', JSON.stringify(response.data));
+            const user = response.data;
+            let employeeId = null;
+            let storeId = null;
+
+            if (user.employee && user.employee.id && user.employee.store) {
+              // Trường hợp user có đối tượng employee lồng bên trong
+              employeeId = user.employee.id;
+              storeId = user.employee.store;
+            } else if (user.id && user.store) { 
+              // Trường hợp user chính là đối tượng employee (có id và store trực tiếp)
+              employeeId = user.id;
+              storeId = user.store;
+            }
+
+            console.log('User data from /me after processing:', { user, employeeId, storeId }); // Debug log
+
+            localStorage.setItem('adminUser', JSON.stringify({
+              ...user,
+              employee_id: employeeId,
+              store_id: storeId
+            }));
+
             await saveUserPermissionsAfterLogin(response.data);
-            localStorage.setItem('user_permission_codenames', JSON.stringify(response.data.user_permissions || []));
+            localStorage.setItem('user_permission_codenames', JSON.stringify(user.user_permissions || []));
             navigate('/admin/dashboard');
           }
         }
@@ -50,8 +71,29 @@ export default function AdminLogin() {
 
       if (response.data.access) {
         authService.setTokens(response.data.access, response.data.refresh);
-        localStorage.setItem('adminUser', JSON.stringify(response.data.user));
+        
         const user = response.data.user;
+        let employeeId = null;
+        let storeId = null;
+
+        if (user.employee && user.employee.id && user.employee.store) {
+          // Trường hợp user có đối tượng employee lồng bên trong
+          employeeId = user.employee.id;
+          storeId = user.employee.store;
+        } else if (user.id && user.store) {
+          // Trường hợp user chính là đối tượng employee (có id và store trực tiếp)
+          employeeId = user.id;
+          storeId = user.store;
+        }
+
+        console.log('User data from login after processing:', { user, employeeId, storeId }); // Debug log
+
+        localStorage.setItem('adminUser', JSON.stringify({
+          ...user,
+          employee_id: employeeId,
+          store_id: storeId
+        }));
+
         if (user.is_superuser) {
           localStorage.setItem('is_superuser', 'true');
           // Không cần lưu quyền cho superuser

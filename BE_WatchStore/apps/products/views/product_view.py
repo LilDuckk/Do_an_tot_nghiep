@@ -15,13 +15,12 @@ from apps.products.utils import convert_to_png
 from django.http import Http404
 from apps.products.models.attribute import AttributeValue, AttributeType
 from django.db import models
-from apps.core.utils.permissions import IsAdminUser
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from apps.core.utils.permissions import IsSuperUser, IsStoreEmployee
+from rest_framework.permissions import IsAuthenticated, AllowAny, OR
 
 class ProductViewSet(viewsets.ModelViewSet):
     queryset = Product.objects.filter(is_deleted=False)
     serializer_class = ProductSerializer
-    permission_classes = [IsAdminUser]
     
     def get_permissions(self):
         """
@@ -30,6 +29,9 @@ class ProductViewSet(viewsets.ModelViewSet):
         if self.action in ['list', 'retrieve', 'list_all', 'featured', 'get_attributes', 'get_variants']:
             # Cho phép tất cả người dùng xem danh sách và chi tiết sản phẩm
             return [AllowAny()]
+        elif self.action in ['create', 'update', 'partial_update', 'destroy', 'bulk_update_variants', 'set_primary_image']:
+            # Cho phép superuser hoặc nhân viên cửa hàng có quyền tương ứng
+            return [OR(IsSuperUser(), IsStoreEmployee())]
         return super().get_permissions()
     
     def get_serializer_class(self):
@@ -284,15 +286,17 @@ class ProductViewSet(viewsets.ModelViewSet):
 class ProductVariantViewSet(viewsets.ModelViewSet):
     queryset = ProductVariant.objects.all()
     serializer_class = ProductVariantSerializer
-    permission_classes = [IsAdminUser]
 
     def get_permissions(self):
         """
         Tùy chỉnh permission cho từng action
         """
         if self.action in ['list', 'retrieve', 'list_all']:
-            # Cho phép user đã đăng nhập xem danh sách và chi tiết biến thể
+            # Cho phép tất cả người dùng xem danh sách và chi tiết biến thể
             return [AllowAny()]
+        elif self.action in ['create', 'update', 'partial_update', 'destroy', 'upload_images', 'delete_image']:
+            # Cho phép superuser hoặc nhân viên cửa hàng có quyền tương ứng
+            return [OR(IsSuperUser(), IsStoreEmployee())]
         return super().get_permissions()
     
     @action(detail=False, methods=['get'])
@@ -414,15 +418,17 @@ class ProductVariantViewSet(viewsets.ModelViewSet):
 class VariantImageViewSet(viewsets.ModelViewSet):
     queryset = VariantImage.objects.all()
     serializer_class = VariantImageSerializer
-    permission_classes = [IsAdminUser]
     
     def get_permissions(self):
         """
         Tùy chỉnh permission cho từng action
         """
         if self.action in ['list', 'retrieve']:
-            # Cho phép user đã đăng nhập xem danh sách và chi tiết ảnh
+            # Cho phép tất cả người dùng xem danh sách và chi tiết ảnh
             return [AllowAny()]
+        elif self.action in ['create', 'update', 'partial_update', 'destroy']:
+            # Cho phép superuser hoặc nhân viên cửa hàng có quyền tương ứng
+            return [OR(IsSuperUser(), IsStoreEmployee())]
         return super().get_permissions()
     
     def get_queryset(self):

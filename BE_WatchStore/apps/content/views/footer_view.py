@@ -1,23 +1,25 @@
 from rest_framework import viewsets
 from apps.content.models.footer import FooterCategory, FooterLink
 from apps.content.serializers.footer_serializer import FooterCategorySerializer, FooterLinkSerializer
-from rest_framework.permissions import AllowAny
-from apps.core.utils.permissions import IsAdminUser
+from apps.core.utils.permissions import IsSuperUser, IsStoreEmployee
+from rest_framework.permissions import IsAuthenticated, AllowAny, OR
 from rest_framework.response import Response
 from rest_framework.decorators import action
 
 class FooterCategoryViewSet(viewsets.ModelViewSet):
     queryset = FooterCategory.objects.all().order_by('display_order')
     serializer_class = FooterCategorySerializer
-    permission_classes = [IsAdminUser]
 
     def get_permissions(self):
         """
         Tùy chỉnh permission cho từng action
         """
-        if self.action in ['list', 'retrieve', 'list_all']:
-            # Cho phép tất cả người dùng xem danh sách và chi tiết footer category
+        if self.action in ['list', 'retrieve']:
+            # Cho phép tất cả người dùng xem danh sách và chi tiết danh mục footer
             return [AllowAny()]
+        elif self.action in ['create', 'update', 'partial_update', 'destroy']:
+            # Cho phép superuser hoặc nhân viên cửa hàng có quyền tương ứng
+            return [OR(IsSuperUser(), IsStoreEmployee())]
         return super().get_permissions()
     
     @action(detail=False, methods=['get'], url_path='all', url_name='all')
@@ -33,15 +35,17 @@ class FooterCategoryViewSet(viewsets.ModelViewSet):
 class FooterLinkViewSet(viewsets.ModelViewSet):
     queryset = FooterLink.objects.select_related('category').all().order_by('display_order')
     serializer_class = FooterLinkSerializer
-    permission_classes = [IsAdminUser]
 
     def get_permissions(self):
         """
         Tùy chỉnh permission cho từng action
         """
-        if self.action in ['list', 'retrieve', 'list_all']:
-            # Cho phép tất cả người dùng xem danh sách và chi tiết footer link
+        if self.action in ['list', 'retrieve']:
+            # Cho phép tất cả người dùng xem danh sách và chi tiết liên kết footer
             return [AllowAny()]
+        elif self.action in ['create', 'update', 'partial_update', 'destroy']:
+            # Cho phép superuser hoặc nhân viên cửa hàng có quyền tương ứng
+            return [OR(IsSuperUser(), IsStoreEmployee())]
         return super().get_permissions()
     
     @action(detail=False, methods=['get'], url_path='all', url_name='all')

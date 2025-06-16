@@ -1,15 +1,14 @@
 from rest_framework import viewsets
 from apps.content.models.news import News
 from apps.content.serializers.news_serializer import NewsSerializer
-from rest_framework.permissions import AllowAny
-from apps.core.utils.permissions import IsAdminUser
+from apps.core.utils.permissions import IsSuperUser, IsStoreEmployee
+from rest_framework.permissions import IsAuthenticated, AllowAny, OR
 from rest_framework.response import Response
 from rest_framework.decorators import action
 
 class NewsViewSet(viewsets.ModelViewSet):
     queryset = News.objects.all()
     serializer_class = NewsSerializer
-    permission_classes = [IsAdminUser]
     filterset_fields = ['title', 'is_active']
     search_fields = ['title', 'content']
     ordering_fields = ['published_date', 'created_at']
@@ -19,9 +18,12 @@ class NewsViewSet(viewsets.ModelViewSet):
         """
         Tùy chỉnh permission cho từng action
         """
-        if self.action in ['list', 'retrieve', 'list_all']:
+        if self.action in ['list', 'retrieve']:
             # Cho phép tất cả người dùng xem danh sách và chi tiết tin tức
             return [AllowAny()]
+        elif self.action in ['create', 'update', 'partial_update', 'destroy']:
+            # Cho phép superuser hoặc nhân viên cửa hàng có quyền tương ứng
+            return [OR(IsSuperUser(), IsStoreEmployee())]
         return super().get_permissions()
 
     @action(detail=False, methods=['get'], url_path='all', url_name='all')
