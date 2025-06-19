@@ -15,18 +15,64 @@ import json
 from datetime import datetime
 
 class OrderFilter(filters.FilterSet):
+    # Bộ lọc theo thông tin khách hàng
     customer_first_name = filters.CharFilter(field_name='customer__first_name', lookup_expr='icontains')
+    customer_last_name = filters.CharFilter(field_name='customer__last_name', lookup_expr='icontains')
+    customer_email = filters.CharFilter(field_name='customer__email', lookup_expr='icontains')
+    customer_phone = filters.CharFilter(field_name='customer__phone', lookup_expr='icontains')
+    
+    # Bộ lọc theo cửa hàng
+    store_name = filters.CharFilter(field_name='store__name', lookup_expr='icontains')
+    
+    # Bộ lọc theo nhân viên
+    employee_name = filters.CharFilter(field_name='employee__name', lookup_expr='icontains')
+    employee_email = filters.CharFilter(field_name='employee__email', lookup_expr='icontains')
+    employee_username = filters.CharFilter(field_name='employee__user__username', lookup_expr='icontains')
+    
+    # Bộ lọc theo ID đơn hàng (thay thế cho order_number)
+    order_id = filters.NumberFilter(field_name='id', lookup_expr='exact')
+    
+    # Bộ lọc theo trạng thái
+    status = filters.CharFilter(lookup_expr='iexact')
+    
+    # Bộ lọc theo phương thức thanh toán
+    payment_method = filters.CharFilter(lookup_expr='iexact')
+    
+    # Bộ lọc theo trạng thái thanh toán
+    payment_status = filters.CharFilter(lookup_expr='iexact')
+    
+    # Bộ lọc theo phương thức vận chuyển
+    shipping_method = filters.CharFilter(lookup_expr='icontains')
+    
+    # Bộ lọc theo ngày đặt hàng
+    order_date_from = filters.DateTimeFilter(field_name='order_date', lookup_expr='gte')
+    order_date_to = filters.DateTimeFilter(field_name='order_date', lookup_expr='lte')
+    
+    # Bộ lọc theo ngày tạo
+    created_at_from = filters.DateTimeFilter(field_name='created_at', lookup_expr='gte')
+    created_at_to = filters.DateTimeFilter(field_name='created_at', lookup_expr='lte')
+    
+    # Bộ lọc theo loại đơn hàng (online/offline)
+    is_online_order = filters.BooleanFilter()
+    
+    # Bộ lọc theo tổng tiền
+    total_amount_min = filters.NumberFilter(field_name='total_amount', lookup_expr='gte')
+    total_amount_max = filters.NumberFilter(field_name='total_amount', lookup_expr='lte')
     
     class Meta:
         model = Orders
-        fields = ['customer', 'status', 'payment_method', 'customer_first_name', 'store']
+        fields = [
+            'customer', 'store', 'employee', 'id', 'status', 
+            'payment_method', 'payment_status', 'shipping_method', 
+            'is_online_order', 'order_date', 'created_at', 'total_amount'
+        ]
 
 class OrderViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
     queryset = Orders.objects.filter(is_deleted=False)
     serializer_class = OrderSerializer
     filterset_class = OrderFilter
-    search_fields = ['order_number']
-    ordering_fields = ['order_number', 'created_at']
+    search_fields = ['id', 'customer__first_name', 'customer__last_name', 'customer__email', 'employee__name', 'employee__email']
+    ordering_fields = ['id', 'created_at', 'order_date', 'total_amount']
     ordering = ['-created_at']
 
     def get_permissions(self):
@@ -64,8 +110,31 @@ class OrderViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
     def perform_destroy(self, instance):
         """
         Soft delete đơn hàng và tất cả các chi tiết đơn hàng liên quan
+        Trả lại số lượng sản phẩm vào inventory nếu order có status đã trừ kho
         """
         with transaction.atomic():
+            # Kiểm tra xem order có status đã trừ kho không
+            if self._get_status_type(instance.status) == "deducted":
+                # Trả lại inventory cho tất cả order details
+                order_details = OrderDetail.objects.filter(order=instance, is_deleted=False)
+                store_id = instance.store.id
+                
+                for detail in order_details:
+                    product_variant_id = detail.product_variant.id
+                    quantity = detail.quantity
+                    
+                    # Tìm và cập nhật tồn kho
+                    inventory = Inventory.objects.select_for_update().filter(
+                        store_id=store_id,
+                        product_variant_id=product_variant_id,
+                        is_deleted=False
+                    ).first()
+                    
+                    if inventory:
+                        inventory.quantity += quantity
+                        inventory.updated_by = self.request.user
+                        inventory.save()
+            
             # Xóa mềm tất cả order details liên quan
             order_details = OrderDetail.objects.filter(order=instance, is_deleted=False)
             for detail in order_details:
@@ -120,57 +189,64 @@ class OrderViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
                         status=status.HTTP_403_FORBIDDEN
                     )
 
-            # Kiểm tra và cập nhật số lượng tồn kho
-            order_details = request.data.get('order_details', [])
-            inventory_updates = []
-            
-            for detail in order_details:
-                product_variant_id = detail.get('product_variant')
-                quantity = detail.get('quantity', 0)  # Mặc định là 0 nếu không có giá trị
-                
-                # Bỏ qua nếu quantity là 0 hoặc null
-                if not quantity:
-                    continue
-                
-                # Kiểm tra tồn kho
-                inventory = Inventory.objects.select_for_update().filter(
-                    store_id=store_id,
-                    product_variant_id=product_variant_id,
-                    is_deleted=False
-                ).first()
-                
-                if not inventory:
-                    return Response(
-                        {"detail": f"Không tìm thấy tồn kho cho sản phẩm này tại cửa hàng"},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
-                
-                if inventory.quantity < quantity:
-                    return Response(
-                        {"detail": f"Số lượng sản phẩm trong kho không đủ"},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
-                
-                # Lưu thông tin cập nhật tồn kho
-                inventory_updates.append({
-                    'inventory': inventory,
-                    'quantity': quantity
-                })
-
-            # Tạo đơn hàng, truyền employee_to_assign vào serializer.save()
+            # Tạo đơn hàng trước
             serializer = self.get_serializer(data=request.data)
             serializer.is_valid(raise_exception=True)
-            
-            # Truyền employee vào serializer.save()
             order = serializer.save(created_by=user, updated_by=user, employee=employee_to_assign)
 
-            # Cập nhật tồn kho sau khi tạo đơn hàng thành công
-            for update in inventory_updates:
-                inventory = update['inventory']
-                quantity = update['quantity']
-                inventory.quantity -= quantity
-                inventory.updated_by = user
-                inventory.save()
+            # Kiểm tra status và xử lý inventory nếu cần
+            order_status = request.data.get('status')
+            if order_status and self._get_status_type(order_status) == "deducted":
+                # Nếu status là deducted, cần trừ inventory
+                order_details = request.data.get('order_details', [])
+                if order_details:
+                    # Tạo temporary order details để xử lý inventory
+                    temp_details = []
+                    for detail_data in order_details:
+                        temp_details.append({
+                            'product_variant_id': detail_data.get('product_variant'),
+                            'quantity': detail_data.get('quantity', 0)
+                        })
+                    
+                    # Kiểm tra inventory trước khi trừ
+                    for detail in temp_details:
+                        if not detail['quantity']:
+                            continue
+                            
+                        inventory = Inventory.objects.select_for_update().filter(
+                            store_id=store_id,
+                            product_variant_id=detail['product_variant_id'],
+                            is_deleted=False
+                        ).first()
+                        
+                        if not inventory:
+                            transaction.set_rollback(True)
+                            return Response(
+                                {"detail": f"Không tìm thấy tồn kho cho sản phẩm này tại cửa hàng"},
+                                status=status.HTTP_400_BAD_REQUEST
+                            )
+                        
+                        if inventory.quantity < detail['quantity']:
+                            transaction.set_rollback(True)
+                            return Response(
+                                {"detail": f"Số lượng sản phẩm trong kho không đủ"},
+                                status=status.HTTP_400_BAD_REQUEST
+                            )
+                    
+                    # Trừ inventory sau khi kiểm tra
+                    for detail in temp_details:
+                        if not detail['quantity']:
+                            continue
+                            
+                        inventory = Inventory.objects.select_for_update().filter(
+                            store_id=store_id,
+                            product_variant_id=detail['product_variant_id'],
+                            is_deleted=False
+                        ).first()
+                        
+                        inventory.quantity -= detail['quantity']
+                        inventory.updated_by = user
+                        inventory.save()
 
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -180,7 +256,7 @@ class OrderViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
             return Response(
                 {"detail": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            ) 
+            )
 
     @transaction.atomic
     def update(self, request, *args, **kwargs):
@@ -190,6 +266,10 @@ class OrderViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
             store_id_from_request = request.data.get('store', getattr(instance.store, 'id', None))
             employee_id_from_request = request.data.get('employee_id')
             employee_to_assign = None
+
+            # Lưu status cũ để so sánh
+            old_status = instance.status
+            new_status = request.data.get('status', old_status)
 
             if user.is_superuser:
                 # Nếu là superuser và có gửi employee_id
@@ -238,12 +318,23 @@ class OrderViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
             # Cập nhật order, truyền employee_to_assign vào serializer.save()
             order = serializer.save(updated_by=user, employee=employee_to_assign)
 
-            # Logic cập nhật tồn kho (giữ nguyên, nhưng cần lấy từ request.data nếu có)
-            order_details_data = request.data.get('order_details', None)
-            if order_details_data is not None:
-                # Cần xử lý chi tiết đơn hàng ở đây nếu muốn cập nhật tồn kho khi PUT
-                # Hiện tại, logic này chỉ xử lý khi tạo mới, cần mở rộng cho update nếu cần
-                pass # Logic cập nhật tồn kho chi tiết hơn sẽ được thêm nếu cần
+            # Xử lý inventory dựa trên thay đổi status
+            if old_status != new_status:
+                # Lấy tất cả order details của đơn hàng
+                order_details = OrderDetail.objects.filter(order=instance, is_deleted=False)
+                store_id = instance.store.id
+                
+                # Xác định status cũ và mới để quyết định xử lý inventory
+                old_status_type = self._get_status_type(old_status)
+                new_status_type = self._get_status_type(new_status)
+                
+                # Nếu chuyển từ trạng thái đã trừ kho sang trạng thái trả lại kho
+                if old_status_type == "deducted" and new_status_type == "returned":
+                    self._return_inventory_to_stock(order_details, store_id, user)
+                
+                # Nếu chuyển từ trạng thái chưa trừ kho sang trạng thái trừ kho
+                elif old_status_type == "returned" and new_status_type == "deducted":
+                    self._deduct_inventory_from_stock(order_details, store_id, user)
 
             return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -252,4 +343,72 @@ class OrderViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
             return Response(
                 {"detail": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            ) 
+            )
+
+    def _get_status_type(self, status):
+        """
+        Phân loại status thành 2 loại: deducted (đã trừ kho) và returned (trả lại kho)
+        """
+        deducted_statuses = ["processing", "shipped", "delivered"]
+        returned_statuses = ["pending", "cancelled"]
+        
+        if status in deducted_statuses:
+            return "deducted"
+        elif status in returned_statuses:
+            return "returned"
+        else:
+            # Nếu status không thuộc 2 loại trên, coi như returned (không trừ kho)
+            return "returned"
+    
+    def _deduct_inventory_from_stock(self, order_details, store_id, user):
+        """
+        Trừ số lượng sản phẩm khỏi inventory
+        """
+        for detail in order_details:
+            product_variant_id = detail.product_variant.id
+            quantity = detail.quantity
+            
+            # Kiểm tra và cập nhật tồn kho
+            inventory = Inventory.objects.select_for_update().filter(
+                store_id=store_id,
+                product_variant_id=product_variant_id,
+                is_deleted=False
+            ).first()
+            
+            if inventory:
+                if inventory.quantity >= quantity:
+                    inventory.quantity -= quantity
+                    inventory.updated_by = user
+                    inventory.save()
+                else:
+                    # Rollback transaction nếu không đủ hàng
+                    transaction.set_rollback(True)
+                    raise Exception(f"Số lượng sản phẩm trong kho không đủ để xử lý đơn hàng")
+            else:
+                # Rollback transaction nếu không tìm thấy inventory
+                transaction.set_rollback(True)
+                raise Exception(f"Không tìm thấy tồn kho cho sản phẩm này tại cửa hàng")
+    
+    def _return_inventory_to_stock(self, order_details, store_id, user):
+        """
+        Trả lại số lượng sản phẩm vào inventory
+        """
+        for detail in order_details:
+            product_variant_id = detail.product_variant.id
+            quantity = detail.quantity
+            
+            # Tìm và cập nhật tồn kho
+            inventory = Inventory.objects.select_for_update().filter(
+                store_id=store_id,
+                product_variant_id=product_variant_id,
+                is_deleted=False
+            ).first()
+            
+            if inventory:
+                inventory.quantity += quantity
+                inventory.updated_by = user
+                inventory.save()
+            else:
+                # Rollback transaction nếu không tìm thấy inventory
+                transaction.set_rollback(True)
+                raise Exception(f"Không tìm thấy tồn kho cho sản phẩm này tại cửa hàng") 

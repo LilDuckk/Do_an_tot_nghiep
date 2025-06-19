@@ -4,6 +4,8 @@ from apps.orders.serializers.order_detail_serializer import OrderDetailSerialize
 from apps.core.utils.permissions import IsSuperUser, IsStoreEmployee
 from rest_framework.permissions import IsAuthenticated, OR
 from apps.core.mixins import SoftDeleteMixin
+from django.db import transaction
+from apps.inventory.models.inventory import Inventory
 
 class OrderDetailViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
     queryset = OrderDetail.objects.all()
@@ -23,3 +25,47 @@ class OrderDetailViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
             # Cho phép superuser hoặc nhân viên cửa hàng có quyền tương ứng
             return [OR(IsSuperUser(), IsStoreEmployee())]
         return super().get_permissions()
+
+    def perform_destroy(self, instance):
+        """
+        Soft delete order detail và trả lại số lượng sản phẩm vào inventory
+        nếu order có status đã trừ kho
+        """
+        with transaction.atomic():
+            # Kiểm tra xem order có status đã trừ kho không
+            order = instance.order
+            if order and self._get_status_type(order.status) == "deducted":
+                # Trả lại inventory cho order detail này
+                store_id = order.store.id
+                product_variant_id = instance.product_variant.id
+                quantity = instance.quantity
+                
+                # Tìm và cập nhật tồn kho
+                inventory = Inventory.objects.select_for_update().filter(
+                    store_id=store_id,
+                    product_variant_id=product_variant_id,
+                    is_deleted=False
+                ).first()
+                
+                if inventory:
+                    inventory.quantity += quantity
+                    inventory.updated_by = self.request.user
+                    inventory.save()
+            
+            # Xóa mềm order detail
+            instance.delete()
+
+    def _get_status_type(self, status):
+        """
+        Phân loại status thành 2 loại: deducted (đã trừ kho) và returned (trả lại kho)
+        """
+        deducted_statuses = ["processing", "shipped", "delivered"]
+        returned_statuses = ["pending", "cancelled"]
+        
+        if status in deducted_statuses:
+            return "deducted"
+        elif status in returned_statuses:
+            return "returned"
+        else:
+            # Nếu status không thuộc 2 loại trên, coi như returned (không trừ kho)
+            return "returned"

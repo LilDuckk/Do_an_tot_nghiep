@@ -12,13 +12,17 @@ import {
   Popconfirm,
   Spin,
   InputNumber,
+  Row,
+  Col,
+  Card,
 } from 'antd';
-import { EditOutlined, DeleteOutlined, PlusOutlined, SearchOutlined, EyeOutlined, ShoppingCartOutlined } from '@ant-design/icons';
+import { EditOutlined, DeleteOutlined, PlusOutlined, SearchOutlined, EyeOutlined, ShoppingCartOutlined, FilterOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { ORDER_ENDPOINTS, STORE_ENDPOINTS, PRODUCT_ENDPOINTS, CUSTOMER_ENDPOINTS } from '../../config/api';
 import '../static/AdminCommon.css';
 
 const { Option } = Select;
+const { RangePicker } = DatePicker;
 
 const OrdersPage = () => {
   const [orders, setOrders] = useState([]);
@@ -47,6 +51,22 @@ const OrdersPage = () => {
   const [filteredEmployees, setFilteredEmployees] = useState([]);
   const [showAddProductForm, setShowAddProductForm] = useState(false);
 
+  // Thêm state cho bộ lọc
+  const [filterType, setFilterType] = useState('customer_first_name');
+  const [filterValue, setFilterValue] = useState('');
+  const [debouncedFilterValue, setDebouncedFilterValue] = useState('');
+  const [dateRange, setDateRange] = useState(null);
+  const [statusFilter, setStatusFilter] = useState(undefined);
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState(undefined);
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState(undefined);
+  const [shippingMethodFilter, setShippingMethodFilter] = useState(undefined);
+  const [isOnlineOrderFilter, setIsOnlineOrderFilter] = useState(undefined);
+  const [totalAmountMin, setTotalAmountMin] = useState('');
+  const [totalAmountMax, setTotalAmountMax] = useState('');
+  const [storeFilter, setStoreFilter] = useState(undefined);
+  const [employeeFilter, setEmployeeFilter] = useState(undefined);
+  const [showFilters, setShowFilters] = useState(false);
+
   const user = JSON.parse(localStorage.getItem('adminUser') || '{}');
   const isSuperUser = localStorage.getItem('is_superuser') === 'true';
   const userEmployeeId = user.employee_id || null;
@@ -61,13 +81,61 @@ const OrdersPage = () => {
     return () => clearTimeout(timer);
   }, [searchText]);
 
+  // Debounce filter value
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedFilterValue(filterValue);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [filterValue]);
+
   const fetchOrders = useCallback(async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('accessToken');
       const queryParams = new URLSearchParams();
-      if (debouncedSearchText) {
-        queryParams.append('customer_first_name', debouncedSearchText);
+      
+      // Thêm bộ lọc theo loại đã chọn
+      if (debouncedFilterValue) {
+        queryParams.append(filterType, debouncedFilterValue);
+      }
+      
+      // Thêm bộ lọc theo ngày
+      if (dateRange && dateRange.length === 2) {
+        const startDate = dateRange[0].format('YYYY-MM-DDTHH:mm:ss[Z]');
+        const endDate = dateRange[1].format('YYYY-MM-DDTHH:mm:ss[Z]');
+        queryParams.append('order_date_from', startDate);
+        queryParams.append('order_date_to', endDate);
+      }
+      
+      // Thêm các bộ lọc khác
+      if (statusFilter) {
+        queryParams.append('status', statusFilter);
+      }
+      if (paymentMethodFilter) {
+        queryParams.append('payment_method', paymentMethodFilter);
+      }
+      if (paymentStatusFilter) {
+        queryParams.append('payment_status', paymentStatusFilter);
+      }
+      if (shippingMethodFilter) {
+        queryParams.append('shipping_method', shippingMethodFilter);
+      }
+      if (isOnlineOrderFilter !== undefined && isOnlineOrderFilter !== '') {
+        queryParams.append('is_online_order', isOnlineOrderFilter);
+      }
+      if (totalAmountMin) {
+        queryParams.append('total_amount_min', totalAmountMin);
+      }
+      if (totalAmountMax) {
+        queryParams.append('total_amount_max', totalAmountMax);
+      }
+      if (storeFilter) {
+        queryParams.append('store', storeFilter);
+      }
+      if (employeeFilter) {
+        queryParams.append('employee', employeeFilter);
       }
       
       const response = await fetch(`${ORDER_ENDPOINTS.ORDERS}?${queryParams}`, {
@@ -88,7 +156,7 @@ const OrdersPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [debouncedSearchText]);
+  }, [debouncedFilterValue, filterType, dateRange, statusFilter, paymentMethodFilter, paymentStatusFilter, shippingMethodFilter, isOnlineOrderFilter, totalAmountMin, totalAmountMax, storeFilter, employeeFilter]);
 
   const searchCustomers = async (searchText) => {
     try {
@@ -221,6 +289,15 @@ const OrdersPage = () => {
     fetchProducts();
     fetchCoupons();
   }, [fetchOrders]);
+
+  // Thêm useEffect để xử lý thay đổi storeFilter
+  useEffect(() => {
+    if (storeFilter) {
+      filterEmployeesByStore(storeFilter);
+    } else {
+      setFilteredEmployees([]);
+    }
+  }, [storeFilter]);
 
   const handleSubmit = async (values) => {
     try {
@@ -618,14 +695,6 @@ const OrdersPage = () => {
       <div className="admin-list-header">
         <h2>Quản lý đơn hàng</h2>
         <div className="search-bar">
-          <Input
-            placeholder="Tìm kiếm theo tên khách hàng..."
-            prefix={<SearchOutlined />}
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-            style={{ width: 300 }}
-            allowClear
-          />
           <Button
             type="primary"
             icon={<PlusOutlined />}
@@ -645,8 +714,267 @@ const OrdersPage = () => {
           >
             Thêm đơn hàng
           </Button>
+          {/* Nút hiển thị bộ lọc ngoài cùng bên phải */}
+          <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
+            <Button
+              className="filter-toggle-btn"
+              type="primary"
+              icon={<FilterOutlined />}
+              onClick={() => setShowFilters(!showFilters)}
+              style={{
+                background: showFilters ? '#52c41a' : '#1890ff',
+                borderColor: showFilters ? '#52c41a' : '#1890ff',
+                minWidth: 140
+              }}
+            >
+              {showFilters ? 'Ẩn bộ lọc' : 'Hiển thị bộ lọc'}
+            </Button>
+          </div>
         </div>
       </div>
+
+      {/* Card bộ lọc chỉ hiện khi showFilters */}
+      {showFilters && (
+        <Card
+          className="filter-card"
+          title={
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <FilterOutlined />
+              <span>Tìm kiếm và bộ lọc đơn hàng</span>
+            </div>
+          }
+          style={{ marginBottom: 16 }}
+        >
+          <div className={`filter-container filter-show`}>
+            <Row gutter={[16, 16]}>
+              <Col xs={24} sm={12} md={8} lg={6}>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <Select
+                    value={filterType}
+                    onChange={setFilterType}
+                    style={{ width: 150 }}
+                    placeholder="Chọn bộ lọc"
+                  >
+                    <Option value="customer_first_name">Tên khách hàng</Option>
+                    <Option value="customer_last_name">Họ khách hàng</Option>
+                    <Option value="customer_email">Email khách hàng</Option>
+                    <Option value="customer_phone">SĐT khách hàng</Option>
+                    <Option value="store_name">Tên cửa hàng</Option>
+                    <Option value="employee_name">Tên nhân viên</Option>
+                    <Option value="employee_email">Email nhân viên</Option>
+                    <Option value="order_id">Mã đơn hàng</Option>
+                  </Select>
+                  <Input
+                    className="filter-search-input"
+                    placeholder="Nhập thông tin tìm kiếm..."
+                    value={filterValue}
+                    onChange={(e) => setFilterValue(e.target.value)}
+                    prefix={<SearchOutlined />}
+                    style={{ flex: 1 }}
+                    allowClear
+                  />
+                </div>
+              </Col>
+              <Col xs={24} sm={12} md={8} lg={6}>
+                <RangePicker
+                  placeholder={['Ngày đặt hàng từ', 'Ngày đặt hàng đến']}
+                  format="DD/MM/YYYY"
+                  style={{ width: '100%' }}
+                  value={dateRange}
+                  onChange={setDateRange}
+                />
+              </Col>
+              <Col xs={24} sm={12} md={8} lg={6}>
+                <Select
+                  placeholder="Trạng thái đơn hàng"
+                  value={statusFilter || undefined}
+                  onChange={setStatusFilter}
+                  allowClear
+                  style={{ width: '100%' }}
+                  showSearch
+                  filterOption={(input, option) =>
+                    (option?.children ?? '').toLowerCase().includes(input.toLowerCase())
+                  }
+                  notFoundContent="Không tìm thấy trạng thái"
+                  optionFilterProp="children"
+                >
+                  <Option value="pending">Chờ xử lý</Option>
+                  <Option value="processing">Đang xử lý</Option>
+                  <Option value="shipped">Đã giao hàng</Option>
+                  <Option value="delivered">Đã nhận hàng</Option>
+                  <Option value="cancelled">Đã hủy</Option>
+                </Select>
+              </Col>
+              <Col xs={24} sm={12} md={8} lg={6}>
+                <Select
+                  placeholder="Phương thức thanh toán"
+                  value={paymentMethodFilter || undefined}
+                  onChange={setPaymentMethodFilter}
+                  allowClear
+                  style={{ width: '100%' }}
+                  showSearch
+                  filterOption={(input, option) =>
+                    (option?.children ?? '').toLowerCase().includes(input.toLowerCase())
+                  }
+                  notFoundContent="Không tìm thấy phương thức"
+                  optionFilterProp="children"
+                >
+                  <Option value="cash">Tiền mặt</Option>
+                  <Option value="credit_card">Thẻ tín dụng</Option>
+                  <Option value="bank_transfer">Chuyển khoản</Option>
+                </Select>
+              </Col>
+              <Col xs={24} sm={12} md={8} lg={6}>
+                <Select
+                  placeholder="Trạng thái thanh toán"
+                  value={paymentStatusFilter || undefined}
+                  onChange={setPaymentStatusFilter}
+                  allowClear
+                  style={{ width: '100%' }}
+                  showSearch
+                  filterOption={(input, option) =>
+                    (option?.children ?? '').toLowerCase().includes(input.toLowerCase())
+                  }
+                  notFoundContent="Không tìm thấy trạng thái"
+                  optionFilterProp="children"
+                >
+                  <Option value="pending">Chờ thanh toán</Option>
+                  <Option value="paid">Đã thanh toán</Option>
+                  <Option value="failed">Thanh toán thất bại</Option>
+                </Select>
+              </Col>
+              <Col xs={24} sm={12} md={8} lg={6}>
+                <Select
+                  placeholder="Phương thức vận chuyển"
+                  value={shippingMethodFilter || undefined}
+                  onChange={setShippingMethodFilter}
+                  allowClear
+                  style={{ width: '100%' }}
+                  showSearch
+                  filterOption={(input, option) =>
+                    (option?.children ?? '').toLowerCase().includes(input.toLowerCase())
+                  }
+                  notFoundContent="Không tìm thấy phương thức"
+                  optionFilterProp="children"
+                >
+                  <Option value="standard">Tiêu chuẩn</Option>
+                  <Option value="express">Nhanh</Option>
+                  <Option value="overnight">Qua đêm</Option>
+                </Select>
+              </Col>
+              <Col xs={24} sm={12} md={8} lg={6}>
+                <Select
+                  placeholder="Loại đơn hàng"
+                  value={isOnlineOrderFilter || undefined}
+                  onChange={setIsOnlineOrderFilter}
+                  allowClear
+                  style={{ width: '100%' }}
+                  showSearch
+                  filterOption={(input, option) =>
+                    (option?.children ?? '').toLowerCase().includes(input.toLowerCase())
+                  }
+                  notFoundContent="Không tìm thấy loại đơn hàng"
+                  optionFilterProp="children"
+                >
+                  <Option value="true">Đơn hàng online</Option>
+                  <Option value="false">Đơn hàng offline</Option>
+                </Select>
+              </Col>
+              <Col xs={24} sm={12} md={8} lg={6}>
+                <Select
+                  placeholder="Tìm kiếm cửa hàng..."
+                  value={storeFilter || undefined}
+                  onChange={setStoreFilter}
+                  allowClear
+                  style={{ width: '100%' }}
+                  disabled={!isSuperUser}
+                  showSearch
+                  filterOption={(input, option) =>
+                    (option?.children ?? '').toLowerCase().includes(input.toLowerCase())
+                  }
+                  notFoundContent="Không tìm thấy cửa hàng"
+                  optionFilterProp="children"
+                >
+                  {stores.map(store => (
+                    <Option key={store.id} value={store.id}>
+                      {store.name}
+                    </Option>
+                  ))}
+                </Select>
+              </Col>
+              <Col xs={24} sm={12} md={8} lg={6}>
+                <Select
+                  placeholder="Tìm kiếm nhân viên..."
+                  value={employeeFilter || undefined}
+                  onChange={setEmployeeFilter}
+                  allowClear
+                  style={{ width: '100%' }}
+                  disabled={!isSuperUser}
+                  showSearch
+                  filterOption={(input, option) =>
+                    (option?.children ?? '').toLowerCase().includes(input.toLowerCase())
+                  }
+                  notFoundContent="Không tìm thấy nhân viên"
+                  optionFilterProp="children"
+                >
+                  {employees.map(employee => (
+                    <Option key={employee.id} value={employee.id}>
+                      {employee.name || [employee.first_name, employee.last_name].filter(Boolean).join(' ') || employee.employee_code}
+                    </Option>
+                  ))}
+                </Select>
+              </Col>
+              <Col xs={24} sm={12} md={8} lg={6}>
+                <InputNumber
+                  placeholder="Tổng tiền tối thiểu"
+                  value={totalAmountMin}
+                  onChange={setTotalAmountMin}
+                  style={{ width: '100%' }}
+                  formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                  parser={value => value.replace(/\$\s?|(,*)/g, '')}
+                  min={0}
+                />
+              </Col>
+              <Col xs={24} sm={12} md={8} lg={6}>
+                <InputNumber
+                  placeholder="Tổng tiền tối đa"
+                  value={totalAmountMax}
+                  onChange={setTotalAmountMax}
+                  style={{ width: '100%' }}
+                  formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                  parser={value => value.replace(/\$\s?|(,*)/g, '')}
+                  min={0}
+                />
+              </Col>
+              <Col xs={24}>
+                <Space>
+                  <Button
+                    className="filter-clear-btn"
+                    type="primary"
+                    icon={<FilterOutlined />}
+                    onClick={() => {
+                      setFilterValue('');
+                      setDateRange(null);
+                      setStatusFilter(undefined);
+                      setPaymentMethodFilter(undefined);
+                      setPaymentStatusFilter(undefined);
+                      setShippingMethodFilter(undefined);
+                      setIsOnlineOrderFilter(undefined);
+                      setTotalAmountMin('');
+                      setTotalAmountMax('');
+                      setStoreFilter(undefined);
+                      setEmployeeFilter(undefined);
+                      setFilterType('customer_first_name');
+                    }}
+                  >
+                    Xóa bộ lọc
+                  </Button>
+                </Space>
+              </Col>
+            </Row>
+          </div>
+        </Card>
+      )}
 
       <Table
         columns={columns}

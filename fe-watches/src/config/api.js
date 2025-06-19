@@ -22,7 +22,7 @@ export const USER_ENDPOINTS = {
 
 // Store endpoints
 export const STORE_ENDPOINTS = {
-  STORES: `${API_BASE_URL}/stores/stores/`,
+  STORES: `${API_BASE_URL}/stores/stores`,
   STORES_LIST_ALL: `${API_BASE_URL}/stores/stores/list_all`,
   STORE_EMPLOYEE_COUNT: (id) => `${API_BASE_URL}/stores/stores/${id}/employee_count`,
   STORE_DETAIL: (id) => `${API_BASE_URL}/stores/stores/${id}/`,
@@ -33,7 +33,7 @@ export const STORE_ENDPOINTS = {
 
 // Employee endpoints
 export const EMPLOYEE_ENDPOINTS = {
-  EMPLOYEES: `${API_BASE_URL}/stores/employees/`,
+  EMPLOYEES: `${API_BASE_URL}/stores/employees`,
   EMPLOYEES_LIST_ALL: `${API_BASE_URL}/stores/employees/list_all`,
   EMPLOYEE_DETAIL: (id) => `${API_BASE_URL}/stores/employees/${id}/`,
 };
@@ -126,6 +126,37 @@ export const CONTENT_ENDPOINTS = {
 export const CORE_ENDPOINTS = {
   AUDIT_LOGS: `${API_BASE_URL}/core/audit-logs`,
   USERS: `${API_BASE_URL}/account/users`,
+};
+
+// Supplier endpoints
+export const SUPPLIER_ENDPOINTS = {
+  SUPPLIERS: `${API_BASE_URL}/stores/suppliers/`,
+  SUPPLIERS_LIST_ALL: `${API_BASE_URL}/stores/suppliers/list_all/`,
+  SUPPLIER_DETAIL: (id) => `${API_BASE_URL}/stores/suppliers/${id}/`,
+};
+
+// Purchase endpoints
+export const PURCHASE_ENDPOINTS = {
+  // Purchase Orders
+  PURCHASE_ORDERS: `${API_BASE_URL}/purchases/purchase-orders/`,
+  PURCHASE_ORDER_DETAIL: (id) => `${API_BASE_URL}/purchases/purchase-orders/${id}/`,
+  PURCHASE_ORDER_CONFIRM: (id) => `${API_BASE_URL}/purchases/purchase-orders/${id}/confirm_order/`,
+  PURCHASE_ORDER_CANCEL: (id) => `${API_BASE_URL}/purchases/purchase-orders/${id}/cancel_order/`,
+  PURCHASE_ORDER_STATISTICS: (id) => `${API_BASE_URL}/purchases/purchase-orders/${id}/statistics/`,
+  
+  // Purchase Order Details
+  PURCHASE_ORDER_DETAILS: `${API_BASE_URL}/purchases/purchase-order-details/`,
+  PURCHASE_ORDER_DETAIL_ITEM: (id) => `${API_BASE_URL}/purchases/purchase-order-details/${id}/`,
+  
+  // Goods Receipts
+  GOODS_RECEIPTS: `${API_BASE_URL}/purchases/goods-receipts/`,
+  GOODS_RECEIPT_DETAIL: (id) => `${API_BASE_URL}/purchases/goods-receipts/${id}/`,
+  GOODS_RECEIPT_CONFIRM: (id) => `${API_BASE_URL}/purchases/goods-receipts/${id}/confirm_receipt/`,
+  GOODS_RECEIPT_UPDATE_INVENTORY: (id) => `${API_BASE_URL}/purchases/goods-receipts/${id}/update_inventory/`,
+  
+  // Goods Receipt Details
+  GOODS_RECEIPT_DETAILS: `${API_BASE_URL}/purchases/goods-receipt-details/`,
+  GOODS_RECEIPT_DETAIL_ITEM: (id) => `${API_BASE_URL}/purchases/goods-receipt-details/${id}/`,
 };
 
 // Export base URL nếu cần sử dụng riêng lẻ

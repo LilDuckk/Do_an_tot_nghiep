@@ -49,6 +49,9 @@ import NewsManagement from './admin/system/NewsManagement';
 import CouponListPage from './admin/coupon/CouponListPage';
 import CustomersListPage from './admin/customers/CustomersListPage';
 import EmployeesPage from './admin/employee/EmployeesPage';
+import SupplierPage from './admin/suppliers/SupplierPage';
+import PurchaseOrdersPage from './admin/purchases/PurchaseOrdersPage';
+import GoodsReceiptsPage from './admin/purchases/GoodsReceiptsPage';
 
 
 function PrivateRoute({ children }) {
@@ -102,6 +105,9 @@ function App() {
           <Route path="system/news" element={<NewsManagement />} />
           <Route path="coupons" element={<CouponListPage />} />
           <Route path="customers" element={<CustomersListPage />} />
+          <Route path="suppliers" element={<SupplierPage />} />
+          <Route path="purchase-orders" element={<PurchaseOrdersPage />} />
+          <Route path="goods-receipts" element={<GoodsReceiptsPage />} />
         </Route>
         <Route path="/" element={<ClientHome />} />
         <Route path="/products" element={<ProductList />} />

@@ -1,4 +1,4 @@
-from .permissions import IsAdminUser, IsOwnerOrAdmin, IsStoreAdmin
+from .permissions import IsSuperUser, IsStoreEmployee
 from .slug import create_slug, unique_slug_generator
 from .helpers import (
     get_date_range,
@@ -9,9 +9,8 @@ from .helpers import (
 )
 
 __all__ = [
-    'IsAdminUser',
-    'IsOwnerOrAdmin',
-    'IsStoreAdmin',
+    'IsSuperUser',
+    'IsStoreEmployee',
     'create_slug',
     'unique_slug_generator',
     'get_date_range',

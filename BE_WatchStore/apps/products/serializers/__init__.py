@@ -1,6 +1,5 @@
 from .category_serializer import CategorySerializer
 from .brand_serializer import BrandSerializer
-from .product_serializer import ProductSerializer
-
+from .product_serializer import ProductSerializer, ProductVariantSerializer, ProductDetailSerializer
 from .product_image_serializer import ProductImageSerializer
 from .attribute_serializer import AttributeValue, AttributeType 

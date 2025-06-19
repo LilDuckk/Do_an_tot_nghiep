@@ -28,12 +28,15 @@ const menuConfig = [
     { label: 'Quản lý khuyến mãi', to: '/admin/coupons', requiredPermissions: ['view_coupon'] },
     { label: 'Quản lý khách hàng', to: '/admin/customers', requiredPermissions: ['view_customer'] },
   ]},
-  { label: 'Cửa hàng', icon: '🏬', requiredPermissions: ['view_store', 'view_employee', 'view_inventory', 'view_stocktake', 'view_stocktransfer'], children: [
+  { label: 'Cửa hàng', icon: '🏬', requiredPermissions: ['view_store', 'view_employee', 'view_inventory', 'view_stocktake', 'view_stocktransfer', 'view_supplier'], children: [
     { label: 'Quản lý cửa hàng', to: '/admin/stores', requiredPermissions: ['view_store'] },
     { label: 'Quản lý nhân viên', to: '/admin/employees', requiredPermissions: ['view_employee'] },
     { label: 'Tồn kho', to: '/admin/inventories', requiredPermissions: ['view_inventory'] },
     { label: 'Kiểm kê', to: '/admin/stock-takes', requiredPermissions: ['view_stocktake'] },
     { label: 'Chuyển kho', to: '/admin/stock-transfers', requiredPermissions: ['view_stocktransfer'] },
+    { label: 'Nhà cung cấp', to: '/admin/suppliers', icon: '🏢', requiredPermissions: ['view_supplier'] },
+    { label: 'Đơn đặt hàng mua', to: '/admin/purchase-orders', icon: '📝', requiredPermissions: ['view_purchaseorder'] },
+    { label: 'Phiếu nhập hàng', to: '/admin/goods-receipts', icon: '📥', requiredPermissions: ['view_goodsreceipt'] },
   ]},
   { label: 'Hệ thống', icon: '⚙️', requiredPermissions: ['view_banner', 'view_contactinfo', 'view_footercategory', 'view_footerlink', 'view_news'], children: [
     { label: 'Quản lý ảnh bìa', to: '/admin/system/banners', requiredPermissions: ['view_banner'] },

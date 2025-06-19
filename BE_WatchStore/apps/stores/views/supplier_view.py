@@ -1,4 +1,6 @@
 from rest_framework import viewsets
+from rest_framework.decorators import action
+from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny, OR
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
@@ -30,10 +32,24 @@ class SupplierViewSet(viewsets.ModelViewSet):
         """
         Tùy chỉnh permission cho từng action
         """
-        if self.action in ['list', 'retrieve']:
+        if self.action in ['list', 'retrieve', 'list_all']:
             # Cho phép tất cả người dùng xem danh sách và chi tiết nhà cung cấp
             return [IsAuthenticated()]
         elif self.action in ['create', 'update', 'partial_update', 'destroy']:
             # Cho phép superuser hoặc nhân viên cửa hàng có quyền tương ứng
             return [OR(IsSuperUser(), IsStoreEmployee())]
-        return super().get_permissions() 
+        return super().get_permissions()
+
+    @action(detail=False, methods=['get'])
+    def list_all(self, request):
+        """
+        Lấy tất cả nhà cung cấp (không phân trang) - chỉ lấy những nhà cung cấp chưa bị xóa mềm
+        """
+        queryset = Supplier.objects.filter(is_deleted=False)  # Lọc xóa mềm
+        
+        # Áp dụng các filter, search, ordering
+        queryset = self.filter_queryset(queryset)
+        
+        # Không phân trang, trả về tất cả dữ liệu
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data) 

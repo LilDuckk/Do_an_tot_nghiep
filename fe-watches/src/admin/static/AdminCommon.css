@@ -1041,7 +1041,7 @@
 }
 
 /* Tables */
-.admin-table tr td span{
+.admin-table tr td .ant-tag-default{
   background: var(--bg);
   color: var(--text);
 }
@@ -1402,30 +1402,204 @@ textarea.ant-input::placeholder,
   font-weight: bold;
 }
 
-/* .admin-error {
-  color: #ff4d4f;
-  background: #fff2f0;
-  padding: 12px 16px;
-  margin: 0;
-  border: 1px solid #ffccc7;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
+/* ====== STYLE CHO BỘ LỌC ẨN/HIỆN ====== */
+.filter-container {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
 }
 
-.admin-error::before {
-  content: "!";
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.filter-container.filter-hide {
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(-10px);
+  margin-bottom: 0;
+  padding: 0;
+}
+
+.filter-container.filter-show {
+  max-height: 2000px;
+  opacity: 1;
+  transform: translateY(0);
+  margin-bottom: 16px;
+}
+
+.filter-container .ant-row {
+  transition: all 0.3s ease;
+}
+
+.filter-container.filter-hide .ant-row {
+  opacity: 0;
+  transform: translateY(-20px);
+}
+
+.filter-container.filter-show .ant-row {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Nút toggle bộ lọc */
+.filter-toggle-btn {
+  transition: all 0.3s ease;
+  border-radius: 6px;
+  font-weight: 500;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.filter-toggle-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.filter-toggle-btn:active {
+  transform: translateY(0);
+}
+
+/* Card bộ lọc */
+.filter-card {
+  background: var(--sidebar-bg);
+  border-radius: 12px;
+  box-shadow: 0 2px 16px var(--shadow);
+  transition: all 0.3s ease;
+}
+
+.filter-card:hover {
+  box-shadow: 0 4px 20px var(--shadow);
+}
+
+/* Responsive cho bộ lọc */
+@media (max-width: 768px) {
+  .filter-container.filter-show {
+    max-height: 3000px;
+  }
+  
+  .filter-container .ant-col {
+    margin-bottom: 12px;
+  }
+}
+
+@media (max-width: 576px) {
+  .filter-container.filter-show {
+    max-height: 4000px;
+  }
+  
+  .filter-container .ant-row {
+    margin: 0 -8px;
+  }
+  
+  .filter-container .ant-col {
+    padding: 0 8px;
+    margin-bottom: 16px;
+  }
+}
+
+/* Animation cho các input trong bộ lọc */
+.filter-container .ant-input,
+.filter-container .ant-select,
+.filter-container .ant-picker,
+.filter-container .ant-input-number {
+  transition: all 0.3s ease;
+  border: 1px solid var(--border);
+  background: var(--input-bg);
+  color: var(--input-text);
+}
+
+.filter-container .ant-input:focus,
+.filter-container .ant-select-focused .ant-select-selector,
+.filter-container .ant-picker-focused,
+.filter-container .ant-input-number-focused {
+  border-color: #2186eb;
+  box-shadow: 0 0 0 2px rgba(33, 134, 235, 0.2);
+}
+
+.filter-container .ant-input:hover,
+.filter-container .ant-select:hover .ant-select-selector,
+.filter-container .ant-picker:hover,
+.filter-container .ant-input-number:hover {
+  border-color: #40a9ff;
+}
+
+/* Style cho placeholder */
+.filter-container .ant-select-selection-placeholder,
+.filter-container .ant-input::placeholder {
+  color: var(--input-text);
+  opacity: 0.6;
+}
+
+/* Style cho nút xóa bộ lọc */
+.filter-clear-btn {
+  background: #ff4d4f;
+  border-color: #ff4d4f;
+  color: white;
+  transition: all 0.3s ease;
+}
+
+.filter-clear-btn:hover {
+  background: #ff7875;
+  border-color: #ff7875;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(255, 77, 79, 0.3);
+}
+
+.filter-clear-btn:active {
+  transform: translateY(0);
+}
+
+/* Loading state cho bộ lọc */
+.filter-container.loading {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.filter-container.loading::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
   width: 20px;
   height: 20px;
-  background: #ff4d4f;
-  color: white;
+  margin: -10px 0 0 -10px;
+  border: 2px solid #f3f3f3;
+  border-top: 2px solid #2186eb;
   border-radius: 50%;
-  font-weight: bold;
-  font-size: 12px;
-  flex-shrink: 0;
-} */
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Dark theme adjustments */
+body[data-admin-theme="dark"] .filter-container .ant-input,
+body[data-admin-theme="dark"] .filter-container .ant-select-selector,
+body[data-admin-theme="dark"] .filter-container .ant-picker,
+body[data-admin-theme="dark"] .filter-container .ant-input-number {
+  background: var(--dark-input-bg);
+  color: var(--dark-input-text);
+  border-color: var(--dark-border);
+}
+
+body[data-admin-theme="dark"] .filter-container .ant-input:focus,
+body[data-admin-theme="dark"] .filter-container .ant-select-focused .ant-select-selector,
+body[data-admin-theme="dark"] .filter-container .ant-picker-focused,
+body[data-admin-theme="dark"] .filter-container .ant-input-number-focused {
+  border-color: #40a9ff;
+  box-shadow: 0 0 0 2px rgba(64, 169, 255, 0.2);
+}
+
+.filter-container .filter-search-input {
+  background: var(--input-bg) !important;
+  color: var(--input-text) !important;
+  border: 1px solid var(--border) !important;
+  transition: all 0.3s;
+}
+
+.filter-container .filter-search-input:focus {
+  border-color: #2186eb !important;
+  box-shadow: 0 0 0 2px rgba(33, 134, 235, 0.2) !important;
+}
+
+.filter-container .filter-search-input::placeholder {
+  color: var(--input-text) !important;
+  opacity: 0.6;
+}
