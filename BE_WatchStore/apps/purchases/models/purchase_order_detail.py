@@ -69,16 +69,6 @@ class PurchaseOrderDetail(BaseModel):
             self.tax_amount = 0
     
     @property
-    def remaining_quantity(self):
-        """Số lượng còn lại cần nhận"""
-        return self.quantity - self.received_quantity
-    
-    @property
-    def is_fully_received(self):
-        """Kiểm tra xem đã nhận đủ hàng chưa"""
-        return self.received_quantity >= self.quantity
-    
-    @property
     def total_amount(self):
         """Tổng tiền bao gồm thuế"""
         return self.subtotal + self.tax_amount 

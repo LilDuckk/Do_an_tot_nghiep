@@ -9,23 +9,19 @@ class PurchaseOrderDetailSerializer(serializers.ModelSerializer):
     """
     product_variant_info = ProductVariantSerializer(source='product_variant', read_only=True)
     
-    # Thông tin tính toán
-    remaining_quantity = serializers.ReadOnlyField()
-    is_fully_received = serializers.ReadOnlyField()
+    # Thông tin tính toán cơ bản
     total_amount = serializers.ReadOnlyField()
     
     class Meta:
         model = PurchaseOrderDetail
         fields = [
             'id', 'purchase_order', 'product_variant', 'product_variant_info',
-            'quantity', 'received_quantity', 'remaining_quantity', 'is_fully_received',
-            'unit_price', 'discount_percent', 'discount_amount', 'tax_percent', 'tax_amount',
+            'quantity', 'unit_price', 'discount_percent', 'discount_amount', 'tax_percent', 'tax_amount',
             'subtotal', 'total_amount', 'notes', 'expected_delivery_date',
             'created_at', 'updated_at'
         ]
         read_only_fields = [
-            'id', 'remaining_quantity', 'is_fully_received', 'discount_amount',
-            'tax_amount', 'subtotal', 'total_amount', 'created_at', 'updated_at'
+            'id', 'discount_amount', 'tax_amount', 'subtotal', 'total_amount', 'created_at', 'updated_at'
         ]
     
     def validate(self, data):

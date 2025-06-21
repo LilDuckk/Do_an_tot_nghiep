@@ -506,8 +506,11 @@ const PurchaseOrdersPage = () => {
   // Thêm hàm ánh xạ trạng thái sang tiếng Việt
   const statusVN = {
     draft: 'Nháp',
-    ordered: 'Đã đặt hàng',
+    pending: 'Chờ xác nhận',
     confirmed: 'Đã xác nhận',
+    ordered: 'Đã đặt hàng',
+    receiving: 'Đang nhận hàng',
+    completed: 'Hoàn thành',
     cancelled: 'Đã hủy',
   };
   const paymentStatusVN = {
@@ -520,8 +523,11 @@ const PurchaseOrdersPage = () => {
   const statusTagColor = (status) => {
     switch (status) {
       case 'draft': return 'default';
-      case 'ordered': return 'blue';
-      case 'confirmed': return 'green';
+      case 'pending': return 'orange';
+      case 'confirmed': return 'blue';
+      case 'ordered': return 'cyan';
+      case 'receiving': return 'purple';
+      case 'completed': return 'green';
       case 'cancelled': return 'red';
       default: return 'default';
     }
@@ -612,8 +618,11 @@ const PurchaseOrdersPage = () => {
                 style={{ width: '100%' }}
               >
                 <Select.Option value="draft">Nháp</Select.Option>
-                <Select.Option value="ordered">Đã đặt hàng</Select.Option>
+                <Select.Option value="pending">Chờ xác nhận</Select.Option>
                 <Select.Option value="confirmed">Đã xác nhận</Select.Option>
+                <Select.Option value="ordered">Đã đặt hàng</Select.Option>
+                <Select.Option value="receiving">Đang nhận hàng</Select.Option>
+                <Select.Option value="completed">Hoàn thành</Select.Option>
                 <Select.Option value="cancelled">Đã hủy</Select.Option>
               </Select>
             </Col>
@@ -769,8 +778,11 @@ const PurchaseOrdersPage = () => {
               <Form.Item name="status" label="Trạng thái">
                 <Select>
                   <Select.Option value="draft">Nháp</Select.Option>
-                  <Select.Option value="ordered">Đã đặt hàng</Select.Option>
+                  <Select.Option value="pending">Chờ xác nhận</Select.Option>
                   <Select.Option value="confirmed">Đã xác nhận</Select.Option>
+                  <Select.Option value="ordered">Đã đặt hàng</Select.Option>
+                  <Select.Option value="receiving">Đang nhận hàng</Select.Option>
+                  <Select.Option value="completed">Hoàn thành</Select.Option>
                   <Select.Option value="cancelled">Đã hủy</Select.Option>
                 </Select>
               </Form.Item>

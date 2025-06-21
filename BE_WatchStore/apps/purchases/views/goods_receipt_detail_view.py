@@ -120,7 +120,20 @@ class GoodsReceiptDetailViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         """Tạo chi tiết phiếu nhập kho mới"""
         try:
-            serializer = self.get_serializer(data=request.data)
+            # Tự động điền goods_receipt từ URL parameter nếu có
+            data = request.data.copy()
+            if 'goods_receipt' not in data:
+                # Thử lấy từ URL parameter
+                goods_receipt_id = request.query_params.get('goods_receipt')
+                if goods_receipt_id:
+                    data['goods_receipt'] = goods_receipt_id
+                else:
+                    return Response(
+                        {"detail": "goods_receipt is required"},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            
+            serializer = self.get_serializer(data=data)
             serializer.is_valid(raise_exception=True)
             detail = serializer.save()
             

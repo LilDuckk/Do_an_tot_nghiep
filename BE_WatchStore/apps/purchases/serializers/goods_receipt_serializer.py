@@ -18,8 +18,6 @@ class GoodsReceiptSerializer(serializers.ModelSerializer):
     purchase_order_info = serializers.SerializerMethodField()
     
     # Thông tin tính toán
-    remaining_amount = serializers.ReadOnlyField()
-    is_fully_paid = serializers.ReadOnlyField()
     can_update_inventory = serializers.ReadOnlyField()
     is_from_purchase_order = serializers.ReadOnlyField()
     
@@ -32,15 +30,15 @@ class GoodsReceiptSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'receipt_number', 'purchase_order', 'purchase_order_info', 'supplier', 'supplier_info',
             'store', 'store_info', 'employee', 'employee_info', 'receipt_date', 'expected_receipt_date',
-            'delivery_note', 'vehicle_number', 'driver_name', 'status', 'payment_status',
-            'subtotal', 'tax_amount', 'discount_amount', 'total_amount', 'paid_amount',
-            'remaining_amount', 'is_fully_paid', 'can_update_inventory', 'is_from_purchase_order',
+            'delivery_note', 'vehicle_number', 'driver_name', 'status',
+            'subtotal', 'tax_amount', 'discount_amount', 'total_amount',
+            'can_update_inventory', 'is_from_purchase_order',
             'notes', 'quality_check_notes', 'is_quality_checked',
             'created_by', 'created_by_username', 'updated_by', 'updated_by_username',
             'created_at', 'updated_at', 'details'
         ]
         read_only_fields = [
-            'id', 'receipt_number', 'total_amount', 'remaining_amount', 'is_fully_paid',
+            'id', 'receipt_number', 'total_amount',
             'can_update_inventory', 'is_from_purchase_order', 'created_by', 'created_by_username',
             'updated_by', 'updated_by_username', 'created_at', 'updated_at'
         ]
@@ -64,7 +62,7 @@ class GoodsReceiptSerializer(serializers.ModelSerializer):
         today = datetime.datetime.now()
         prefix = f"GR{today.strftime('%Y%m%d')}"
         
-        # Tìm số thứ tự tiếp theo
+        # Tìm số thứ tự tiếp theo (bao gồm cả xóa mềm)
         last_gr = GoodsReceipt.objects.filter(
             receipt_number__startswith=prefix
         ).order_by('-receipt_number').first()
@@ -78,7 +76,13 @@ class GoodsReceiptSerializer(serializers.ModelSerializer):
         else:
             new_number = 1
         
-        validated_data['receipt_number'] = f"{prefix}{new_number:04d}"
+        # Kiểm tra xem mã mới có bị trùng không (bao gồm cả xóa mềm)
+        new_receipt_number = f"{prefix}{new_number:04d}"
+        while GoodsReceipt.objects.filter(receipt_number=new_receipt_number).exists():
+            new_number += 1
+            new_receipt_number = f"{prefix}{new_number:04d}"
+        
+        validated_data['receipt_number'] = new_receipt_number
         
         return super().create(validated_data)
     
@@ -106,6 +110,8 @@ class GoodsReceiptSerializer(serializers.ModelSerializer):
         # Kiểm tra đơn đặt hàng nếu có
         if 'purchase_order' in data and data['purchase_order']:
             po = data['purchase_order']
+            
+            # Kiểm tra trạng thái đơn đặt hàng
             if not po.can_receive_goods:
                 if po.status in ['draft', 'pending', 'cancelled']:
                     raise serializers.ValidationError(
@@ -114,6 +120,22 @@ class GoodsReceiptSerializer(serializers.ModelSerializer):
                 else:
                     raise serializers.ValidationError(
                         f"Đơn đặt hàng (PO: {po.po_number}) ở trạng thái không hợp lệ để nhận hàng: {po.status}."
+                    )
+            
+            # Kiểm tra xem đơn đặt hàng đã có phiếu nhập kho chưa (bao gồm cả xóa mềm)
+            existing_receipt = GoodsReceipt.objects.filter(
+                purchase_order=po
+            ).first()
+            
+            if existing_receipt:
+                if existing_receipt.is_deleted:
+                    # Nếu phiếu nhập kho đã bị xóa mềm, cho phép tạo mới
+                    pass
+                else:
+                    # Nếu phiếu nhập kho chưa bị xóa, báo lỗi
+                    raise serializers.ValidationError(
+                        f"Đơn đặt hàng (PO: {po.po_number}) đã có phiếu nhập kho (GR: {existing_receipt.receipt_number}). "
+                        f"Mỗi đơn đặt hàng chỉ có thể tạo 1 phiếu nhập kho. Nếu muốn tạo mới, vui lòng xóa phiếu nhập kho cũ trước."
                     )
         
         return data
@@ -133,8 +155,8 @@ class GoodsReceiptListSerializer(serializers.ModelSerializer):
         model = GoodsReceipt
         fields = [
             'id', 'receipt_number', 'supplier_name', 'store_name', 'employee_name',
-            'purchase_order_number', 'receipt_date', 'status', 'payment_status',
-            'total_amount', 'paid_amount', 'details_count', 'is_quality_checked', 'created_at'
+            'purchase_order_number', 'receipt_date', 'status',
+            'total_amount', 'details_count', 'is_quality_checked', 'created_at'
         ]
     
     def get_details_count(self, obj):

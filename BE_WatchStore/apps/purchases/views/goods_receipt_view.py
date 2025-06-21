@@ -44,7 +44,6 @@ class GoodsReceiptFilter(filters.FilterSet):
     
     # Bộ lọc theo trạng thái
     status = filters.CharFilter(lookup_expr='iexact')
-    payment_status = filters.CharFilter(lookup_expr='iexact')
     
     # Bộ lọc theo ngày
     receipt_date_from = filters.DateTimeFilter(field_name='receipt_date', lookup_expr='gte')
@@ -63,7 +62,7 @@ class GoodsReceiptFilter(filters.FilterSet):
         model = GoodsReceipt
         fields = [
             'supplier', 'store', 'employee', 'receipt_number', 'purchase_order',
-            'status', 'payment_status', 'receipt_date', 'created_at', 'total_amount'
+            'status', 'receipt_date', 'created_at', 'total_amount'
         ]
 
 
@@ -337,6 +336,63 @@ class GoodsReceiptViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
                 "message": "Đã cập nhật tồn kho thành công",
                 "updated_items": updated_items
             }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            return Response(
+                {"detail": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+    @action(detail=True, methods=['get'])
+    def quantity_variance(self, request, pk=None):
+        """Tính toán chênh lệch số lượng giữa đơn đặt hàng và nhập kho"""
+        try:
+            goods_receipt = self.get_object()
+            variance_data = goods_receipt.get_quantity_variance_summary()
+            
+            if variance_data is None:
+                return Response(
+                    {"detail": "Phiếu nhập kho này không liên kết với đơn đặt hàng"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            return Response(variance_data, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            return Response(
+                {"detail": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+    @action(detail=True, methods=['get'])
+    def financial_variance(self, request, pk=None):
+        """Tính toán chênh lệch tài chính giữa đơn đặt hàng và nhập kho"""
+        try:
+            goods_receipt = self.get_object()
+            variance_data = goods_receipt.get_financial_variance_summary()
+            
+            if variance_data is None:
+                return Response(
+                    {"detail": "Phiếu nhập kho này không liên kết với đơn đặt hàng"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            return Response(variance_data, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            return Response(
+                {"detail": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+    @action(detail=True, methods=['get'])
+    def quality_issues(self, request, pk=None):
+        """Tóm tắt các vấn đề chất lượng"""
+        try:
+            goods_receipt = self.get_object()
+            quality_data = goods_receipt.get_quality_issues_summary()
+            
+            return Response(quality_data, status=status.HTTP_200_OK)
             
         except Exception as e:
             return Response(

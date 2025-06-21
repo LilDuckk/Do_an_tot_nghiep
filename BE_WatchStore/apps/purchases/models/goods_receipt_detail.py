@@ -67,9 +67,15 @@ class GoodsReceiptDetail(BaseModel):
     
     def save(self, *args, **kwargs):
         # Tự động tính toán các giá trị
+        self._calculate_quantities()
         self._calculate_amounts()
         self._update_quality_status()
         super().save(*args, **kwargs)
+    
+    def _calculate_quantities(self):
+        """Tự động tính toán số lượng"""
+        # Tự động tính rejected_quantity = received_quantity - accepted_quantity
+        self.rejected_quantity = max(0, self.received_quantity - self.accepted_quantity)
     
     def _calculate_amounts(self):
         """Tính toán các giá trị tiền"""
@@ -101,6 +107,11 @@ class GoodsReceiptDetail(BaseModel):
             self.quality_status = 'rejected'
         else:
             self.quality_status = 'partial'
+    
+    @property
+    def missing_quantity(self):
+        """Số lượng thiếu = ordered_quantity - received_quantity"""
+        return max(0, self.ordered_quantity - self.received_quantity)
     
     @property
     def total_amount(self):
