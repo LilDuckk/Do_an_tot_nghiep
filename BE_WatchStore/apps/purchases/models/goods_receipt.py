@@ -87,10 +87,14 @@ class GoodsReceipt(BaseModel):
         verbose_name = "Phiếu nhập kho"
         verbose_name_plural = "Phiếu nhập kho"
         ordering = ['-created_at']
-        # Đảm bảo mỗi đơn đặt hàng chỉ có 1 phiếu nhập kho
-        unique_together = [['purchase_order', 'is_deleted']]
-        # Đảm bảo mã phiếu nhập là duy nhất khi chưa xóa mềm
+        # Đảm bảo mỗi đơn đặt hàng chỉ có 1 phiếu nhập kho (chỉ áp dụng cho bản ghi chưa xóa)
         constraints = [
+            models.UniqueConstraint(
+                fields=['purchase_order'],
+                condition=models.Q(is_deleted=False),
+                name='unique_purchase_order_not_deleted'
+            ),
+            # Đảm bảo mã phiếu nhập là duy nhất khi chưa xóa mềm
             models.UniqueConstraint(
                 fields=['receipt_number'],
                 condition=models.Q(is_deleted=False),
@@ -167,7 +171,7 @@ class GoodsReceipt(BaseModel):
                 # Ghi lại các item có chênh lệch
                 if missing_quantity > 0 or quality_issues > 0:
                     summary['items_with_variance'].append({
-                        'product': po_detail.product_variant.name,
+                        'product': po_detail.product_variant.product.name,
                         'ordered_quantity': po_detail.quantity,
                         'received_quantity': gr_detail.received_quantity,
                         'accepted_quantity': gr_detail.accepted_quantity,
@@ -223,7 +227,7 @@ class GoodsReceipt(BaseModel):
                 summary['quality_loss_amount'] += rejected_amount
                 
                 summary['items_with_financial_variance'].append({
-                    'product': detail.product_variant.name,
+                    'product': detail.product_variant.product.name,
                     'rejected_quantity': detail.rejected_quantity,
                     'rejected_amount': rejected_amount,
                     'quality_notes': detail.quality_notes
@@ -255,7 +259,7 @@ class GoodsReceipt(BaseModel):
                     summary['partially_rejected_items'] += 1
                 
                 summary['quality_issues'].append({
-                    'product': detail.product_variant.name,
+                    'product': detail.product_variant.product.name,
                     'received_quantity': detail.received_quantity,
                     'accepted_quantity': detail.accepted_quantity,
                     'rejected_quantity': detail.rejected_quantity,

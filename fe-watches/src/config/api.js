@@ -153,7 +153,19 @@ export const PURCHASE_ENDPOINTS = {
   GOODS_RECEIPT_DETAIL: (id) => `${API_BASE_URL}/purchases/goods-receipts/${id}/`,
   GOODS_RECEIPT_CONFIRM: (id) => `${API_BASE_URL}/purchases/goods-receipts/${id}/confirm_receipt/`,
   GOODS_RECEIPT_UPDATE_INVENTORY: (id) => `${API_BASE_URL}/purchases/goods-receipts/${id}/update_inventory/`,
+  GOODS_RECEIPT_CREATE_FROM_PO: `${API_BASE_URL}/purchases/goods-receipts/create_from_purchase_order/`,
   
+  // New Goods Receipt endpoints from exp.txt
+  GOODS_RECEIPT_QUANTITY_VARIANCE: (id) => `${API_BASE_URL}/purchases/goods-receipts/${id}/quantity_variance/`,
+  GOODS_RECEIPT_FINANCIAL_VARIANCE: (id) => `${API_BASE_URL}/purchases/goods-receipts/${id}/financial_variance/`,
+  GOODS_RECEIPT_QUALITY_ISSUES: (id) => `${API_BASE_URL}/purchases/goods-receipts/${id}/quality_issues/`,
+  GOODS_RECEIPT_AVAILABLE_POS: `${API_BASE_URL}/purchases/goods-receipts/get_available_purchase_orders/`,
+  GOODS_RECEIPT_PO_INFO: `${API_BASE_URL}/purchases/goods-receipts/get_purchase_order_info/`,
+  GOODS_RECEIPT_GET_DETAILS: (id) => `${API_BASE_URL}/purchases/goods-receipts/${id}/get_receipt_details/`,
+  GOODS_RECEIPT_SUMMARY: (id) => `${API_BASE_URL}/purchases/goods-receipts/${id}/get_receipt_summary/`,
+  GOODS_RECEIPT_UPDATE_QUANTITIES: (id) => `${API_BASE_URL}/purchases/goods-receipts/${id}/update_received_quantities/`,
+  GOODS_RECEIPT_UPDATE_PRICES: (id) => `${API_BASE_URL}/purchases/goods-receipts/${id}/update_prices_from_purchase_order/`,
+
   // Goods Receipt Details
   GOODS_RECEIPT_DETAILS: `${API_BASE_URL}/purchases/goods-receipt-details/`,
   GOODS_RECEIPT_DETAIL_ITEM: (id) => `${API_BASE_URL}/purchases/goods-receipt-details/${id}/`,

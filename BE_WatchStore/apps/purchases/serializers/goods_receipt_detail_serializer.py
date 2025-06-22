@@ -83,18 +83,47 @@ class GoodsReceiptDetailCreateSerializer(serializers.ModelSerializer):
         if 'goods_receipt' not in data:
             raise serializers.ValidationError("goods_receipt is required")
         
-        # Kiểm tra số lượng
-        if data['received_quantity'] <= 0:
-            raise serializers.ValidationError("Số lượng nhập phải lớn hơn 0")
+        # Kiểm tra product_variant
+        if 'product_variant' not in data:
+            raise serializers.ValidationError("product_variant is required")
+        
+        # Kiểm tra xem sản phẩm đã tồn tại trong phiếu nhập kho chưa
+        goods_receipt = data['goods_receipt']
+        product_variant = data['product_variant']
+        
+        # Lấy instance hiện tại (nếu đang update)
+        current_instance = self.instance
+        
+        # Kiểm tra xem sản phẩm đã tồn tại trong phiếu nhập kho chưa
+        existing_detail = GoodsReceiptDetail.objects.filter(
+            goods_receipt=goods_receipt,
+            product_variant=product_variant,
+            is_deleted=False
+        ).first()
+        
+        if existing_detail:
+            # Nếu đang update và existing_detail chính là instance hiện tại, cho phép
+            if current_instance and existing_detail.id == current_instance.id:
+                pass
+            else:
+                # Nếu sản phẩm đã tồn tại và không phải instance hiện tại, báo lỗi
+                raise serializers.ValidationError(
+                    f"Sản phẩm '{product_variant.name}' đã tồn tại trong phiếu nhập kho này. "
+                    f"Mỗi sản phẩm chỉ có thể có một chi tiết trong một phiếu nhập kho."
+                )
+        
+        # Kiểm tra số lượng - cho phép 0 khi tạo từ đơn đặt hàng
+        if data.get('received_quantity', 0) < 0:
+            raise serializers.ValidationError("Số lượng nhập không được âm")
         
         # Kiểm tra số lượng chấp nhận không được vượt quá số lượng nhập
-        if data.get('accepted_quantity', 0) > data['received_quantity']:
+        if data.get('accepted_quantity', 0) > data.get('received_quantity', 0):
             raise serializers.ValidationError(
                 "Số lượng chấp nhận không được vượt quá số lượng nhập"
             )
         
-        # Kiểm tra đơn giá
-        if data['unit_price'] < 0:
+        # Kiểm tra đơn giá - cho phép 0 khi tạo từ đơn đặt hàng
+        if data.get('unit_price', 0) < 0:
             raise serializers.ValidationError("Đơn giá không được âm")
         
         # Kiểm tra phần trăm giảm giá

@@ -60,7 +60,14 @@ class GoodsReceiptDetail(BaseModel):
         db_table = 'goods_receipt_details'
         verbose_name = "Chi tiết phiếu nhập kho"
         verbose_name_plural = "Chi tiết phiếu nhập kho"
-        unique_together = ['goods_receipt', 'product_variant']
+        # Đảm bảo mỗi sản phẩm chỉ xuất hiện một lần trong phiếu nhập kho (chỉ áp dụng cho bản ghi chưa xóa)
+        constraints = [
+            models.UniqueConstraint(
+                fields=['goods_receipt', 'product_variant'],
+                condition=models.Q(is_deleted=False),
+                name='unique_goods_receipt_product_not_deleted'
+            )
+        ]
     
     def __str__(self):
         return f"{self.goods_receipt.receipt_number} - {self.product_variant.name}"

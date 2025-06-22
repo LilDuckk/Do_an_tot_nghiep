@@ -1,16 +1,27 @@
 from rest_framework import viewsets
 from apps.inventory.models.inventory_transaction import InventoryTransaction
-from apps.inventory.serializers.inventory_transaction_serializer import InventoryTransactionSerializer
+from apps.inventory.serializers.inventory_transaction_serializer import (
+    InventoryTransactionSerializer, 
+    InventoryTransactionCreateSerializer
+)
 from apps.core.utils.permissions import IsSuperUser, IsStoreEmployee
 from rest_framework.permissions import IsAuthenticated, AllowAny, OR
 
 class InventoryTransactionViewSet(viewsets.ModelViewSet):
     queryset = InventoryTransaction.objects.all()
     serializer_class = InventoryTransactionSerializer
-    filterset_fields = ['product', 'variant', 'transaction_type']
-    search_fields = ['reference_number']
-    ordering_fields = ['created_at']
+    filterset_fields = ['transaction_type', 'reference_type', 'inventory__product_variant__product__name']
+    search_fields = ['reference_id', 'note']
+    ordering_fields = ['created_at', 'transaction_date']
     ordering = ['-created_at']
+
+    def get_serializer_class(self):
+        """
+        Sử dụng serializer khác nhau cho từng action
+        """
+        if self.action in ['create']:
+            return InventoryTransactionCreateSerializer
+        return InventoryTransactionSerializer
 
     def get_permissions(self):
         """

@@ -122,17 +122,23 @@ class GoodsReceiptSerializer(serializers.ModelSerializer):
                         f"Đơn đặt hàng (PO: {po.po_number}) ở trạng thái không hợp lệ để nhận hàng: {po.status}."
                     )
             
+            # Lấy instance hiện tại (nếu đang update)
+            current_instance = self.instance
+            
             # Kiểm tra xem đơn đặt hàng đã có phiếu nhập kho chưa (bao gồm cả xóa mềm)
             existing_receipt = GoodsReceipt.objects.filter(
                 purchase_order=po
             ).first()
             
             if existing_receipt:
-                if existing_receipt.is_deleted:
+                # Nếu đang update và existing_receipt chính là instance hiện tại, cho phép
+                if current_instance and existing_receipt.id == current_instance.id:
+                    pass
+                elif existing_receipt.is_deleted:
                     # Nếu phiếu nhập kho đã bị xóa mềm, cho phép tạo mới
                     pass
                 else:
-                    # Nếu phiếu nhập kho chưa bị xóa, báo lỗi
+                    # Nếu phiếu nhập kho chưa bị xóa và không phải instance hiện tại, báo lỗi
                     raise serializers.ValidationError(
                         f"Đơn đặt hàng (PO: {po.po_number}) đã có phiếu nhập kho (GR: {existing_receipt.receipt_number}). "
                         f"Mỗi đơn đặt hàng chỉ có thể tạo 1 phiếu nhập kho. Nếu muốn tạo mới, vui lòng xóa phiếu nhập kho cũ trước."

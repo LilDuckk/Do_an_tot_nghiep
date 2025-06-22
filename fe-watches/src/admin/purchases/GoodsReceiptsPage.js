@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Table, Input, Button, Space, Tag, message, Modal, Form, Select, DatePicker, Card, Row, Col, Popconfirm, InputNumber } from 'antd';
 import { SearchOutlined, ReloadOutlined, PlusOutlined, EditOutlined, DeleteOutlined, ExclamationCircleOutlined, EyeOutlined, ShoppingCartOutlined } from '@ant-design/icons';
 import { PURCHASE_ENDPOINTS, SUPPLIER_ENDPOINTS, STORE_ENDPOINTS, EMPLOYEE_ENDPOINTS, PRODUCT_ENDPOINTS } from '../../config/api';
@@ -69,6 +69,10 @@ const GoodsReceiptsPage = () => {
   const [editingItem, setEditingItem] = useState(null);
   const [itemDetailForm] = Form.useForm();
   const [currentPurchaseOrderId, setCurrentPurchaseOrderId] = useState(null);
+  const modalInitializedRef = useRef(false);
+  const previousReceiptDetailsRef = useRef([]);
+  const [quickCreateModalVisible, setQuickCreateModalVisible] = useState(false);
+  const [selectedQuickCreatePO, setSelectedQuickCreatePO] = useState(null);
 
   // Debounce search
   useEffect(() => {
@@ -121,14 +125,33 @@ const GoodsReceiptsPage = () => {
     try {
       setReceiptDetailLoading(true);
       const token = localStorage.getItem('accessToken');
-      const response = await fetch(`${PURCHASE_ENDPOINTS.GOODS_RECEIPT_DETAILS}?goods_receipt=${receiptId}`, {
+      const response = await fetch(PURCHASE_ENDPOINTS.GOODS_RECEIPT_GET_DETAILS(receiptId), {
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      if (!response.ok) {
+        message.error(`Lỗi khi tải chi tiết phiếu nhập: ${response.statusText}`);
+        return [];
+      }
       const data = await response.json();
-      setReceiptDetails(Array.isArray(data.results) ? data.results : []);
+      const receiptDetailsArray = Array.isArray(data.details) ? data.details : [];
+      
+      console.log('Fetched receiptDetails:', {
+        receiptId: receiptId,
+        count: receiptDetailsArray.length,
+        details: receiptDetailsArray.map(detail => ({
+          id: detail.id,
+          purchase_order_detail: detail.purchase_order_detail,
+          product_variant: detail.product_variant,
+          goods_receipt: detail.goods_receipt
+        }))
+      });
+      
+      setReceiptDetails(receiptDetailsArray);
+      return receiptDetailsArray;
     } catch (error) {
       message.error('Lỗi khi tải chi tiết phiếu nhập kho');
       setReceiptDetails([]);
+      return [];
     } finally {
       setReceiptDetailLoading(false);
     }
@@ -155,11 +178,18 @@ const GoodsReceiptsPage = () => {
       const response = await fetch(`${PURCHASE_ENDPOINTS.PURCHASE_ORDER_DETAILS}?purchase_order=${purchaseOrderId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      if (!response.ok) {
+        message.error(`Lỗi khi tải chi tiết đơn đặt hàng: ${response.statusText}`);
+        return [];
+      }
       const data = await response.json();
-      setPurchaseOrderDetails(Array.isArray(data.results) ? data.results : []);
+      const details = Array.isArray(data.results) ? data.results : [];
+      setPurchaseOrderDetails(details);
+      return details;
     } catch (error) {
       message.error('Lỗi khi tải chi tiết đơn đặt hàng');
       setPurchaseOrderDetails([]);
+      return [];
     }
   };
 
@@ -242,11 +272,30 @@ const GoodsReceiptsPage = () => {
   const handleAdd = () => {
     setEditing(null);
     setSelectedPurchaseOrder(null);
+    form.resetFields();
     setModalVisible(true);
   };
-  const handleEdit = (record) => {
-    setEditing(record);
-    setModalVisible(true);
+  const handleEdit = async (record) => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('accessToken');
+      const res = await fetch(PURCHASE_ENDPOINTS.GOODS_RECEIPT_DETAIL(record.id), {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (!res.ok) {
+        throw new Error('Không thể tải dữ liệu chi tiết của phiếu nhập.');
+      }
+
+      const detailedRecord = await res.json();
+      setEditing(detailedRecord);
+      setModalVisible(true);
+
+    } catch (err) {
+      message.error(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
   const handleDelete = (record) => {
     confirm({
@@ -274,48 +323,63 @@ const GoodsReceiptsPage = () => {
     try {
       const values = await form.validateFields();
       if (values.receipt_date) values.receipt_date = values.receipt_date.format('YYYY-MM-DD');
-      if (!isSuperUser) {
-        values.employee = currentEmployeeId;
-        values.store = currentStoreId;
-      }
-      
-      // Loại bỏ trường payment_status nếu có
-      const { payment_status, ...cleanValues } = values;
       
       const token = localStorage.getItem('accessToken');
-      const method = editing ? 'PUT' : 'POST';
-      const url = editing ? PURCHASE_ENDPOINTS.GOODS_RECEIPT_DETAIL(editing.id) : PURCHASE_ENDPOINTS.GOODS_RECEIPTS;
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify(cleanValues)
-      });
-      if (!res.ok) {
-        let errorMsg = 'Có lỗi xảy ra';
-        try {
+      
+      if (editing) {
+        // Cập nhật phiếu nhập kho hiện có
+        const url = PURCHASE_ENDPOINTS.GOODS_RECEIPT_DETAIL(editing.id);
+        const res = await fetch(url, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify(values)
+        });
+
+        if (!res.ok) {
           const errorData = await res.json();
-          if (errorData.detail) {
-            if (typeof errorData.detail === 'string') {
-              // Nếu là string dạng object Python repr, dùng regex lấy chuỗi trong ErrorDetail(string='...')
-              const regex = /ErrorDetail\(string='([^']+)'/;
-              const match = errorData.detail.match(regex);
-              if (match && match[1]) errorMsg = match[1];
-              else errorMsg = errorData.detail;
-            } else {
-              const extracted = extractFirstString(errorData.detail);
-              if (extracted) errorMsg = extracted;
-            }
-          }
-        } catch {}
-        message.error(errorMsg);
-        return;
+          message.error(extractFirstString(errorData) || 'Cập nhật thất bại');
+          return;
+        }
+        message.success('Cập nhật thành công');
+
+      } else {
+        // Tạo phiếu nhập kho mới từ đơn đặt hàng
+        const createReceiptData = {
+          purchase_order: values.purchase_order,
+          employee: values.employee,
+          receipt_date: values.receipt_date,
+          delivery_note: values.delivery_note || '',
+          vehicle_number: values.vehicle_number || '',
+          driver_name: values.driver_name || '',
+          notes: values.notes || '',
+        };
+
+        if (!isSuperUser) {
+          createReceiptData.employee = currentEmployeeId;
+        }
+
+        const res = await fetch(PURCHASE_ENDPOINTS.GOODS_RECEIPT_CREATE_FROM_PO, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify(createReceiptData)
+        });
+        
+        if (!res.ok) {
+          const errorData = await res.json();
+          message.error(extractFirstString(errorData) || 'Tạo phiếu nhập thất bại');
+          return;
+        }
+        const result = await res.json();
+        message.success(result.message || 'Tạo phiếu nhập kho thành công');
       }
-      message.success(editing ? 'Cập nhật thành công' : 'Thêm mới thành công');
+
       setModalVisible(false);
       fetchData(pagination.current, pagination.pageSize);
+
     } catch (err) {
       if (err.errorFields) return;
-      message.error(err.message);
+      console.error('Lỗi khi lưu phiếu nhập:', err);
+      message.error(err.message || 'Có lỗi xảy ra');
     }
   };
 
@@ -368,26 +432,54 @@ const GoodsReceiptsPage = () => {
             icon={<ShoppingCartOutlined />}
             className="action-btn"
             onClick={async () => {
+              setReceiptDetailLoading(true);
               setSelectedReceiptId(record.id);
-              fetchReceiptDetails(record.id);
-              
-              const receiptInfo = await fetchReceiptInfo(record.id);
-              
-              let purchaseOrderId = null;
-              if (receiptInfo && receiptInfo.purchase_order) {
-                purchaseOrderId = receiptInfo.purchase_order;
+              try {
+                const token = localStorage.getItem('accessToken');
+                const response = await fetch(PURCHASE_ENDPOINTS.GOODS_RECEIPT_GET_DETAILS(record.id), {
+                  headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!response.ok) {
+                  throw new Error('Lỗi khi tải chi tiết phiếu nhập.');
+                }
+                const data = await response.json();
+                
+                const items = data.details.map(detail => {
+                  const pvi = detail.product_variant || {};
+                  const poDetail = detail.purchase_order_detail || {};
+                  
+                  return {
+                    key: detail.id, // Use the actual detail ID as key
+                    id: detail.id,
+                    purchase_order_detail_id: poDetail.id,
+                    product_variant_info: {
+                      ...pvi,
+                      display_name: pvi.product_name || pvi.name || pvi.sku || 'Không có tên'
+                    },
+                    product_variant: pvi.id,
+                    ordered_quantity: detail.ordered_quantity,
+                    unit_price: detail.unit_price,
+                    received_quantity: detail.received_quantity,
+                    accepted_quantity: detail.accepted_quantity,
+                    rejected_quantity: detail.rejected_quantity,
+                    quality_status: detail.quality_status || 'accepted',
+                    quality_notes: detail.quality_notes || '',
+                    notes: detail.notes || '',
+                    batch_number: detail.batch_number || '',
+                    display_remaining_quantity: detail.missing_quantity, // Use from API
+                  };
+                });
+                
+                setEditableReceiptItems(items);
+                setReceiptDetailModalVisible(true);
+
+              } catch (error) {
+                console.error("Lỗi khi mở chi tiết phiếu nhập:", error);
+                message.error(error.message || "Đã xảy ra lỗi khi chuẩn bị dữ liệu chi tiết phiếu nhập.");
+              } finally {
+                setReceiptDetailLoading(false);
               }
-              
-              if (purchaseOrderId) {
-                setCurrentPurchaseOrderId(purchaseOrderId);
-                fetchPurchaseOrderDetails(purchaseOrderId);
-              } else {
-                setCurrentPurchaseOrderId(null);
-                setPurchaseOrderDetails([]); // Clear stale data if no PO found
-                message.warning('Không tìm thấy đơn đặt hàng liên quan.');
-              }
-              
-              setReceiptDetailModalVisible(true);
             }}
           />
           <Button
@@ -548,7 +640,7 @@ const GoodsReceiptsPage = () => {
         }
         message.success('Cập nhật chi tiết phiếu nhập kho thành công');
       } else {
-        // Thêm mới
+        // Thêm mới - sử dụng API mới
         const requestData = {
           ...baseData,
           goods_receipt: selectedReceiptId
@@ -575,6 +667,9 @@ const GoodsReceiptsPage = () => {
         }
         message.success('Thêm chi tiết phiếu nhập kho thành công');
       }
+      
+      // Cập nhật dữ liệu sau khi thêm/sửa
+      fetchReceiptDetails(selectedReceiptId);
       return true;
     } catch (error) {
       console.error('Error in handleReceiptDetailSubmit:', error);
@@ -611,63 +706,96 @@ const GoodsReceiptsPage = () => {
     })}đ`;
   };
 
+  // useEffect để xử lý modal visibility
   useEffect(() => {
     if (!receiptDetailModalVisible) {
       setEditableReceiptItems([]); // Clear when modal is closed
+      previousReceiptDetailsRef.current = []; // Reset previous receipt details
       return;
     }
+  }, [receiptDetailModalVisible]);
 
-    const items = purchaseOrderDetails.map(poDetail => {
-      const grDetail = receiptDetails.find(grd => grd.purchase_order_detail === poDetail.id);
+  // useEffect để cập nhật dữ liệu khi receiptDetails thay đổi (khi backend tự động tạo chi tiết)
+  useEffect(() => {
+    if (receiptDetailModalVisible && editableReceiptItems.length > 0) {
+      // Kiểm tra xem receiptDetails có thay đổi thực sự không
+      const currentReceiptDetailsString = JSON.stringify(receiptDetails);
+      const previousReceiptDetailsString = JSON.stringify(previousReceiptDetailsRef.current);
       
-      const pvi = poDetail.product_variant_info || {};
-      pvi.display_name = pvi.product_name || pvi.name || pvi.sku || 'Không có tên';
-
-      // Max receivable quantity for this GR session
-      const po_remaining_at_load = poDetail.missing_quantity ?? poDetail.remaining_quantity ?? 0;
-      const gr_saved_received_qty = grDetail?.received_quantity || 0;
-      const max_receivable_qty = po_remaining_at_load + gr_saved_received_qty;
-
-      // Base item from Purchase Order
-      const baseItem = {
-        key: poDetail.id,
-        id: null,
-        purchase_order_detail_id: poDetail.id,
-        product_variant_info: pvi,
-        product_variant: poDetail.product_variant,
-        ordered_quantity: poDetail.quantity,
-        max_receivable_qty: max_receivable_qty, // Store max value for input validation
-        unit_price: poDetail.unit_price,
-        // Default values for this GR, to be populated by grDetail if it exists
-        received_quantity: 0,
-        accepted_quantity: 0,
-        rejected_quantity: 0,
-        quality_status: 'accepted',
-        quality_notes: '',
-        notes: '',
-        batch_number: '',
-      };
-
-      // If there are details for THIS specific goods receipt, use them as the source of truth.
-      if (grDetail) {
-        baseItem.id = grDetail.id;
-        baseItem.received_quantity = grDetail.received_quantity || 0;
-        baseItem.accepted_quantity = grDetail.accepted_quantity || 0;
-        baseItem.rejected_quantity = grDetail.rejected_quantity || 0;
-        baseItem.unit_price = grDetail.unit_price || baseItem.unit_price;
-        baseItem.quality_status = grDetail.quality_status || 'accepted';
-        baseItem.quality_notes = grDetail.quality_notes || '';
-        baseItem.notes = grDetail.notes || '';
-        baseItem.batch_number = grDetail.batch_number || '';
+      if (currentReceiptDetailsString !== previousReceiptDetailsString) {
+        console.log('ReceiptDetails changed, updating editableReceiptItems');
+        console.log('Current receiptDetails:', receiptDetails);
+        
+        // Cập nhật các item hiện có với dữ liệu mới từ receiptDetails
+        setEditableReceiptItems(currentItems =>
+          currentItems.map(item => {
+            // Tìm chi tiết phiếu nhập theo purchase_order_detail_id trước
+            let grDetail = receiptDetails.find(grd => grd.purchase_order_detail === item.purchase_order_detail_id);
+            
+            // Nếu không tìm thấy, tìm theo product_variant và goods_receipt
+            if (!grDetail && item.product_variant) {
+              grDetail = receiptDetails.find(grd => 
+                grd.product_variant === item.product_variant && 
+                grd.goods_receipt === selectedReceiptId
+              );
+            }
+            
+            // Nếu vẫn không tìm thấy, tìm theo product_variant (fallback)
+            if (!grDetail && item.product_variant) {
+              grDetail = receiptDetails.find(grd => grd.product_variant === item.product_variant);
+            }
+            
+            if (grDetail) {
+              console.log('Found grDetail for item:', {
+                product: item.product_variant_info?.display_name,
+                grDetail_id: grDetail.id,
+                purchase_order_detail: grDetail.purchase_order_detail,
+                product_variant: grDetail.product_variant,
+                goods_receipt: grDetail.goods_receipt
+              });
+              
+              return {
+                ...item,
+                id: grDetail.id, // Đảm bảo luôn cập nhật id
+                received_quantity: grDetail.received_quantity || item.received_quantity,
+                accepted_quantity: grDetail.accepted_quantity || item.accepted_quantity,
+                // Lấy rejected_quantity từ API, không tính toán lại
+                rejected_quantity: grDetail.rejected_quantity || item.rejected_quantity,
+                unit_price: grDetail.unit_price || item.unit_price,
+                quality_status: grDetail.quality_status || item.quality_status,
+                quality_notes: grDetail.quality_notes || item.quality_notes,
+                notes: grDetail.notes || item.notes,
+                batch_number: grDetail.batch_number || item.batch_number,
+                display_remaining_quantity: item.ordered_quantity - (grDetail.received_quantity || item.received_quantity)
+              };
+            } else {
+              console.log('No grDetail found for item:', {
+                product: item.product_variant_info?.display_name,
+                purchase_order_detail_id: item.purchase_order_detail_id,
+                product_variant: item.product_variant,
+                selectedReceiptId: selectedReceiptId
+              });
+            }
+            return item;
+          })
+        );
+        
+        // Cập nhật reference
+        previousReceiptDetailsRef.current = [...receiptDetails];
+        
+        // Kiểm tra lại sau khi cập nhật
+        setTimeout(() => {
+          const updatedItems = editableReceiptItems;
+          const itemsWithoutId = updatedItems.filter(item => !item.id);
+          if (itemsWithoutId.length > 0) {
+            console.warn('Some items still do not have ID after update:', itemsWithoutId);
+          } else {
+            console.log('All items have ID after update');
+          }
+        }, 100);
       }
-
-      // Calculate the displayed missing quantity for the UI based on user's live formula
-      baseItem.display_remaining_quantity = baseItem.ordered_quantity - baseItem.received_quantity;
-
-      return baseItem;
-    });
-    setEditableReceiptItems(items);
-  }, [purchaseOrderDetails, receiptDetails, receiptDetailModalVisible]);
+    }
+  }, [receiptDetails, receiptDetailModalVisible, editableReceiptItems]);
 
   const handleReceiptItemChange = (key, field, value) => {
     setEditableReceiptItems(currentItems =>
@@ -675,15 +803,41 @@ const GoodsReceiptsPage = () => {
         if (item.key === key) {
           const newItem = { ...item, [field]: value };
           
-          // Recalculate 'display_remaining_quantity' if 'received_quantity' changes based on user formula
+          // Chỉ tính toán khi người dùng nhập số vào input
           if (field === 'received_quantity') {
-            newItem.display_remaining_quantity = newItem.ordered_quantity - (newItem.received_quantity || 0);
+            // Validation: SL đặt >= SL nhập
+            if (value > newItem.ordered_quantity) {
+              message.warning(`Số lượng nhập không thể lớn hơn số lượng đặt (${newItem.ordered_quantity})`);
+              // Vẫn cập nhật giá trị nhưng hiển thị warning
+            }
+            
+            // Tính toán SL còn thiếu = SL đặt - SL nhập
+            newItem.display_remaining_quantity = newItem.ordered_quantity - (value || 0);
+            
+            // Tính toán lại SL từ chối = SL nhập - SL chấp nhận
+            const accepted = newItem.accepted_quantity || 0;
+            newItem.rejected_quantity = Math.max(0, (value || 0) - accepted);
           }
-
-          // always recalculate rejected quantity if received or accepted changes
-          const received = newItem.received_quantity || 0;
-          const accepted = newItem.accepted_quantity || 0;
-          newItem.rejected_quantity = Math.max(0, received - accepted);
+          
+          if (field === 'accepted_quantity') {
+            // Validation: SL chấp nhận <= SL nhập
+            if (value > (newItem.received_quantity || 0)) {
+              message.warning(`Số lượng chấp nhận không thể lớn hơn số lượng nhập (${newItem.received_quantity || 0})`);
+              // Vẫn cập nhật giá trị nhưng hiển thị warning
+            }
+            
+            // Tính toán SL từ chối = SL nhập - SL chấp nhận
+            const received = newItem.received_quantity || 0;
+            newItem.rejected_quantity = Math.max(0, received - (value || 0));
+          }
+          
+          // Đảm bảo item có id nếu đã có receiptDetails
+          if (!newItem.id && newItem.purchase_order_detail_id) {
+            const grDetail = receiptDetails.find(grd => grd.purchase_order_detail === newItem.purchase_order_detail_id);
+            if (grDetail) {
+              newItem.id = grDetail.id;
+            }
+          }
           
           return newItem;
         }
@@ -694,6 +848,7 @@ const GoodsReceiptsPage = () => {
   
   const openEditItemModal = (item) => {
     setEditingItem(item);
+    // Lấy dữ liệu từ API, không tính toán lại
     itemDetailForm.setFieldsValue(item);
     setItemDetailModalVisible(true);
   };
@@ -701,7 +856,20 @@ const GoodsReceiptsPage = () => {
   const handleItemDetailSave = async () => {
     try {
       const values = await itemDetailForm.validateFields();
+      
+      // Cập nhật tất cả các trường từ form
       handleReceiptItemChange(editingItem.key, 'accepted_quantity', values.accepted_quantity);
+      handleReceiptItemChange(editingItem.key, 'quality_status', values.quality_status);
+      handleReceiptItemChange(editingItem.key, 'quality_notes', values.quality_notes);
+      handleReceiptItemChange(editingItem.key, 'batch_number', values.batch_number);
+      handleReceiptItemChange(editingItem.key, 'notes', values.notes);
+      
+      // Cập nhật rejected_quantity trong form để hiển thị giá trị được tính toán
+      const currentItem = editableReceiptItems.find(item => item.key === editingItem.key);
+      const currentReceivedQuantity = currentItem ? currentItem.received_quantity : editingItem.received_quantity;
+      const newRejectedQuantity = Math.max(0, (currentReceivedQuantity || 0) - (values.accepted_quantity || 0));
+      itemDetailForm.setFieldsValue({ rejected_quantity: newRejectedQuantity });
+      
       setItemDetailModalVisible(false);
     } catch (error) {
       console.log('Validation Failed:', error);
@@ -716,100 +884,183 @@ const GoodsReceiptsPage = () => {
 
     setReceiptDetailLoading(true);
     const token = localStorage.getItem('accessToken');
-    
-    // Process all items that have data to save
-    const changedItems = editableReceiptItems.filter(item => 
-      item.accepted_quantity > 0 || item.received_quantity > 0 || item.id
-    );
 
-    console.log('Total editable items:', editableReceiptItems);
-    console.log('Items to process:', changedItems);
+    const changedItems = editableReceiptItems.map(item => ({
+      detail_id: item.id,
+      received_quantity: item.received_quantity,
+      accepted_quantity: item.accepted_quantity,
+      rejected_quantity: item.rejected_quantity,
+      quality_notes: item.quality_notes || '',
+      batch_number: item.batch_number || '',
+      notes: item.notes || ''
+    }));
 
     if (changedItems.length === 0) {
-      message.warning('Không có dữ liệu nào để lưu. Vui lòng nhập số lượng chấp nhận hoặc số lượng nhập.');
+      message.warning('Không có thay đổi nào để lưu.');
       setReceiptDetailLoading(false);
       return;
     }
 
-    const promises = changedItems.map(item => {
-      console.log('Processing item:', item);
-      
-      // If item exists but has no quantities, delete it
-      if (item.id && item.accepted_quantity === 0 && item.received_quantity === 0) {
-        console.log('Deleting existing item:', item.id);
-        return fetch(PURCHASE_ENDPOINTS.GOODS_RECEIPT_DETAIL_ITEM(item.id), {
-          method: 'DELETE',
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-      }
-      
-      // Create or update item with quantities
-      if (item.accepted_quantity > 0 || item.received_quantity > 0) {
-        const payload = {
-          goods_receipt: selectedReceiptId,
-          purchase_order_detail: item.purchase_order_detail_id,
-          product_variant: item.product_variant,
-          ordered_quantity: item.ordered_quantity,
-          received_quantity: item.received_quantity || item.accepted_quantity,
-          accepted_quantity: item.accepted_quantity || item.received_quantity,
-          rejected_quantity: item.rejected_quantity || 0,
-          unit_price: item.unit_price || 0,
-          discount_percent: "0.00",
-          tax_percent: "0.00",
-          quality_status: item.quality_status || "accepted",
-          quality_notes: item.quality_notes || "",
-          batch_number: item.batch_number || "",
-          notes: item.notes || "",
-        };
-
-        console.log('Payload for item:', item.product_variant_info?.display_name, payload);
-
-        const url = item.id
-          ? PURCHASE_ENDPOINTS.GOODS_RECEIPT_DETAIL_ITEM(item.id)
-          : PURCHASE_ENDPOINTS.GOODS_RECEIPT_DETAILS;
-        
-        const method = item.id ? 'PUT' : 'POST';
-
-        console.log('Making request:', method, url);
-
-        return fetch(url, {
-          method,
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-          body: JSON.stringify(payload)
-        }).then(async res => {
-            console.log('Response status:', res.status);
-            if (!res.ok) {
-                const err = await res.json();
-                console.log('Error response:', err);
-                return Promise.reject({ ...err, item_sku: item.product_variant_info?.sku });
-            }
-            const result = await res.json();
-            console.log('Success response:', result);
-            return result;
-        });
-      }
-      
-      // Skip items with no data
-      console.log('Skipping item with no data:', item);
-      return Promise.resolve({ ok: true, isSkipped: true });
-    });
-
     try {
-      const results = await Promise.all(promises);
-      console.log('All results:', results);
-      message.success('Đã lưu chi tiết phiếu nhập kho thành công!');
-      if (currentPurchaseOrderId) {
-          fetchPurchaseOrderDetails(currentPurchaseOrderId);
+      const response = await fetch(PURCHASE_ENDPOINTS.GOODS_RECEIPT_UPDATE_QUANTITIES(selectedReceiptId), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ received_quantities: changedItems })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        const errorMessage = extractFirstString(errorData) || 'Lỗi khi cập nhật số lượng.';
+        throw new Error(errorMessage);
       }
-      fetchReceiptDetails(selectedReceiptId);
+
+      const result = await response.json();
+      message.success(result.message || 'Đã lưu chi tiết phiếu nhập kho thành công!');
+
+      // Tải lại dữ liệu chi tiết để cập nhật UI
+      const freshDataRes = await fetch(PURCHASE_ENDPOINTS.GOODS_RECEIPT_GET_DETAILS(selectedReceiptId), {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (freshDataRes.ok) {
+        const freshData = await freshDataRes.json();
+        const items = freshData.details.map(detail => {
+            const pvi = detail.product_variant || {};
+            const poDetail = detail.purchase_order_detail || {};
+            return {
+              key: detail.id,
+              id: detail.id,
+              purchase_order_detail_id: poDetail.id,
+              product_variant_info: { ...pvi, display_name: pvi.product_name || pvi.name || pvi.sku || 'Không có tên' },
+              product_variant: pvi.id,
+              ordered_quantity: detail.ordered_quantity,
+              unit_price: detail.unit_price,
+              received_quantity: detail.received_quantity,
+              accepted_quantity: detail.accepted_quantity,
+              rejected_quantity: detail.rejected_quantity,
+              quality_status: detail.quality_status || 'accepted',
+              quality_notes: detail.quality_notes || '',
+              notes: detail.notes || '',
+              batch_number: detail.batch_number || '',
+              display_remaining_quantity: detail.missing_quantity,
+            };
+        });
+        setEditableReceiptItems(items);
+      }
     } catch (error) {
       console.error('Lỗi khi lưu chi tiết phiếu nhập kho:', error);
-      const sku = error.item_sku ? ` cho sản phẩm ${error.item_sku}` : '';
-      const errorDetail = typeof error.detail === 'string' ? error.detail : JSON.stringify(error.detail);
-      message.error(`Lỗi khi lưu${sku}: ${errorDetail || 'Lỗi không xác định'}`);
+      message.error(error.message || 'Có lỗi xảy ra khi lưu.');
     } finally {
       setReceiptDetailLoading(false);
     }
+  };
+
+  const handleConfirmReceipt = async () => {
+    if (!selectedReceiptId) {
+      message.error("Lỗi: Không tìm thấy mã phiếu nhập kho.");
+      return;
+    }
+
+    try {
+      setReceiptDetailLoading(true);
+      const token = localStorage.getItem('accessToken');
+      
+      const response = await fetch(PURCHASE_ENDPOINTS.GOODS_RECEIPT_CONFIRM(selectedReceiptId), {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json', 
+          'Authorization': `Bearer ${token}` 
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        const errorMessage = extractFirstString(errorData) || 'Lỗi khi xác nhận phiếu nhập kho';
+        throw new Error(errorMessage);
+      }
+
+      const result = await response.json();
+      message.success(result.message || 'Đã xác nhận phiếu nhập kho thành công!');
+      
+      setReceiptDetailModalVisible(false);
+      fetchData(pagination.current, pagination.pageSize);
+      
+    } catch (error) {
+      console.error('Lỗi khi xác nhận phiếu nhập kho:', error);
+      message.error(error.message);
+    } finally {
+      setReceiptDetailLoading(false);
+    }
+  };
+
+  const handleCreateReceiptFromPO = async (purchaseOrderId) => {
+    try {
+      const token = localStorage.getItem('accessToken');
+      
+      const createReceiptData = {
+        purchase_order: purchaseOrderId,
+        employee: currentEmployeeId,
+        receipt_date: dayjs().format('YYYY-MM-DD'),
+        delivery_note: '',
+        vehicle_number: '',
+        driver_name: '',
+        notes: `Tự động tạo từ đơn hàng`,
+      };
+      
+      const response = await fetch(PURCHASE_ENDPOINTS.GOODS_RECEIPT_CREATE_FROM_PO, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify(createReceiptData)
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        const errorMessage = extractFirstString(errorData) || 'Có lỗi xảy ra';
+        message.error(errorMessage);
+        return false;
+      }
+      
+      const result = await response.json();
+      message.success(result.message || 'Tạo phiếu nhập kho thành công!');
+      
+      fetchData(pagination.current, pagination.pageSize);
+      return true;
+      
+    } catch (error) {
+      console.error('Lỗi khi tạo phiếu nhập kho:', error);
+      message.error('Có lỗi xảy ra khi tạo phiếu nhập kho');
+      return false;
+    }
+  };
+
+  // Hàm tạo phiếu nhập nhanh từ đơn đặt hàng
+  const handleQuickCreateReceipt = () => {
+    setQuickCreateModalVisible(true);
+  };
+
+  const handleQuickCreateConfirm = async () => {
+    if (!selectedQuickCreatePO) {
+      message.warning('Vui lòng chọn đơn đặt hàng');
+      return;
+    }
+    
+    await handleCreateReceiptFromPO(selectedQuickCreatePO);
+    setQuickCreateModalVisible(false);
+    setSelectedQuickCreatePO(null);
+  };
+
+  // Lấy danh sách đơn đặt hàng chưa có phiếu nhập kho
+  const getAvailablePurchaseOrders = () => {
+    // Lấy danh sách ID của các đơn đặt hàng đã có phiếu nhập
+    const existingPOIds = data
+      .filter(receipt => receipt.purchase_order)
+      .map(receipt => receipt.purchase_order);
+    
+    // Lọc ra các đơn đặt hàng chưa có phiếu nhập và có trạng thái phù hợp
+    // Theo API mới, backend sẽ lo việc này, nhưng ta có thể lọc sơ bộ ở client
+    return purchaseOrders.filter(order => 
+      !existingPOIds.includes(order.id) && 
+      (order.status === 'confirmed' || order.status === 'pending' || order.status === 'ordered' || order.status === 'partially_received')
+    );
   };
 
   return (
@@ -827,6 +1078,15 @@ const GoodsReceiptsPage = () => {
           />
           <Button icon={<ReloadOutlined />} onClick={() => fetchData(pagination.current, pagination.pageSize)} />
           <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>Thêm mới</Button>
+          <Button 
+            type="default" 
+            icon={<ShoppingCartOutlined />} 
+            onClick={handleQuickCreateReceipt}
+            title="Tạo phiếu nhập nhanh từ đơn đặt hàng"
+            disabled={getAvailablePurchaseOrders().length === 0}
+          >
+            Tạo nhanh
+          </Button>
           <Button onClick={() => setShowFilters(!showFilters)}>
             {showFilters ? 'Ẩn bộ lọc' : 'Hiện bộ lọc'}
           </Button>
@@ -948,23 +1208,25 @@ const GoodsReceiptsPage = () => {
         destroyOnHidden
         width={800}
         afterOpenChange={(open) => {
-          if (open && !editing) {
-            form.resetFields();
-            setSelectedPurchaseOrder(null);
-          }
           if (open && editing) {
-            // Loại bỏ trường payment_status khỏi dữ liệu editing
-            const { payment_status, ...cleanEditingData } = editing;
-            form.setFieldsValue({ 
-              ...cleanEditingData, 
-              receipt_date: editing.receipt_date ? dayjs(editing.receipt_date) : null 
+            // Khi chỉnh sửa, 'editing' đã chứa dữ liệu chi tiết từ API
+            form.setFieldsValue({
+              ...editing,
+              receipt_date: editing.receipt_date ? dayjs(editing.receipt_date) : null
             });
-            
-            // Tìm và set selectedPurchaseOrder nếu có purchase_order
+            // Lọc nhân viên theo cửa hàng của phiếu nhập
+            if (editing.store) {
+              filterEmployeesByStore(editing.store);
+            }
+            // Hiển thị thông tin PO nếu có
             if (editing.purchase_order) {
               const order = purchaseOrders.find(o => o.id === editing.purchase_order);
               setSelectedPurchaseOrder(order);
             }
+          } else if (open && !editing) {
+            // Khi thêm mới
+            form.resetFields();
+            setSelectedPurchaseOrder(null);
           }
         }}
       >
@@ -1113,6 +1375,16 @@ const GoodsReceiptsPage = () => {
             <Button key="submit" type="primary" loading={receiptDetailLoading} onClick={handleSaveAllReceiptDetails}>
               Lưu thay đổi
             </Button>,
+            <Button 
+              key="confirm" 
+              type="primary" 
+              danger
+              loading={receiptDetailLoading} 
+              onClick={handleConfirmReceipt}
+              style={{ marginLeft: 8 }}
+            >
+              Xác nhận phiếu hàng
+            </Button>,
         ]}
         width={1400}
       >
@@ -1141,7 +1413,7 @@ const GoodsReceiptsPage = () => {
                       return (
                         <InputNumber
                             min={0}
-                            max={record.max_receivable_qty}
+                            max={record.ordered_quantity}
                             value={text}
                             onChange={(value) => handleReceiptItemChange(record.key, 'received_quantity', value)}
                             style={{ width: 100 }}
@@ -1211,7 +1483,9 @@ const GoodsReceiptsPage = () => {
                     { required: true, message: 'Không được để trống' },
                     ({ getFieldValue }) => ({
                         validator(_, value) {
-                            if (value > (editingItem?.received_quantity || 0)) {
+                            const currentItem = editableReceiptItems.find(item => item.key === editingItem?.key);
+                            const currentReceivedQuantity = currentItem ? currentItem.received_quantity : editingItem?.received_quantity;
+                            if (value > (currentReceivedQuantity || 0)) {
                                 return Promise.reject(new Error('Không thể lớn hơn SL nhập'));
                             }
                             return Promise.resolve();
@@ -1219,12 +1493,29 @@ const GoodsReceiptsPage = () => {
                     })
                   ]}
                 >
-                    <InputNumber min={0} max={editingItem?.received_quantity || 0} style={{ width: '100%' }} />
+                    <InputNumber 
+                      min={0} 
+                      max={(() => {
+                        const currentItem = editableReceiptItems.find(item => item.key === editingItem?.key);
+                        return currentItem ? currentItem.received_quantity : editingItem?.received_quantity;
+                      })() || 0} 
+                      style={{ width: '100%' }} 
+                    />
                 </Form.Item>
             </Col>
             <Col span={12}>
                 <Form.Item name="rejected_quantity" label="Số lượng từ chối">
-                    <InputNumber min={0} disabled style={{ width: '100%' }} />
+                    <InputNumber 
+                      min={0} 
+                      disabled 
+                      style={{ width: '100%' }}
+                      value={(() => {
+                        const currentItem = editableReceiptItems.find(item => item.key === editingItem?.key);
+                        const currentReceivedQuantity = currentItem ? currentItem.received_quantity : editingItem?.received_quantity;
+                        const currentAcceptedQuantity = currentItem ? currentItem.accepted_quantity : editingItem?.accepted_quantity;
+                        return Math.max(0, (currentReceivedQuantity || 0) - (currentAcceptedQuantity || 0));
+                      })()}
+                    />
                 </Form.Item>
             </Col>
           </Row>
@@ -1245,6 +1536,69 @@ const GoodsReceiptsPage = () => {
             <Input.TextArea rows={2} />
           </Form.Item>
         </Form>
+      </Modal>
+
+      {/* Modal tạo phiếu nhập nhanh */}
+      <Modal
+        title="Tạo phiếu nhập kho nhanh"
+        open={quickCreateModalVisible}
+        onCancel={() => {
+          setQuickCreateModalVisible(false);
+          setSelectedQuickCreatePO(null);
+        }}
+        onOk={handleQuickCreateConfirm}
+        okText="Tạo phiếu nhập"
+        cancelText="Hủy"
+        okButtonProps={{ disabled: !selectedQuickCreatePO }}
+      >
+        <div>
+          <p style={{ marginBottom: 16 }}>Chọn đơn đặt hàng để tạo phiếu nhập kho:</p>
+          {getAvailablePurchaseOrders().length > 0 ? (
+            <>
+              <Select
+                placeholder="Chọn đơn đặt hàng"
+                style={{ width: '100%' }}
+                value={selectedQuickCreatePO}
+                onChange={setSelectedQuickCreatePO}
+                showSearch
+                filterOption={(input, option) => 
+                  option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                }
+              >
+                {getAvailablePurchaseOrders().map(order => (
+                  <Select.Option key={order.id} value={order.id}>
+                    {order.po_number} - {order.supplier_name} - {order.store_name}
+                  </Select.Option>
+                ))}
+              </Select>
+              {selectedQuickCreatePO && (
+                <div style={{ marginTop: 16, padding: 12, background: '#f6ffed', borderRadius: 6, border: '1px solid #b7eb8f' }}>
+                  <h4 style={{ margin: '0 0 8px 0', color: '#52c41a' }}>Thông tin đơn đặt hàng</h4>
+                  {(() => {
+                    const selectedOrder = purchaseOrders.find(order => order.id === selectedQuickCreatePO);
+                    return selectedOrder ? (
+                      <Row gutter={16}>
+                        <Col span={12}>
+                          <div><b>Mã đơn hàng:</b> {selectedOrder.po_number}</div>
+                          <div><b>Nhà cung cấp:</b> {selectedOrder.supplier_name}</div>
+                        </Col>
+                        <Col span={12}>
+                          <div><b>Cửa hàng:</b> {selectedOrder.store_name}</div>
+                          <div><b>Trạng thái:</b> <Tag color={selectedOrder.status === 'confirmed' ? 'green' : 'orange'}>{selectedOrder.status === 'confirmed' ? 'Đã xác nhận' : 'Chờ xác nhận'}</Tag></div>
+                        </Col>
+                      </Row>
+                    ) : null;
+                  })()}
+                </div>
+              )}
+            </>
+          ) : (
+            <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+              <p>Không có đơn đặt hàng nào khả dụng để tạo phiếu nhập kho.</p>
+              <p>Tất cả đơn đặt hàng đã có phiếu nhập hoặc không ở trạng thái phù hợp.</p>
+            </div>
+          )}
+        </div>
       </Modal>
     </div>
   );
