@@ -249,7 +249,7 @@ class GoodsReceiptViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
                         unit_price=detail.unit_price,
                         reference_type='goods_receipt',
                         reference_id=goods_receipt.id,
-                        note=f"Nhập kho từ phiếu nhập {goods_receipt.receipt_number}",
+                        note=f"Nhập kho từ phiếu nhập {goods_receipt.receipt_number} - Nhân viên: {goods_receipt.employee.name if goods_receipt.employee else 'N/A'}",
                         created_by=request.user,
                         updated_by=request.user
                     )
@@ -272,7 +272,7 @@ class GoodsReceiptViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
                             unit_price=detail.unit_price,
                             reference_type='goods_receipt',
                             reference_id=goods_receipt.id,
-                            note=f"Hủy nhập kho từ phiếu nhập {goods_receipt.receipt_number}",
+                            note=f"Hủy nhập kho từ phiếu nhập {goods_receipt.receipt_number} - Nhân viên: {goods_receipt.employee.name if goods_receipt.employee else 'N/A'}",
                             created_by=request.user,
                             updated_by=request.user
                         )
@@ -334,7 +334,7 @@ class GoodsReceiptViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
                         unit_price=detail.unit_price,
                         reference_type='goods_receipt',
                         reference_id=goods_receipt.id,
-                        note=f"Nhập kho từ phiếu nhập {goods_receipt.receipt_number}",
+                        note=f"Nhập kho từ phiếu nhập {goods_receipt.receipt_number} - Nhân viên: {goods_receipt.employee.name if goods_receipt.employee else 'N/A'}",
                         created_by=request.user,
                         updated_by=request.user
                     )
@@ -610,11 +610,29 @@ class GoodsReceiptViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
                 po_info = {
                     'id': po.id,
                     'po_number': po.po_number,
-                    'supplier_name': po.supplier.name,
                     'order_date': po.order_date,
                     'expected_delivery_date': po.expected_delivery_date,
                     'status': po.status,
-                    'total_amount': po.total_amount
+                    'total_amount': po.total_amount,
+                    'supplier': {
+                        'id': po.supplier.id,
+                        'name': po.supplier.name,
+                        'email': po.supplier.email,
+                        'phone': po.supplier.phone,
+                        'address': po.supplier.address
+                    },
+                    'store': {
+                        'id': po.store.id,
+                        'name': po.store.name,
+                        'address': po.store.address,
+                        'phone': po.store.phone
+                    },
+                    'employee': {
+                        'id': po.employee.id,
+                        'name': po.employee.name,
+                        'email': po.employee.email,
+                        'phone': po.employee.phone
+                    } if po.employee else None
                 }
             
             summary = {
@@ -864,19 +882,55 @@ class GoodsReceiptViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
                     'id': purchase_order.supplier.id,
                     'name': purchase_order.supplier.name,
                     'email': purchase_order.supplier.email,
-                    'phone': purchase_order.supplier.phone
+                    'phone': purchase_order.supplier.phone,
+                    'address': purchase_order.supplier.address,
+                    'tax_code': purchase_order.supplier.tax_code,
+                    'website': purchase_order.supplier.website,
+                    'contact_person': purchase_order.supplier.contact_person,
+                    'is_active': purchase_order.supplier.is_active
                 },
                 'store': {
                     'id': purchase_order.store.id,
-                    'name': purchase_order.store.name
+                    'name': purchase_order.store.name,
+                    'address': purchase_order.store.address,
+                    'phone': purchase_order.store.phone,
+                    'store_code': purchase_order.store.store_code,
+                    'is_active': purchase_order.store.is_active
                 },
+                'employee': {
+                    'id': purchase_order.employee.id,
+                    'name': purchase_order.employee.name,
+                    'employee_code': purchase_order.employee.employee_code,
+                    'position': purchase_order.employee.position,
+                    'phone': purchase_order.employee.phone,
+                    'email': purchase_order.employee.email,
+                    'address': purchase_order.employee.address,
+                    'hire_date': purchase_order.employee.hire_date,
+                    'is_manager': purchase_order.employee.is_manager,
+                    'store': {
+                        'id': purchase_order.employee.store.id,
+                        'name': purchase_order.employee.store.name
+                    } if purchase_order.employee.store else None
+                } if purchase_order.employee else None,
                 'order_date': purchase_order.order_date,
                 'expected_delivery_date': purchase_order.expected_delivery_date,
+                'actual_delivery_date': purchase_order.actual_delivery_date,
                 'status': purchase_order.status,
+                'payment_status': purchase_order.payment_status,
+                'payment_terms': purchase_order.payment_terms,
+                'shipping_address': purchase_order.shipping_address,
+                'shipping_method': purchase_order.shipping_method,
+                'subtotal': purchase_order.subtotal,
+                'tax_amount': purchase_order.tax_amount,
+                'discount_amount': purchase_order.discount_amount,
                 'total_amount': purchase_order.total_amount,
+                'paid_amount': purchase_order.paid_amount,
+                'notes': purchase_order.notes,
                 'details': po_details,
                 'total_items': len(po_details),
-                'receivable_items': sum(1 for detail in po_details if detail['can_receive'])
+                'receivable_items': sum(1 for detail in po_details if detail['can_receive']),
+                'created_at': purchase_order.created_at,
+                'updated_at': purchase_order.updated_at
             }
             
             return Response(po_info, status=status.HTTP_200_OK)

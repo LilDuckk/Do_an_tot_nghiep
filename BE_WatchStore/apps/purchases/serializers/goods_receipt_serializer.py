@@ -46,10 +46,17 @@ class GoodsReceiptSerializer(serializers.ModelSerializer):
     def get_purchase_order_info(self, obj):
         """Lấy thông tin đơn đặt hàng nếu có"""
         if obj.purchase_order:
+            po = obj.purchase_order
             return {
-                'id': obj.purchase_order.id,
-                'po_number': obj.purchase_order.po_number,
-                'status': obj.purchase_order.status
+                'id': po.id,
+                'po_number': po.po_number,
+                'order_date': po.order_date,
+                'expected_delivery_date': po.expected_delivery_date,
+                'status': po.status,
+                'total_amount': po.total_amount,
+                'supplier_name': po.supplier.name if po.supplier else None,
+                'store_name': po.store.name if po.store else None,
+                'employee_name': po.employee.name if po.employee else None
             }
         return None
     

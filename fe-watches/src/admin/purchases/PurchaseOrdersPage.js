@@ -510,6 +510,7 @@ const PurchaseOrdersPage = () => {
     confirmed: 'Đã xác nhận',
     ordered: 'Đã đặt hàng',
     receiving: 'Đang nhận hàng',
+    partially_received: 'Nhận một phần',
     completed: 'Hoàn thành',
     cancelled: 'Đã hủy',
   };
@@ -527,6 +528,7 @@ const PurchaseOrdersPage = () => {
       case 'confirmed': return 'blue';
       case 'ordered': return 'cyan';
       case 'receiving': return 'purple';
+      case 'partially_received': return 'geekblue';
       case 'completed': return 'green';
       case 'cancelled': return 'red';
       default: return 'default';
@@ -556,120 +558,152 @@ const PurchaseOrdersPage = () => {
           />
           <Button icon={<ReloadOutlined />} onClick={() => fetchData(pagination.current, pagination.pageSize)} />
           <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>Thêm mới</Button>
-          <Button onClick={() => setShowFilters(!showFilters)}>
-            {showFilters ? 'Ẩn bộ lọc' : 'Hiện bộ lọc'}
-          </Button>
+          <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
+            <Button
+              className="filter-toggle-btn"
+              type="primary"
+              icon={<SearchOutlined />}
+              onClick={() => setShowFilters(!showFilters)}
+              style={{
+                background: showFilters ? '#52c41a' : '#1890ff',
+                borderColor: showFilters ? '#52c41a' : '#1890ff',
+                minWidth: 140
+              }}
+            >
+              {showFilters ? 'Ẩn bộ lọc' : 'Hiển thị bộ lọc'}
+            </Button>
+          </div>
         </div>
       </div>
+      {/* Card bộ lọc chỉ hiện khi showFilters */}
       {showFilters && (
-        <Card style={{ marginBottom: 16 }}>
-          <Row gutter={[16, 16]}>
-            <Col xs={24} sm={12} md={8} lg={6}>
-              <Select
-                placeholder="Nhà cung cấp"
-                value={supplierFilter}
-                onChange={setSupplierFilter}
-                allowClear
-                showSearch
-                filterOption={(input, option) => option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0}
-                style={{ width: '100%' }}
-              >
-                {suppliers.map(supplier => (
-                  <Select.Option key={supplier.id} value={supplier.id}>{supplier.name}</Select.Option>
-                ))}
-              </Select>
-            </Col>
-            <Col xs={24} sm={12} md={8} lg={6}>
-              <Select
-                placeholder="Cửa hàng"
-                value={storeFilter}
-                onChange={setStoreFilter}
-                allowClear
-                showSearch
-                filterOption={(input, option) => option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0}
-                style={{ width: '100%' }}
-              >
-                {stores.map(store => (
-                  <Select.Option key={store.id} value={store.id}>{store.name}</Select.Option>
-                ))}
-              </Select>
-            </Col>
-            <Col xs={24} sm={12} md={8} lg={6}>
-              <Select
-                placeholder="Nhân viên"
-                value={employeeFilter}
-                onChange={setEmployeeFilter}
-                allowClear
-                showSearch
-                filterOption={(input, option) => option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0}
-                style={{ width: '100%' }}
-              >
-                {employees.map(employee => (
-                  <Select.Option key={employee.id} value={employee.id}>{employee.name}</Select.Option>
-                ))}
-              </Select>
-            </Col>
-            <Col xs={24} sm={12} md={8} lg={6}>
-              <Select
-                placeholder="Trạng thái"
-                value={statusFilter}
-                onChange={setStatusFilter}
-                allowClear
-                style={{ width: '100%' }}
-              >
-                <Select.Option value="draft">Nháp</Select.Option>
-                <Select.Option value="pending">Chờ xác nhận</Select.Option>
-                <Select.Option value="confirmed">Đã xác nhận</Select.Option>
-                <Select.Option value="ordered">Đã đặt hàng</Select.Option>
-                <Select.Option value="receiving">Đang nhận hàng</Select.Option>
-                <Select.Option value="completed">Hoàn thành</Select.Option>
-                <Select.Option value="cancelled">Đã hủy</Select.Option>
-              </Select>
-            </Col>
-            <Col xs={24} sm={12} md={8} lg={6}>
-              <Select
-                placeholder="Trạng thái thanh toán"
-                value={paymentStatusFilter}
-                onChange={setPaymentStatusFilter}
-                allowClear
-                style={{ width: '100%' }}
-              >
-                <Select.Option value="pending">Chưa thanh toán</Select.Option>
-                <Select.Option value="partial">Thanh toán một phần</Select.Option>
-                <Select.Option value="paid">Đã thanh toán</Select.Option>
-              </Select>
-            </Col>
-            <Col xs={24} sm={12} md={8} lg={6}>
-              <RangePicker
-                placeholder={['Từ ngày', 'Đến ngày']}
-                value={dateRange}
-                onChange={setDateRange}
-                style={{ width: '100%' }}
-                format="DD/MM/YYYY"
-              />
-            </Col>
-            <Col xs={24} sm={12} md={8} lg={6}>
-              <Input.Group compact>
-                <Input
-                  placeholder="Từ"
-                  value={totalAmountRange[0]}
-                  onChange={e => setTotalAmountRange([e.target.value, totalAmountRange[1]])}
-                  style={{ width: '50%' }}
+        <Card
+          className="filter-card"
+          title={
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <SearchOutlined />
+              <span>Tìm kiếm và bộ lọc đơn đặt hàng</span>
+            </div>
+          }
+          style={{ marginBottom: 16 }}
+        >
+          <div className={`filter-container filter-show`}>
+            <Row gutter={[16, 16]}>
+              <Col xs={24} sm={12} md={8} lg={6}>
+                <Select
+                  placeholder="Nhà cung cấp"
+                  value={supplierFilter}
+                  onChange={setSupplierFilter}
+                  allowClear
+                  showSearch
+                  filterOption={(input, option) => option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0}
+                  style={{ width: '100%' }}
+                >
+                  {suppliers.map(supplier => (
+                    <Select.Option key={supplier.id} value={supplier.id}>{supplier.name}</Select.Option>
+                  ))}
+                </Select>
+              </Col>
+              <Col xs={24} sm={12} md={8} lg={6}>
+                <Select
+                  placeholder="Cửa hàng"
+                  value={storeFilter}
+                  onChange={setStoreFilter}
+                  allowClear
+                  showSearch
+                  filterOption={(input, option) => option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0}
+                  style={{ width: '100%' }}
+                >
+                  {stores.map(store => (
+                    <Select.Option key={store.id} value={store.id}>{store.name}</Select.Option>
+                  ))}
+                </Select>
+              </Col>
+              <Col xs={24} sm={12} md={8} lg={6}>
+                <Select
+                  placeholder="Nhân viên"
+                  value={employeeFilter}
+                  onChange={setEmployeeFilter}
+                  allowClear
+                  showSearch
+                  filterOption={(input, option) => option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0}
+                  style={{ width: '100%' }}
+                >
+                  {employees.map(employee => (
+                    <Select.Option key={employee.id} value={employee.id}>{employee.name}</Select.Option>
+                  ))}
+                </Select>
+              </Col>
+              <Col xs={24} sm={12} md={8} lg={6}>
+                <Select
+                  placeholder="Trạng thái"
+                  value={statusFilter}
+                  onChange={setStatusFilter}
+                  allowClear
+                  style={{ width: '100%' }}
+                >
+                  <Select.Option value="draft">Nháp</Select.Option>
+                  <Select.Option value="pending">Chờ xác nhận</Select.Option>
+                  <Select.Option value="confirmed">Đã xác nhận</Select.Option>
+                  <Select.Option value="ordered">Đã đặt hàng</Select.Option>
+                  <Select.Option value="receiving">Đang nhận hàng</Select.Option>
+                  <Select.Option value="partially_received">Nhận một phần</Select.Option>
+                  <Select.Option value="completed">Hoàn thành</Select.Option>
+                  <Select.Option value="cancelled">Đã hủy</Select.Option>
+                </Select>
+              </Col>
+              <Col xs={24} sm={12} md={8} lg={6}>
+                <Select
+                  placeholder="Trạng thái thanh toán"
+                  value={paymentStatusFilter}
+                  onChange={setPaymentStatusFilter}
+                  allowClear
+                  style={{ width: '100%' }}
+                >
+                  <Select.Option value="pending">Chưa thanh toán</Select.Option>
+                  <Select.Option value="partial">Thanh toán một phần</Select.Option>
+                  <Select.Option value="paid">Đã thanh toán</Select.Option>
+                </Select>
+              </Col>
+              <Col xs={24} sm={12} md={8} lg={6}>
+                <RangePicker
+                  placeholder={['Từ ngày', 'Đến ngày']}
+                  value={dateRange}
+                  onChange={setDateRange}
+                  style={{ width: '100%' }}
+                  format="DD/MM/YYYY"
                 />
-                <Input
-                  placeholder="Đến"
-                  value={totalAmountRange[1]}
-                  onChange={e => setTotalAmountRange([totalAmountRange[0], e.target.value])}
-                  style={{ width: '50%' }}
-                />
-              </Input.Group>
-            </Col>
-            <Col xs={24} sm={12} md={8} lg={6}>
-              <Button onClick={clearFilters} style={{ width: '100%' }}>
-                Xóa bộ lọc
-              </Button>
-            </Col>
-          </Row>
+              </Col>
+              <Col xs={24} sm={12} md={8} lg={6}>
+                <Input.Group compact>
+                  <Input
+                    placeholder="Từ"
+                    value={totalAmountRange[0]}
+                    onChange={e => setTotalAmountRange([e.target.value, totalAmountRange[1]])}
+                    style={{ width: '50%' }}
+                  />
+                  <Input
+                    placeholder="Đến"
+                    value={totalAmountRange[1]}
+                    onChange={e => setTotalAmountRange([totalAmountRange[0], e.target.value])}
+                    style={{ width: '50%' }}
+                  />
+                </Input.Group>
+              </Col>
+              <Col xs={24}>
+                <Space>
+                  <Button
+                    className="filter-clear-btn"
+                    type="primary"
+                    icon={<SearchOutlined />}
+                    onClick={clearFilters}
+                  >
+                    Xóa bộ lọc
+                  </Button>
+                </Space>
+              </Col>
+            </Row>
+          </div>
         </Card>
       )}
       <Table
@@ -782,6 +816,7 @@ const PurchaseOrdersPage = () => {
                   <Select.Option value="confirmed">Đã xác nhận</Select.Option>
                   <Select.Option value="ordered">Đã đặt hàng</Select.Option>
                   <Select.Option value="receiving">Đang nhận hàng</Select.Option>
+                  <Select.Option value="partially_received">Nhận một phần</Select.Option>
                   <Select.Option value="completed">Hoàn thành</Select.Option>
                   <Select.Option value="cancelled">Đã hủy</Select.Option>
                 </Select>

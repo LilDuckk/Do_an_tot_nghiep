@@ -7,7 +7,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny, OR
 class StockTakeViewSet(viewsets.ModelViewSet):
     queryset = StockTake.objects.all()
     serializer_class = StockTakeSerializer
-    filterset_fields = ['product', 'variant']
+    filterset_fields = ['store', 'status']
     ordering_fields = ['created_at']
     ordering = ['-created_at']
 

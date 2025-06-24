@@ -592,4 +592,124 @@ class PurchaseOrderViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
             return Response(
                 {"detail": str(e)},
                 status=status.HTTP_400_BAD_REQUEST
+            )
+
+    @action(detail=False, methods=['get'])
+    def get_orders_without_receipt(self, request):
+        """Lấy danh sách đơn hàng chưa có phiếu nhập kho"""
+        try:
+            # Lọc đơn đặt hàng theo quyền người dùng
+            user = request.user
+            if user.is_superuser:
+                purchase_orders = PurchaseOrder.objects.filter(is_deleted=False)
+            else:
+                try:
+                    employee = Employee.objects.get(user=user, is_deleted=False)
+                    user_store = employee.store
+                    purchase_orders = PurchaseOrder.objects.filter(
+                        store=user_store,
+                        is_deleted=False
+                    )
+                except Employee.DoesNotExist:
+                    return Response(
+                        {"detail": "Không tìm thấy thông tin nhân viên"},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            
+            # Lọc đơn hàng chưa có phiếu nhập kho
+            orders_without_receipt = []
+            for po in purchase_orders:
+                # Kiểm tra xem đã có phiếu nhập kho chưa (is_deleted=False)
+                existing_receipt = po.goods_receipts.filter(is_deleted=False).first()
+                
+                if not existing_receipt:
+                    # Tính toán thông tin đơn hàng
+                    details = po.details.filter(is_deleted=False)
+                    total_items = details.count()
+                    total_quantity = sum(detail.quantity for detail in details)
+                    total_received = sum(detail.received_quantity for detail in details)
+                    remaining_quantity = total_quantity - total_received
+                    
+                    # Kiểm tra xem có chi tiết nào còn có thể nhập không
+                    has_receivable_items = any(
+                        detail.quantity > detail.received_quantity 
+                        for detail in details
+                    )
+                    
+                    if has_receivable_items:
+                        orders_without_receipt.append({
+                            'id': po.id,
+                            'po_number': po.po_number,
+                            'supplier': {
+                                'id': po.supplier.id,
+                                'name': po.supplier.name,
+                                'email': po.supplier.email,
+                                'phone': po.supplier.phone
+                            },
+                            'store': {
+                                'id': po.store.id,
+                                'name': po.store.name
+                            },
+                            'employee': {
+                                'id': po.employee.id,
+                                'name': po.employee.name,
+                                'employee_code': po.employee.employee_code,
+                                'position': po.employee.position
+                            } if po.employee else None,
+                            'order_date': po.order_date,
+                            'expected_delivery_date': po.expected_delivery_date,
+                            'status': po.status,
+                            'payment_status': po.payment_status,
+                            'total_amount': po.total_amount,
+                            'summary': {
+                                'total_items': total_items,
+                                'total_quantity': total_quantity,
+                                'total_received': total_received,
+                                'remaining_quantity': remaining_quantity,
+                                'receipt_progress': (total_received / total_quantity * 100) if total_quantity > 0 else 0,
+                                'can_create_receipt': po.status in ['ordered', 'confirmed', 'partially_received']
+                            },
+                            'created_at': po.created_at,
+                            'updated_at': po.updated_at
+                        })
+            
+            # Sắp xếp theo ngày đặt hàng mới nhất
+            orders_without_receipt.sort(key=lambda x: x['order_date'], reverse=True)
+            
+            # Phân trang
+            from rest_framework.pagination import PageNumberPagination
+            paginator = PageNumberPagination()
+            paginator.page_size = 10
+            
+            # Lấy page từ query params
+            page = request.query_params.get('page', 1)
+            try:
+                page = int(page)
+            except ValueError:
+                page = 1
+            
+            # Tính toán phân trang
+            start_index = (page - 1) * paginator.page_size
+            end_index = start_index + paginator.page_size
+            paginated_orders = orders_without_receipt[start_index:end_index]
+            
+            # Tạo response với phân trang
+            response_data = {
+                'count': len(orders_without_receipt),
+                'next': f"?page={page + 1}" if end_index < len(orders_without_receipt) else None,
+                'previous': f"?page={page - 1}" if page > 1 else None,
+                'results': paginated_orders,
+                'summary': {
+                    'total_orders': len(orders_without_receipt),
+                    'orders_can_create_receipt': sum(1 for order in orders_without_receipt if order['summary']['can_create_receipt']),
+                    'orders_pending_confirmation': sum(1 for order in orders_without_receipt if order['status'] in ['draft', 'pending'])
+                }
+            }
+            
+            return Response(response_data, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            return Response(
+                {"detail": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
             ) 

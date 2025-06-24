@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 from apps.core.models.base import BaseModel
 from apps.users.models.user import UserAccount
 from apps.inventory.models.inventory import Inventory
@@ -17,4 +18,10 @@ class InventoryTransaction(BaseModel):
 
     class Meta:
         managed = True
-        db_table = 'inventorytransaction' 
+        db_table = 'inventorytransaction'
+    
+    def save(self, *args, **kwargs):
+        # Tự động tạo transaction_date nếu chưa có
+        if not self.transaction_date:
+            self.transaction_date = timezone.now()
+        super().save(*args, **kwargs) 

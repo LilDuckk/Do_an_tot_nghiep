@@ -107,6 +107,10 @@ export const CUSTOMER_ENDPOINTS = {
 export const INVENTORY_ENDPOINTS = {
   INVENTORIES: `${API_BASE_URL}/inventory/inventories/`,
   INVENTORY_DETAIL: (id) => `${API_BASE_URL}/inventory/inventories/${id}/`,
+  // Inventory Transactions
+  INVENTORY_TRANSACTIONS: `${API_BASE_URL}/inventory/inventory-transactions/`,
+  INVENTORY_TRANSACTION_DETAIL: (id) => `${API_BASE_URL}/inventory/inventory-transactions/${id}/`,
+  INVENTORY_TRANSACTION_SUMMARY: (id) => `${API_BASE_URL}/inventory/inventory-transactions/${id}/transaction_summary/`,
 };
 
 // Content endpoints
@@ -143,6 +147,7 @@ export const PURCHASE_ENDPOINTS = {
   PURCHASE_ORDER_CONFIRM: (id) => `${API_BASE_URL}/purchases/purchase-orders/${id}/confirm_order/`,
   PURCHASE_ORDER_CANCEL: (id) => `${API_BASE_URL}/purchases/purchase-orders/${id}/cancel_order/`,
   PURCHASE_ORDER_STATISTICS: (id) => `${API_BASE_URL}/purchases/purchase-orders/${id}/statistics/`,
+  PURCHASE_ORDERS_WITHOUT_RECEIPT: `${API_BASE_URL}/purchases/purchase-orders/get_orders_without_receipt/`,
   
   // Purchase Order Details
   PURCHASE_ORDER_DETAILS: `${API_BASE_URL}/purchases/purchase-order-details/`,

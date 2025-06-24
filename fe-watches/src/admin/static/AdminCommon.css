@@ -1040,6 +1040,13 @@
   border: 1px solid #eee;
 }
 
+.search-filter-section, .ant-card-body {
+  background: var(--dropdown-bg) !important;
+}
+
+.ant-statistic-title {
+  color: var(--text) !important;
+}
 /* Tables */
 .admin-table tr td .ant-tag-default{
   background: var(--bg);

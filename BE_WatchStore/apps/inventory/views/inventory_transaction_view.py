@@ -10,7 +10,9 @@ from rest_framework.permissions import IsAuthenticated, AllowAny, OR
 class InventoryTransactionViewSet(viewsets.ModelViewSet):
     queryset = InventoryTransaction.objects.all()
     serializer_class = InventoryTransactionSerializer
-    filterset_fields = ['transaction_type', 'reference_type', 'inventory__product_variant__product__name']
+    filterset_fields = [
+        'transaction_type', 'reference_type', 'inventory__product_variant__product__name'
+    ]
     search_fields = ['reference_id', 'note']
     ordering_fields = ['created_at', 'transaction_date']
     ordering = ['-created_at']

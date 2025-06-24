@@ -7,7 +7,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny, OR
 class StockTransferViewSet(viewsets.ModelViewSet):
     queryset = StockTransfer.objects.all()
     serializer_class = StockTransferSerializer
-    filterset_fields = ['product', 'variant', 'from_location', 'to_location', 'status']
+    filterset_fields = ['source_store', 'destination_store', 'status']
     ordering_fields = ['created_at']
     ordering = ['-created_at']
 

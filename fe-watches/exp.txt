@@ -572,6 +572,44 @@ DELETE /api/purchases/purchase-order-details/{id}/ - Xóa chi tiết đơn đặ
 - Mỗi sản phẩm chỉ có thể xuất hiện một lần trong đơn đặt hàng
 
 ## Goods Receipts
+
+### 🔄 **Quy trình xác nhận và cập nhật tồn kho**
+
+**Các trạng thái phiếu nhập kho:**
+- `draft` - Nháp (mới tạo)
+- `pending` - Chờ xác nhận
+- `confirmed` - Đã xác nhận (đã cập nhật tồn kho)
+- `completed` - Hoàn thành
+- `cancelled` - Đã hủy
+
+**Quy trình làm việc:**
+
+1. **Tạo phiếu nhập kho** → Trạng thái `draft`
+   - Có thể tạo từ đơn đặt hàng hoặc tạo thủ công
+   - Chi tiết phiếu nhập có số lượng mặc định 0
+
+2. **Cập nhật số lượng nhập** → API `update_received_quantities`
+   - Nhập `received_quantity`, `accepted_quantity`, `rejected_quantity`
+   - Tự động tính lại `subtotal`, `tax_amount`, `discount_amount`
+   - Cập nhật `quality_status` dựa trên số lượng
+
+3. **Xác nhận phiếu nhập kho** → API `confirm_receipt`
+   - Chuyển trạng thái sang `confirmed`
+   - **TỰ ĐỘNG** cập nhật tồn kho cho tất cả sản phẩm có `accepted_quantity > 0`
+   - Tạo `InventoryTransaction` để ghi lại lịch sử
+   - Cập nhật `received_quantity` trong `PurchaseOrderDetail`
+   - Cập nhật trạng thái `PurchaseOrder`
+
+4. **Hoàn thành phiếu nhập** → API `update_inventory`
+   - Chuyển trạng thái sang `completed`
+   - Ghi nhận `actual_delivery_date`
+
+**Lưu ý quan trọng:**
+- Tồn kho chỉ được cập nhật **một lần** khi xác nhận phiếu nhập kho
+- Nếu hủy xác nhận (chuyển từ `confirmed` về trạng thái khác), tồn kho sẽ được **trừ lại**
+- Chỉ số lượng `accepted_quantity` mới được cộng vào tồn kho
+- Mỗi sản phẩm chỉ được cập nhật tồn kho **một lần** cho mỗi phiếu nhập kho
+
 ### GET /api/purchases/goods-receipts/
 {
     "count": 1,
@@ -811,31 +849,69 @@ DELETE /api/purchases/purchase-order-details/{id}/ - Xóa chi tiết đơn đặ
 **Response (204 No Content):** Không có nội dung
 
 ### POST /api/purchases/goods-receipts/{id}/confirm_receipt/
-**Xác nhận phiếu nhập kho**
+**Xác nhận phiếu nhập kho và tự động cập nhật tồn kho**
+
+**Lưu ý:** API này sẽ tự động cập nhật tồn kho cho tất cả sản phẩm có accepted_quantity > 0
 
 **Response (200 OK):**
 ```json
 {
-    "message": "Phiếu nhập kho đã được xác nhận thành công",
-    "receipt_number": "GR202412200001",
-    "status": "confirmed"
+    "message": "Đã xác nhận phiếu nhập GR202412200001 và cập nhật tồn kho thành công",
+    "goods_receipt": {
+        "id": 1,
+        "receipt_number": "GR202412200001",
+        "status": "confirmed",
+        "supplier": {
+            "id": 1,
+            "name": "Rolex Official Store"
+        },
+        "store": {
+            "id": 1,
+            "name": "Watch Store Hà Nội"
+        },
+        "total_amount": "15884000.00",
+        "created_at": "2024-01-15T10:30:00Z",
+        "updated_at": "2024-01-15T10:30:00Z"
+    },
+    "updated_items": [
+        {
+            "product_name": "Rolex Submariner",
+            "quantity_added": 2,
+            "old_stock": 5,
+            "new_stock": 7
+        }
+    ],
+    "total_items_updated": 1
 }
 ```
 
 ### POST /api/purchases/goods-receipts/{id}/update_inventory/
-**Cập nhật tồn kho từ phiếu nhập**
+**Hoàn thành phiếu nhập kho (chuyển sang trạng thái completed)**
+
+**Lưu ý:** API này chỉ chuyển trạng thái thành completed. Tồn kho đã được cập nhật tự động khi xác nhận phiếu nhập kho.
 
 **Response (200 OK):**
 ```json
 {
-    "message": "Đã cập nhật tồn kho thành công",
-    "updated_items": [
-        {
-            "product_variant": "Rolex Submariner",
-            "quantity_added": 3,
-            "new_stock": 8
-        }
-    ]
+    "message": "Đã hoàn thành phiếu nhập GR202412200001",
+    "note": "Tồn kho đã được cập nhật tự động khi xác nhận phiếu nhập kho",
+    "goods_receipt": {
+        "id": 1,
+        "receipt_number": "GR202412200001",
+        "status": "completed",
+        "actual_delivery_date": "2024-01-15T10:30:00Z",
+        "supplier": {
+            "id": 1,
+            "name": "Rolex Official Store"
+        },
+        "store": {
+            "id": 1,
+            "name": "Watch Store Hà Nội"
+        },
+        "total_amount": "15884000.00",
+        "created_at": "2024-01-15T10:30:00Z",
+        "updated_at": "2024-01-15T10:30:00Z"
+    }
 }
 ```
 
@@ -1435,5 +1511,226 @@ DELETE /api/purchases/purchase-order-details/{id}/ - Xóa chi tiết đơn đặ
     "total_subtotal": "28500000.00",
     "total_tax": "2850000.00",
     "total_discount": "1500000.00"
+}
+```
+
+# ============================================================================
+# MODULE INVENTORY - QUẢN LÝ KHO HÀNG
+# ============================================================================
+
+# API Endpoints cho InventoryTransaction (Giao dịch kho hàng)
+GET /api/inventory/inventory-transactions/ - Lấy danh sách giao dịch kho hàng (có phân trang)
+GET /api/inventory/inventory-transactions/{id}/ - Lấy chi tiết một giao dịch kho hàng
+POST /api/inventory/inventory-transactions/ - Tạo giao dịch kho hàng mới
+PUT /api/inventory/inventory-transactions/{id}/ - Cập nhật giao dịch kho hàng
+DELETE /api/inventory/inventory-transactions/{id}/ - Xóa giao dịch kho hàng
+GET /api/inventory/inventory-transactions/{id}/transaction_summary/ - Thống kê giao dịch
+
+# Dữ liệu mẫu cho InventoryTransaction
+## GET /api/inventory/inventory-transactions/
+{
+    "count": 2,
+    "next": null,
+    "previous": null,
+    "results": [
+        {
+            "id": 1,
+            "inventory": 1,
+            "inventory_info": {
+                "id": 1,
+                "product_variant": {
+                    "id": 1,
+                    "name": "Rolex Submariner",
+                    "sku": "ROLEX-SUB-001",
+                    "product_name": "Rolex Submariner"
+                },
+                "store": {
+                    "id": 1,
+                    "name": "Watch Store Hà Nội"
+                },
+                "current_stock": 15
+            },
+            "transaction_type": "IN",
+            "quantity": 10,
+            "unit_price": "8000000.00",
+            "reference_id": 1,
+            "reference_type": "goods_receipt",
+            "note": "Nhập kho từ phiếu nhập GR202412200001",
+            "transaction_date": "2024-12-20T10:00:00Z",
+            "created_by": 1,
+            "created_by_username": "admin",
+            "updated_by": 1,
+            "updated_by_username": "admin",
+            "created_at": "2024-12-20T10:00:00Z",
+            "updated_at": "2024-12-20T10:00:00Z"
+        },
+        {
+            "id": 2,
+            "inventory": 2,
+            "inventory_info": {
+                "id": 2,
+                "product_variant": {
+                    "id": 2,
+                    "name": "Patek Philippe Nautilus",
+                    "sku": "PATEK-NAUT-001",
+                    "product_name": "Patek Philippe Nautilus"
+                },
+                "store": {
+                    "id": 1,
+                    "name": "Watch Store Hà Nội"
+                },
+                "current_stock": 8
+            },
+            "transaction_type": "OUT",
+            "quantity": 2,
+            "unit_price": "15000000.00",
+            "reference_id": 3,
+            "reference_type": "order_detail",
+            "note": "Xuất kho cho đơn hàng bán lẻ OD202412210001",
+            "transaction_date": "2024-12-21T15:00:00Z",
+            "created_by": 2,
+            "created_by_username": "staff.hn",
+            "updated_by": 2,
+            "updated_by_username": "staff.hn",
+            "created_at": "2024-12-21T15:00:00Z",
+            "updated_at": "2024-12-21T15:00:00Z"
+        }
+    ]
+}
+
+## GET /api/inventory/inventory-transactions/{id}/
+{
+    "id": 1,
+    "inventory": 1,
+    "inventory_info": {
+        "id": 1,
+        "product_variant": {
+            "id": 1,
+            "name": "Rolex Submariner",
+            "sku": "ROLEX-SUB-001",
+            "product_name": "Rolex Submariner"
+        },
+        "store": {
+            "id": 1,
+            "name": "Watch Store Hà Nội"
+        },
+        "current_stock": 15
+    },
+    "transaction_type": "IN",
+    "quantity": 10,
+    "unit_price": "8000000.00",
+    "reference_id": 1,
+    "reference_type": "goods_receipt",
+    "note": "Nhập kho từ phiếu nhập GR202412200001",
+    "transaction_date": "2024-12-20T10:00:00Z",
+    "created_by": 1,
+    "created_by_username": "admin",
+    "updated_by": 1,
+    "updated_by_username": "admin",
+    "created_at": "2024-12-20T10:00:00Z",
+    "updated_at": "2024-12-20T10:00:00Z"
+}
+
+## POST /api/inventory/inventory-transactions/
+**Request Body:**
+```json
+{
+    "inventory": 1,
+    "transaction_type": "IN",
+    "quantity": 5,
+    "unit_price": "9000000.00",
+    "reference_id": 2,
+    "reference_type": "goods_receipt",
+    "note": "Nhập bổ sung từ phiếu nhập GR202412210001",
+    "transaction_date": "2024-12-21T09:00:00Z"
+}
+```
+**Response (201 Created):**
+```json
+{
+    "id": 3,
+    "inventory": 1,
+    "transaction_type": "IN",
+    "quantity": 5,
+    "unit_price": "9000000.00",
+    "reference_id": 2,
+    "reference_type": "goods_receipt",
+    "note": "Nhập bổ sung từ phiếu nhập GR202412210001",
+    "transaction_date": "2024-12-21T09:00:00Z",
+    "created_by": 1,
+    "created_by_username": "admin",
+    "created_at": "2024-12-21T09:00:00Z"
+}
+```
+
+## PUT /api/inventory/inventory-transactions/{id}/
+**Request Body:**
+```json
+{
+    "quantity": 6,
+    "note": "Cập nhật số lượng nhập kho do kiểm kê lại"
+}
+```
+**Response (200 OK):**
+```json
+{
+    "id": 3,
+    "inventory": 1,
+    "transaction_type": "IN",
+    "quantity": 6,
+    "unit_price": "9000000.00",
+    "reference_id": 2,
+    "reference_type": "goods_receipt",
+    "note": "Cập nhật số lượng nhập kho do kiểm kê lại",
+    "transaction_date": "2024-12-21T09:00:00Z",
+    "created_by": 1,
+    "created_by_username": "admin",
+    "updated_by": 1,
+    "updated_by_username": "admin",
+    "created_at": "2024-12-21T09:00:00Z",
+    "updated_at": "2024-12-22T08:00:00Z"
+}
+```
+
+## DELETE /api/inventory/inventory-transactions/{id}/
+**Response (204 No Content):** Không có nội dung
+
+## GET /api/inventory/inventory-transactions/{id}/transaction_summary/
+```json
+{
+    "id": 1,
+    "inventory": 1,
+    "product_variant": {
+        "id": 1,
+        "name": "Rolex Submariner",
+        "sku": "ROLEX-SUB-001"
+    },
+    "store": {
+        "id": 1,
+        "name": "Watch Store Hà Nội"
+    },
+    "total_in": 50,
+    "total_out": 20,
+    "current_stock": 30,
+    "last_transaction": {
+        "id": 1,
+        "transaction_type": "IN",
+        "quantity": 10,
+        "transaction_date": "2024-12-20T10:00:00Z"
+    },
+    "history": [
+        {
+            "id": 1,
+            "transaction_type": "IN",
+            "quantity": 10,
+            "transaction_date": "2024-12-20T10:00:00Z"
+        },
+        {
+            "id": 2,
+            "transaction_type": "OUT",
+            "quantity": 2,
+            "transaction_date": "2024-12-21T15:00:00Z"
+        }
+    ]
 }
 ```

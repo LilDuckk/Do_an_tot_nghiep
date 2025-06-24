@@ -1513,3 +1513,547 @@ DELETE /api/purchases/purchase-order-details/{id}/ - Xóa chi tiết đơn đặ
     "total_discount": "1500000.00"
 }
 ```
+
+# ============================================================================
+# MODULE INVENTORY - QUẢN LÝ KHO HÀNG
+# ============================================================================
+
+# API Endpoints cho InventoryTransaction (Giao dịch kho hàng)
+GET /api/inventory/inventory-transactions/ - Lấy danh sách giao dịch kho hàng (có phân trang)
+GET /api/inventory/inventory-transactions/{id}/ - Lấy chi tiết một giao dịch kho hàng
+POST /api/inventory/inventory-transactions/ - Tạo giao dịch kho hàng mới
+PUT /api/inventory/inventory-transactions/{id}/ - Cập nhật giao dịch kho hàng
+DELETE /api/inventory/inventory-transactions/{id}/ - Xóa giao dịch kho hàng
+GET /api/inventory/inventory-transactions/{id}/transaction_summary/ - Thống kê giao dịch
+
+# Dữ liệu mẫu cho InventoryTransaction
+## GET /api/inventory/inventory-transactions/
+{
+    "count": 2,
+    "next": null,
+    "previous": null,
+    "results": [
+        {
+            "id": 1,
+            "inventory": 1,
+            "inventory_info": {
+                "id": 1,
+                "product_variant": {
+                    "id": 1,
+                    "name": "Rolex Submariner",
+                    "sku": "ROLEX-SUB-001",
+                    "product_name": "Rolex Submariner"
+                },
+                "store": {
+                    "id": 1,
+                    "name": "Watch Store Hà Nội"
+                },
+                "current_stock": 15
+            },
+            "transaction_type": "IN",
+            "quantity": 10,
+            "unit_price": "8000000.00",
+            "reference_id": 1,
+            "reference_type": "goods_receipt",
+            "note": "Nhập kho từ phiếu nhập GR202412200001",
+            "transaction_date": "2024-12-20T10:00:00Z",
+            "created_by": 1,
+            "created_by_username": "admin",
+            "updated_by": 1,
+            "updated_by_username": "admin",
+            "created_at": "2024-12-20T10:00:00Z",
+            "updated_at": "2024-12-20T10:00:00Z"
+        },
+        {
+            "id": 2,
+            "inventory": 2,
+            "inventory_info": {
+                "id": 2,
+                "product_variant": {
+                    "id": 2,
+                    "name": "Patek Philippe Nautilus",
+                    "sku": "PATEK-NAUT-001",
+                    "product_name": "Patek Philippe Nautilus"
+                },
+                "store": {
+                    "id": 1,
+                    "name": "Watch Store Hà Nội"
+                },
+                "current_stock": 8
+            },
+            "transaction_type": "OUT",
+            "quantity": 2,
+            "unit_price": "15000000.00",
+            "reference_id": 3,
+            "reference_type": "order_detail",
+            "note": "Xuất kho cho đơn hàng bán lẻ OD202412210001",
+            "transaction_date": "2024-12-21T15:00:00Z",
+            "created_by": 2,
+            "created_by_username": "staff.hn",
+            "updated_by": 2,
+            "updated_by_username": "staff.hn",
+            "created_at": "2024-12-21T15:00:00Z",
+            "updated_at": "2024-12-21T15:00:00Z"
+        }
+    ]
+}
+
+## GET /api/inventory/inventory-transactions/{id}/
+{
+    "id": 1,
+    "inventory": 1,
+    "inventory_info": {
+        "id": 1,
+        "product_variant": {
+            "id": 1,
+            "name": "Rolex Submariner",
+            "sku": "ROLEX-SUB-001",
+            "product_name": "Rolex Submariner"
+        },
+        "store": {
+            "id": 1,
+            "name": "Watch Store Hà Nội"
+        },
+        "current_stock": 15
+    },
+    "transaction_type": "IN",
+    "quantity": 10,
+    "unit_price": "8000000.00",
+    "reference_id": 1,
+    "reference_type": "goods_receipt",
+    "note": "Nhập kho từ phiếu nhập GR202412200001",
+    "transaction_date": "2024-12-20T10:00:00Z",
+    "created_by": 1,
+    "created_by_username": "admin",
+    "updated_by": 1,
+    "updated_by_username": "admin",
+    "created_at": "2024-12-20T10:00:00Z",
+    "updated_at": "2024-12-20T10:00:00Z"
+}
+
+## POST /api/inventory/inventory-transactions/
+**Request Body:**
+```json
+{
+    "inventory": 1,
+    "transaction_type": "IN",
+    "quantity": 5,
+    "unit_price": "9000000.00",
+    "reference_id": 2,
+    "reference_type": "goods_receipt",
+    "note": "Nhập bổ sung từ phiếu nhập GR202412210001",
+    "transaction_date": "2024-12-21T09:00:00Z"
+}
+```
+**Response (201 Created):**
+```json
+{
+    "id": 3,
+    "inventory": 1,
+    "transaction_type": "IN",
+    "quantity": 5,
+    "unit_price": "9000000.00",
+    "reference_id": 2,
+    "reference_type": "goods_receipt",
+    "note": "Nhập bổ sung từ phiếu nhập GR202412210001",
+    "transaction_date": "2024-12-21T09:00:00Z",
+    "created_by": 1,
+    "created_by_username": "admin",
+    "created_at": "2024-12-21T09:00:00Z"
+}
+```
+
+## PUT /api/inventory/inventory-transactions/{id}/
+**Request Body:**
+```json
+{
+    "quantity": 6,
+    "note": "Cập nhật số lượng nhập kho do kiểm kê lại"
+}
+```
+**Response (200 OK):**
+```json
+{
+    "id": 3,
+    "inventory": 1,
+    "transaction_type": "IN",
+    "quantity": 6,
+    "unit_price": "9000000.00",
+    "reference_id": 2,
+    "reference_type": "goods_receipt",
+    "note": "Cập nhật số lượng nhập kho do kiểm kê lại",
+    "transaction_date": "2024-12-21T09:00:00Z",
+    "created_by": 1,
+    "created_by_username": "admin",
+    "updated_by": 1,
+    "updated_by_username": "admin",
+    "created_at": "2024-12-21T09:00:00Z",
+    "updated_at": "2024-12-22T08:00:00Z"
+}
+```
+
+## DELETE /api/inventory/inventory-transactions/{id}/
+**Response (204 No Content):** Không có nội dung
+
+## GET /api/inventory/inventory-transactions/{id}/transaction_summary/
+```json
+{
+    "id": 1,
+    "inventory": 1,
+    "product_variant": {
+        "id": 1,
+        "name": "Rolex Submariner",
+        "sku": "ROLEX-SUB-001"
+    },
+    "store": {
+        "id": 1,
+        "name": "Watch Store Hà Nội"
+    },
+    "total_in": 50,
+    "total_out": 20,
+    "current_stock": 30,
+    "last_transaction": {
+        "id": 1,
+        "transaction_type": "IN",
+        "quantity": 10,
+        "transaction_date": "2024-12-20T10:00:00Z"
+    },
+    "history": [
+        {
+            "id": 1,
+            "transaction_type": "IN",
+            "quantity": 10,
+            "transaction_date": "2024-12-20T10:00:00Z"
+        },
+        {
+            "id": 2,
+            "transaction_type": "OUT",
+            "quantity": 2,
+            "transaction_date": "2024-12-21T15:00:00Z"
+        }
+    ]
+}
+```
+
+# ============================================================================
+# API Endpoints cho StockTake (Kiểm kê kho)
+GET /api/inventory/stock-takes/ - Lấy danh sách kiểm kê kho (có phân trang)
+GET /api/inventory/stock-takes/{id}/ - Lấy chi tiết một kiểm kê kho
+POST /api/inventory/stock-takes/ - Tạo kiểm kê kho mới
+PUT /api/inventory/stock-takes/{id}/ - Cập nhật kiểm kê kho
+DELETE /api/inventory/stock-takes/{id}/ - Xóa kiểm kê kho
+GET /api/inventory/stock-takes/{id}/summary/ - Thống kê kiểm kê kho
+
+# Dữ liệu mẫu cho StockTake
+## GET /api/inventory/stock-takes/
+{
+    "count": 1,
+    "next": null,
+    "previous": null,
+    "results": [
+        {
+            "id": 1,
+            "store": 1,
+            "store_info": {
+                "id": 1,
+                "name": "Watch Store Hà Nội"
+            },
+            "start_date": "2024-06-01T08:00:00Z",
+            "end_date": "2024-06-01T18:00:00Z",
+            "status": "completed",
+            "notes": "Kiểm kê định kỳ tháng 6",
+            "created_by": 1,
+            "created_by_username": "admin",
+            "updated_by": 1,
+            "updated_by_username": "admin",
+            "created_at": "2024-06-01T08:00:00Z",
+            "updated_at": "2024-06-01T18:00:00Z"
+        }
+    ]
+}
+
+## GET /api/inventory/stock-takes/{id}/
+{
+    "id": 1,
+    "store": 1,
+    "store_info": {
+        "id": 1,
+        "name": "Watch Store Hà Nội"
+    },
+    "start_date": "2024-06-01T08:00:00Z",
+    "end_date": "2024-06-01T18:00:00Z",
+    "status": "completed",
+    "notes": "Kiểm kê định kỳ tháng 6",
+    "created_by": 1,
+    "created_by_username": "admin",
+    "updated_by": 1,
+    "updated_by_username": "admin",
+    "created_at": "2024-06-01T08:00:00Z",
+    "updated_at": "2024-06-01T18:00:00Z",
+    "details": [
+        {
+            "id": 1,
+            "stock_take": 1,
+            "product_variant": 1,
+            "product_variant_info": {
+                "id": 1,
+                "name": "Rolex Submariner",
+                "sku": "ROLEX-SUB-001"
+            },
+            "expected_quantity": 15,
+            "actual_quantity": 14,
+            "discrepancy": -1,
+            "notes": "Thiếu 1 chiếc do kiểm kê nhầm"
+        }
+    ]
+}
+
+## POST /api/inventory/stock-takes/
+**Request Body:**
+```json
+{
+    "store": 1,
+    "start_date": "2024-07-01T08:00:00Z",
+    "end_date": "2024-07-01T18:00:00Z",
+    "status": "draft",
+    "notes": "Kiểm kê đầu quý 3"
+}
+```
+**Response (201 Created):**
+```json
+{
+    "id": 2,
+    "store": 1,
+    "start_date": "2024-07-01T08:00:00Z",
+    "end_date": "2024-07-01T18:00:00Z",
+    "status": "draft",
+    "notes": "Kiểm kê đầu quý 3",
+    "created_by": 1,
+    "created_by_username": "admin",
+    "created_at": "2024-07-01T08:00:00Z"
+}
+```
+
+## PUT /api/inventory/stock-takes/{id}/
+**Request Body:**
+```json
+{
+    "status": "completed",
+    "notes": "Đã kiểm kê xong, không có chênh lệch lớn"
+}
+```
+**Response (200 OK):**
+```json
+{
+    "id": 2,
+    "store": 1,
+    "start_date": "2024-07-01T08:00:00Z",
+    "end_date": "2024-07-01T18:00:00Z",
+    "status": "completed",
+    "notes": "Đã kiểm kê xong, không có chênh lệch lớn",
+    "updated_by": 1,
+    "updated_by_username": "admin",
+    "updated_at": "2024-07-01T18:00:00Z"
+}
+```
+
+## DELETE /api/inventory/stock-takes/{id}/
+**Response (204 No Content):** Không có nội dung
+
+## GET /api/inventory/stock-takes/{id}/summary/
+```json
+{
+    "id": 1,
+    "store": 1,
+    "total_items": 10,
+    "total_discrepancy": -2,
+    "details": [
+        {
+            "product_variant": {
+                "id": 1,
+                "name": "Rolex Submariner"
+            },
+            "expected_quantity": 15,
+            "actual_quantity": 14,
+            "discrepancy": -1
+        },
+        {
+            "product_variant": {
+                "id": 2,
+                "name": "Patek Philippe Nautilus"
+            },
+            "expected_quantity": 8,
+            "actual_quantity": 7,
+            "discrepancy": -1
+        }
+    ]
+}
+```
+
+# ============================================================================
+# API Endpoints cho StockTransfer (Chuyển kho)
+GET /api/inventory/stock-transfers/ - Lấy danh sách chuyển kho (có phân trang)
+GET /api/inventory/stock-transfers/{id}/ - Lấy chi tiết một chuyển kho
+POST /api/inventory/stock-transfers/ - Tạo chuyển kho mới
+PUT /api/inventory/stock-transfers/{id}/ - Cập nhật chuyển kho
+DELETE /api/inventory/stock-transfers/{id}/ - Xóa chuyển kho
+GET /api/inventory/stock-transfers/{id}/summary/ - Thống kê chuyển kho
+
+# Dữ liệu mẫu cho StockTransfer
+## GET /api/inventory/stock-transfers/
+{
+    "count": 1,
+    "next": null,
+    "previous": null,
+    "results": [
+        {
+            "id": 1,
+            "source_store": 1,
+            "source_store_info": {
+                "id": 1,
+                "name": "Watch Store Hà Nội"
+            },
+            "destination_store": 2,
+            "destination_store_info": {
+                "id": 2,
+                "name": "Watch Store Hồ Chí Minh"
+            },
+            "transfer_date": "2024-06-10T09:00:00Z",
+            "status": "completed",
+            "note": "Chuyển kho nội bộ tháng 6",
+            "created_by": 1,
+            "created_by_username": "admin",
+            "updated_by": 1,
+            "updated_by_username": "admin",
+            "created_at": "2024-06-10T09:00:00Z",
+            "updated_at": "2024-06-10T18:00:00Z"
+        }
+    ]
+}
+
+## GET /api/inventory/stock-transfers/{id}/
+{
+    "id": 1,
+    "source_store": 1,
+    "source_store_info": {
+        "id": 1,
+        "name": "Watch Store Hà Nội"
+    },
+    "destination_store": 2,
+    "destination_store_info": {
+        "id": 2,
+        "name": "Watch Store Hồ Chí Minh"
+    },
+    "transfer_date": "2024-06-10T09:00:00Z",
+    "status": "completed",
+    "note": "Chuyển kho nội bộ tháng 6",
+    "created_by": 1,
+    "created_by_username": "admin",
+    "updated_by": 1,
+    "updated_by_username": "admin",
+    "created_at": "2024-06-10T09:00:00Z",
+    "updated_at": "2024-06-10T18:00:00Z",
+    "details": [
+        {
+            "id": 1,
+            "stock_transfer": 1,
+            "product_variant": 1,
+            "product_variant_info": {
+                "id": 1,
+                "name": "Rolex Submariner",
+                "sku": "ROLEX-SUB-001"
+            },
+            "quantity": 5,
+            "received_quantity": 5
+        }
+    ]
+}
+
+## POST /api/inventory/stock-transfers/
+**Request Body:**
+```json
+{
+    "source_store": 1,
+    "destination_store": 2,
+    "transfer_date": "2024-07-05T10:00:00Z",
+    "status": "pending",
+    "note": "Chuyển kho cho đợt khuyến mãi"
+}
+```
+**Response (201 Created):**
+```json
+{
+    "id": 2,
+    "source_store": 1,
+    "destination_store": 2,
+    "transfer_date": "2024-07-05T10:00:00Z",
+    "status": "pending",
+    "note": "Chuyển kho cho đợt khuyến mãi",
+    "created_by": 1,
+    "created_by_username": "admin",
+    "created_at": "2024-07-05T10:00:00Z"
+}
+```
+
+## PUT /api/inventory/stock-transfers/{id}/
+**Request Body:**
+```json
+{
+    "status": "completed",
+    "note": "Đã chuyển kho và nhận đủ hàng"
+}
+```
+**Response (200 OK):**
+```json
+{
+    "id": 2,
+    "source_store": 1,
+    "destination_store": 2,
+    "transfer_date": "2024-07-05T10:00:00Z",
+    "status": "completed",
+    "note": "Đã chuyển kho và nhận đủ hàng",
+    "updated_by": 1,
+    "updated_by_username": "admin",
+    "updated_at": "2024-07-05T18:00:00Z"
+}
+```
+
+## DELETE /api/inventory/stock-transfers/{id}/
+**Response (204 No Content):** Không có nội dung
+
+## GET /api/inventory/stock-transfers/{id}/summary/
+```json
+{
+    "id": 1,
+    "source_store": 1,
+    "destination_store": 2,
+    "total_items": 3,
+    "total_quantity": 15,
+    "details": [
+        {
+            "product_variant": {
+                "id": 1,
+                "name": "Rolex Submariner"
+            },
+            "quantity": 5,
+            "received_quantity": 5
+        },
+        {
+            "product_variant": {
+                "id": 2,
+                "name": "Patek Philippe Nautilus"
+            },
+            "quantity": 7,
+            "received_quantity": 7
+        },
+        {
+            "product_variant": {
+                "id": 3,
+                "name": "Omega Speedmaster"
+            },
+            "quantity": 3,
+            "received_quantity": 3
+        }
+    ]
+}
+```

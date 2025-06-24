@@ -74,6 +74,11 @@ const GoodsReceiptsPage = () => {
   const [quickCreateModalVisible, setQuickCreateModalVisible] = useState(false);
   const [selectedQuickCreatePO, setSelectedQuickCreatePO] = useState(null);
 
+  // State cho đơn đặt hàng chưa có phiếu nhập kho
+  const [ordersWithoutReceipt, setOrdersWithoutReceipt] = useState([]);
+  const [ordersWithoutReceiptLoading, setOrdersWithoutReceiptLoading] = useState(false);
+  const [ordersWithoutReceiptPagination, setOrdersWithoutReceiptPagination] = useState({ current: 1, pageSize: 10, total: 0 });
+
   // Debounce search
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchText), 500);
@@ -87,6 +92,7 @@ const GoodsReceiptsPage = () => {
       if (!isSuperUser && currentStoreId) filterEmployeesByStore(currentStoreId);
     });
     fetchPurchaseOrders();
+    fetchOrdersWithoutReceipt();
   }, []);
 
   const fetchSuppliers = async () => {
@@ -119,6 +125,38 @@ const GoodsReceiptsPage = () => {
         setPurchaseOrders(data.results || []);
       }
     } catch {}
+  };
+
+  const fetchOrdersWithoutReceipt = async (page = 1, pageSize = 10) => {
+    try {
+      setOrdersWithoutReceiptLoading(true);
+      const token = localStorage.getItem('accessToken');
+      const params = new URLSearchParams();
+      params.append('page', page);
+      params.append('page_size', pageSize);
+      
+      const response = await fetch(`${PURCHASE_ENDPOINTS.PURCHASE_ORDERS_WITHOUT_RECEIPT}?${params}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Lỗi khi tải danh sách đơn đặt hàng chưa có phiếu nhập kho');
+      }
+      
+      const data = await response.json();
+      setOrdersWithoutReceipt(data.results || []);
+      setOrdersWithoutReceiptPagination({
+        current: page,
+        pageSize,
+        total: data.count || 0
+      });
+    } catch (error) {
+      console.error('Error fetching orders without receipt:', error);
+      message.error('Lỗi khi tải danh sách đơn đặt hàng chưa có phiếu nhập kho');
+      setOrdersWithoutReceipt([]);
+    } finally {
+      setOrdersWithoutReceiptLoading(false);
+    }
   };
 
   const fetchReceiptDetails = async (receiptId) => {
@@ -195,22 +233,19 @@ const GoodsReceiptsPage = () => {
 
   const handlePurchaseOrderChange = (purchaseOrderId) => {
     if (purchaseOrderId) {
-      // Tìm thông tin đơn đặt hàng được chọn
-      const selectedOrder = purchaseOrders.find(order => order.id === purchaseOrderId);
+      // Tìm thông tin đơn đặt hàng được chọn từ danh sách mới
+      const selectedOrder = ordersWithoutReceipt.find(order => order.id === purchaseOrderId);
       setSelectedPurchaseOrder(selectedOrder);
       
       if (selectedOrder) {
-        // Tự động điền thông tin cửa hàng và nhà cung cấp
-        const store = stores.find(s => s.name === selectedOrder.store_name);
-        const supplier = suppliers.find(s => s.name === selectedOrder.supplier_name);
-        
-        if (store) {
-          form.setFieldsValue({ store: store.id });
-          filterEmployeesByStore(store.id);
+        // Tự động điền thông tin cửa hàng và nhà cung cấp từ cấu trúc dữ liệu mới
+        if (selectedOrder.store && selectedOrder.store.id) {
+          form.setFieldsValue({ store: selectedOrder.store.id });
+          filterEmployeesByStore(selectedOrder.store.id);
         }
         
-        if (supplier) {
-          form.setFieldsValue({ supplier: supplier.id });
+        if (selectedOrder.supplier && selectedOrder.supplier.id) {
+          form.setFieldsValue({ supplier: selectedOrder.supplier.id });
         }
       }
     } else {
@@ -1050,17 +1085,8 @@ const GoodsReceiptsPage = () => {
 
   // Lấy danh sách đơn đặt hàng chưa có phiếu nhập kho
   const getAvailablePurchaseOrders = () => {
-    // Lấy danh sách ID của các đơn đặt hàng đã có phiếu nhập
-    const existingPOIds = data
-      .filter(receipt => receipt.purchase_order)
-      .map(receipt => receipt.purchase_order);
-    
-    // Lọc ra các đơn đặt hàng chưa có phiếu nhập và có trạng thái phù hợp
-    // Theo API mới, backend sẽ lo việc này, nhưng ta có thể lọc sơ bộ ở client
-    return purchaseOrders.filter(order => 
-      !existingPOIds.includes(order.id) && 
-      (order.status === 'confirmed' || order.status === 'pending' || order.status === 'ordered' || order.status === 'partially_received')
-    );
+    // Sử dụng dữ liệu từ API mới thay vì tính toán từ client
+    return ordersWithoutReceipt;
   };
 
   return (
@@ -1083,109 +1109,140 @@ const GoodsReceiptsPage = () => {
             icon={<ShoppingCartOutlined />} 
             onClick={handleQuickCreateReceipt}
             title="Tạo phiếu nhập nhanh từ đơn đặt hàng"
-            disabled={getAvailablePurchaseOrders().length === 0}
+            disabled={ordersWithoutReceipt.length === 0}
           >
-            Tạo nhanh
+            Tạo nhanh ({ordersWithoutReceipt.length})
           </Button>
-          <Button onClick={() => setShowFilters(!showFilters)}>
-            {showFilters ? 'Ẩn bộ lọc' : 'Hiện bộ lọc'}
-          </Button>
+          <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
+            <Button
+              className="filter-toggle-btn"
+              type="primary"
+              icon={<SearchOutlined />}
+              onClick={() => setShowFilters(!showFilters)}
+              style={{
+                background: showFilters ? '#52c41a' : '#1890ff',
+                borderColor: showFilters ? '#52c41a' : '#1890ff',
+                minWidth: 140
+              }}
+            >
+              {showFilters ? 'Ẩn bộ lọc' : 'Hiển thị bộ lọc'}
+            </Button>
+          </div>
         </div>
       </div>
+      {/* Card bộ lọc chỉ hiện khi showFilters */}
       {showFilters && (
-        <Card style={{ marginBottom: 16 }}>
-          <Row gutter={[16, 16]}>
-            <Col xs={24} sm={12} md={8} lg={6}>
-              <Select
-                placeholder="Nhà cung cấp"
-                value={supplierFilter}
-                onChange={setSupplierFilter}
-                allowClear
-                showSearch
-                filterOption={(input, option) => option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0}
-                style={{ width: '100%' }}
-              >
-                {suppliers.map(supplier => (
-                  <Select.Option key={supplier.id} value={supplier.id}>{supplier.name}</Select.Option>
-                ))}
-              </Select>
-            </Col>
-            <Col xs={24} sm={12} md={8} lg={6}>
-              <Select
-                placeholder="Cửa hàng"
-                value={storeFilter}
-                onChange={setStoreFilter}
-                allowClear
-                showSearch
-                filterOption={(input, option) => option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0}
-                style={{ width: '100%' }}
-              >
-                {stores.map(store => (
-                  <Select.Option key={store.id} value={store.id}>{store.name}</Select.Option>
-                ))}
-              </Select>
-            </Col>
-            <Col xs={24} sm={12} md={8} lg={6}>
-              <Select
-                placeholder="Nhân viên"
-                value={employeeFilter}
-                onChange={setEmployeeFilter}
-                allowClear
-                showSearch
-                filterOption={(input, option) => option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0}
-                style={{ width: '100%' }}
-              >
-                {employees.map(employee => (
-                  <Select.Option key={employee.id} value={employee.id}>{employee.name}</Select.Option>
-                ))}
-              </Select>
-            </Col>
-            <Col xs={24} sm={12} md={8} lg={6}>
-              <Select
-                placeholder="Trạng thái"
-                value={statusFilter}
-                onChange={setStatusFilter}
-                allowClear
-                style={{ width: '100%' }}
-              >
-                <Select.Option value="draft">Nháp</Select.Option>
-                <Select.Option value="pending">Chờ xác nhận</Select.Option>
-                <Select.Option value="confirmed">Đã xác nhận</Select.Option>
-                <Select.Option value="completed">Hoàn thành</Select.Option>
-                <Select.Option value="cancelled">Đã hủy</Select.Option>
-              </Select>
-            </Col>
-            <Col xs={24} sm={12} md={8} lg={6}>
-              <RangePicker
-                placeholder={['Từ ngày', 'Đến ngày']}
-                value={dateRange}
-                onChange={setDateRange}
-                style={{ width: '100%' }}
-                format="DD/MM/YYYY"
-              />
-            </Col>
-            <Col xs={24} sm={12} md={8} lg={6}>
-              <Input.Group compact>
-                <Input
-                  placeholder="Từ"
-                  value={totalAmountRange[0]}
-                  onChange={e => setTotalAmountRange([e.target.value, totalAmountRange[1]])}
-                  style={{ width: '50%' }}
+        <Card
+          className="filter-card"
+          title={
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <SearchOutlined />
+              <span>Tìm kiếm và bộ lọc phiếu nhập kho</span>
+            </div>
+          }
+          style={{ marginBottom: 16 }}
+        >
+          <div className={`filter-container filter-show`}>
+            <Row gutter={[16, 16]}>
+              <Col xs={24} sm={12} md={8} lg={6}>
+                <Select
+                  placeholder="Nhà cung cấp"
+                  value={supplierFilter}
+                  onChange={setSupplierFilter}
+                  allowClear
+                  showSearch
+                  filterOption={(input, option) => option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0}
+                  style={{ width: '100%' }}
+                >
+                  {suppliers.map(supplier => (
+                    <Select.Option key={supplier.id} value={supplier.id}>{supplier.name}</Select.Option>
+                  ))}
+                </Select>
+              </Col>
+              <Col xs={24} sm={12} md={8} lg={6}>
+                <Select
+                  placeholder="Cửa hàng"
+                  value={storeFilter}
+                  onChange={setStoreFilter}
+                  allowClear
+                  showSearch
+                  filterOption={(input, option) => option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0}
+                  style={{ width: '100%' }}
+                >
+                  {stores.map(store => (
+                    <Select.Option key={store.id} value={store.id}>{store.name}</Select.Option>
+                  ))}
+                </Select>
+              </Col>
+              <Col xs={24} sm={12} md={8} lg={6}>
+                <Select
+                  placeholder="Nhân viên"
+                  value={employeeFilter}
+                  onChange={setEmployeeFilter}
+                  allowClear
+                  showSearch
+                  filterOption={(input, option) => option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0}
+                  style={{ width: '100%' }}
+                >
+                  {employees.map(employee => (
+                    <Select.Option key={employee.id} value={employee.id}>{employee.name}</Select.Option>
+                  ))}
+                </Select>
+              </Col>
+              <Col xs={24} sm={12} md={8} lg={6}>
+                <Select
+                  placeholder="Trạng thái"
+                  value={statusFilter}
+                  onChange={setStatusFilter}
+                  allowClear
+                  style={{ width: '100%' }}
+                >
+                  <Select.Option value="draft">Nháp</Select.Option>
+                  <Select.Option value="pending">Chờ xác nhận</Select.Option>
+                  <Select.Option value="confirmed">Đã xác nhận</Select.Option>
+                  <Select.Option value="completed">Hoàn thành</Select.Option>
+                  <Select.Option value="cancelled">Đã hủy</Select.Option>
+                </Select>
+              </Col>
+              <Col xs={24} sm={12} md={8} lg={6}>
+                <RangePicker
+                  placeholder={['Từ ngày', 'Đến ngày']}
+                  value={dateRange}
+                  onChange={setDateRange}
+                  style={{ width: '100%' }}
+                  format="DD/MM/YYYY"
                 />
-                <Input
-                  placeholder="Đến"
-                  value={totalAmountRange[1]}
-                  onChange={e => setTotalAmountRange([totalAmountRange[0], e.target.value])}
-                  style={{ width: '50%' }}
-                />
-              </Input.Group>
-            </Col>
-            <Col xs={24} sm={12} md={8} lg={6}>
-              <Button onClick={clearFilters} style={{ width: '100%' }}>
-                Xóa bộ lọc
-              </Button>
-            </Col>
-          </Row>
+              </Col>
+              <Col xs={24} sm={12} md={8} lg={6}>
+                <Input.Group compact>
+                  <Input
+                    placeholder="Từ"
+                    value={totalAmountRange[0]}
+                    onChange={e => setTotalAmountRange([e.target.value, totalAmountRange[1]])}
+                    style={{ width: '50%' }}
+                  />
+                  <Input
+                    placeholder="Đến"
+                    value={totalAmountRange[1]}
+                    onChange={e => setTotalAmountRange([totalAmountRange[0], e.target.value])}
+                    style={{ width: '50%' }}
+                  />
+                </Input.Group>
+              </Col>
+              <Col xs={24}>
+                <Space>
+                  <Button
+                    className="filter-clear-btn"
+                    type="primary"
+                    icon={<SearchOutlined />}
+                    onClick={clearFilters}
+                  >
+                    Xóa bộ lọc
+                  </Button>
+                </Space>
+              </Col>
+            </Row>
+          </div>
         </Card>
       )}
       <Table
@@ -1218,8 +1275,11 @@ const GoodsReceiptsPage = () => {
             if (editing.store) {
               filterEmployeesByStore(editing.store);
             }
-            // Hiển thị thông tin PO nếu có
-            if (editing.purchase_order) {
+            // Hiển thị thông tin PO nếu có - sử dụng purchase_order_info từ dữ liệu mới
+            if (editing.purchase_order_info) {
+              setSelectedPurchaseOrder(editing.purchase_order_info);
+            } else if (editing.purchase_order) {
+              // Fallback cho dữ liệu cũ
               const order = purchaseOrders.find(o => o.id === editing.purchase_order);
               setSelectedPurchaseOrder(order);
             }
@@ -1248,10 +1308,11 @@ const GoodsReceiptsPage = () => {
                   filterOption={(input, option) => 
                     option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
                   }
+                  loading={ordersWithoutReceiptLoading}
                 >
-                  {purchaseOrders.map(order => (
+                  {ordersWithoutReceipt.map(order => (
                     <Select.Option key={order.id} value={order.id}>
-                      {order.po_number} - {order.supplier_name} - {order.store_name}
+                      {order.po_number} - {order.supplier?.name || 'N/A'} - {order.store?.name || 'N/A'}
                     </Select.Option>
                   ))}
                 </Select>
@@ -1298,15 +1359,69 @@ const GoodsReceiptsPage = () => {
               <Row gutter={16}>
                 <Col span={8}>
                   <div><b>Mã đơn hàng:</b> {selectedPurchaseOrder.po_number}</div>
-                  <div><b>Nhà cung cấp:</b> {selectedPurchaseOrder.supplier_name}</div>
+                  <div><b>Nhà cung cấp:</b> {selectedPurchaseOrder.supplier?.name || selectedPurchaseOrder.supplier_name || 'Chưa có'}</div>
                 </Col>
                 <Col span={8}>
-                  <div><b>Cửa hàng:</b> {selectedPurchaseOrder.store_name}</div>
-                  <div><b>Nhân viên:</b> {selectedPurchaseOrder.employee_name}</div>
+                  <div><b>Cửa hàng:</b> {selectedPurchaseOrder.store?.name || selectedPurchaseOrder.store_name || 'Chưa có'}</div>
+                  <div><b>Nhân viên:</b> {selectedPurchaseOrder.employee?.name || selectedPurchaseOrder.employee_name || 'Chưa có'}</div>
                 </Col>
                 <Col span={8}>
                   <div><b>Ngày đặt:</b> {selectedPurchaseOrder.order_date ? new Date(selectedPurchaseOrder.order_date).toLocaleDateString('vi-VN') : ''}</div>
                   <div><b>Tổng tiền:</b> {selectedPurchaseOrder.total_amount ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(selectedPurchaseOrder.total_amount) : ''}</div>
+                </Col>
+              </Row>
+            </div>
+          )}
+          {/* Hiển thị thông tin chi tiết khi chỉnh sửa phiếu nhập */}
+          {editing && (
+            <div style={{ marginBottom: 16, padding: 12, background: '#f6ffed', borderRadius: 6, border: '1px solid #b7eb8f' }}>
+              <h4 style={{ margin: '0 0 8px 0', color: '#52c41a' }}>Thông tin chi tiết phiếu nhập</h4>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <div><b>Mã phiếu nhập:</b> {editing.receipt_number}</div>
+                  <div><b>Trạng thái:</b> <Tag color={statusTagColor(editing.status)}>{statusVN[editing.status] || editing.status}</Tag></div>
+                  {editing.purchase_order_info && (
+                    <>
+                      <div><b>Mã đơn hàng:</b> {editing.purchase_order_info.po_number}</div>
+                      <div><b>Ngày đặt hàng:</b> {editing.purchase_order_info.order_date ? new Date(editing.purchase_order_info.order_date).toLocaleDateString('vi-VN') : ''}</div>
+                      <div><b>Ngày giao dự kiến:</b> {editing.purchase_order_info.expected_delivery_date ? new Date(editing.purchase_order_info.expected_delivery_date).toLocaleDateString('vi-VN') : ''}</div>
+                      <div><b>Trạng thái đơn hàng:</b> <Tag color={editing.purchase_order_info.status === 'partially_received' ? 'cyan' : 'green'}>{editing.purchase_order_info.status === 'partially_received' ? 'Nhận một phần' : editing.purchase_order_info.status}</Tag></div>
+                    </>
+                  )}
+                </Col>
+                <Col span={12}>
+                  {editing.supplier_info && (
+                    <>
+                      <div><b>Nhà cung cấp:</b> {editing.supplier_info.name}</div>
+                      <div><b>Email:</b> {editing.supplier_info.email || 'Chưa có'}</div>
+                      <div><b>Điện thoại:</b> {editing.supplier_info.phone || 'Chưa có'}</div>
+                      <div><b>Địa chỉ:</b> {editing.supplier_info.address || 'Chưa có'}</div>
+                    </>
+                  )}
+                  {editing.store_info && (
+                    <>
+                      <div><b>Cửa hàng:</b> {editing.store_info.name}</div>
+                      <div><b>Địa chỉ:</b> {editing.store_info.address}</div>
+                      <div><b>Điện thoại:</b> {editing.store_info.phone}</div>
+                      <div><b>Mã cửa hàng:</b> {editing.store_info.store_code}</div>
+                    </>
+                  )}
+                  {editing.employee_info && (
+                    <>
+                      <div><b>Nhân viên:</b> {editing.employee_info.name}</div>
+                      <div><b>Mã nhân viên:</b> {editing.employee_info.employee_code}</div>
+                      <div><b>Vị trí:</b> {editing.employee_info.position}</div>
+                      <div><b>Email:</b> {editing.employee_info.email}</div>
+                      <div><b>Điện thoại:</b> {editing.employee_info.phone}</div>
+                    </>
+                  )}
+                </Col>
+              </Row>
+              <Row gutter={16} style={{ marginTop: 8 }}>
+                <Col span={24}>
+                  <div><b>Tổng tiền phiếu nhập:</b> {editing.total_amount ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(editing.total_amount) : ''}</div>
+                  <div><b>Ngày tạo:</b> {editing.created_at ? new Date(editing.created_at).toLocaleString('vi-VN') : ''}</div>
+                  <div><b>Ngày cập nhật:</b> {editing.updated_at ? new Date(editing.updated_at).toLocaleString('vi-VN') : ''}</div>
                 </Col>
               </Row>
             </div>
@@ -1550,6 +1665,7 @@ const GoodsReceiptsPage = () => {
         okText="Tạo phiếu nhập"
         cancelText="Hủy"
         okButtonProps={{ disabled: !selectedQuickCreatePO }}
+        width={800}
       >
         <div>
           <p style={{ marginBottom: 16 }}>Chọn đơn đặt hàng để tạo phiếu nhập kho:</p>
@@ -1567,7 +1683,7 @@ const GoodsReceiptsPage = () => {
               >
                 {getAvailablePurchaseOrders().map(order => (
                   <Select.Option key={order.id} value={order.id}>
-                    {order.po_number} - {order.supplier_name} - {order.store_name}
+                    {order.po_number} - {order.supplier?.name || 'N/A'} - {order.store?.name || 'N/A'}
                   </Select.Option>
                 ))}
               </Select>
@@ -1575,15 +1691,15 @@ const GoodsReceiptsPage = () => {
                 <div style={{ marginTop: 16, padding: 12, background: '#f6ffed', borderRadius: 6, border: '1px solid #b7eb8f' }}>
                   <h4 style={{ margin: '0 0 8px 0', color: '#52c41a' }}>Thông tin đơn đặt hàng</h4>
                   {(() => {
-                    const selectedOrder = purchaseOrders.find(order => order.id === selectedQuickCreatePO);
+                    const selectedOrder = ordersWithoutReceipt.find(order => order.id === selectedQuickCreatePO);
                     return selectedOrder ? (
                       <Row gutter={16}>
                         <Col span={12}>
                           <div><b>Mã đơn hàng:</b> {selectedOrder.po_number}</div>
-                          <div><b>Nhà cung cấp:</b> {selectedOrder.supplier_name}</div>
+                          <div><b>Nhà cung cấp:</b> {selectedOrder.supplier?.name || 'Chưa có'}</div>
                         </Col>
                         <Col span={12}>
-                          <div><b>Cửa hàng:</b> {selectedOrder.store_name}</div>
+                          <div><b>Cửa hàng:</b> {selectedOrder.store?.name || 'Chưa có'}</div>
                           <div><b>Trạng thái:</b> <Tag color={selectedOrder.status === 'confirmed' ? 'green' : 'orange'}>{selectedOrder.status === 'confirmed' ? 'Đã xác nhận' : 'Chờ xác nhận'}</Tag></div>
                         </Col>
                       </Row>
@@ -1591,11 +1707,105 @@ const GoodsReceiptsPage = () => {
                   })()}
                 </div>
               )}
+              
+              {/* Bảng hiển thị danh sách đơn đặt hàng chưa có phiếu nhập */}
+              <div style={{ marginTop: 16 }}>
+                <h4>Danh sách đơn đặt hàng chưa có phiếu nhập kho</h4>
+                <Table
+                  dataSource={ordersWithoutReceipt}
+                  loading={ordersWithoutReceiptLoading}
+                  rowKey="id"
+                  pagination={{
+                    current: ordersWithoutReceiptPagination.current,
+                    pageSize: ordersWithoutReceiptPagination.pageSize,
+                    total: ordersWithoutReceiptPagination.total,
+                    showSizeChanger: true,
+                    showQuickJumper: true,
+                    showTotal: (total, range) => 
+                      `${range[0]}-${range[1]} của ${total} đơn hàng`,
+                    pageSizeOptions: ['10', '20', '50'],
+                    onChange: (page, pageSize) => {
+                      fetchOrdersWithoutReceipt(page, pageSize);
+                    }
+                  }}
+                  columns={[
+                    {
+                      title: 'Mã đơn hàng',
+                      dataIndex: 'po_number',
+                      key: 'po_number',
+                      render: (text) => <b>{text}</b>
+                    },
+                    {
+                      title: 'Nhà cung cấp',
+                      dataIndex: ['supplier', 'name'],
+                      key: 'supplier_name'
+                    },
+                    {
+                      title: 'Cửa hàng',
+                      dataIndex: ['store', 'name'],
+                      key: 'store_name'
+                    },
+                    {
+                      title: 'Trạng thái',
+                      dataIndex: 'status',
+                      key: 'status',
+                      render: (status) => {
+                        const statusMap = {
+                          'pending': { text: 'Chờ xử lý', color: 'orange' },
+                          'ordered': { text: 'Đã đặt hàng', color: 'blue' },
+                          'confirmed': { text: 'Đã xác nhận', color: 'green' },
+                          'partially_received': { text: 'Nhận một phần', color: 'cyan' },
+                          'cancelled': { text: 'Đã hủy', color: 'red' }
+                        };
+                        const statusInfo = statusMap[status] || { text: status, color: 'default' };
+                        return <Tag color={statusInfo.color}>{statusInfo.text}</Tag>;
+                      }
+                    },
+                    {
+                      title: 'Tổng tiền',
+                      dataIndex: 'total_amount',
+                      key: 'total_amount',
+                      render: (amount) => amount ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount) : '-'
+                    },
+                    {
+                      title: 'Ngày đặt',
+                      dataIndex: 'order_date',
+                      key: 'order_date',
+                      render: (date) => date ? new Date(date).toLocaleDateString('vi-VN') : '-'
+                    },
+                    {
+                      title: 'Thao tác',
+                      key: 'action',
+                      render: (_, record) => (
+                        <Button
+                          type="primary"
+                          size="small"
+                          onClick={() => {
+                            setSelectedQuickCreatePO(record.id);
+                          }}
+                          disabled={selectedQuickCreatePO === record.id}
+                        >
+                          {selectedQuickCreatePO === record.id ? 'Đã chọn' : 'Chọn'}
+                        </Button>
+                      )
+                    }
+                  ]}
+                  size="small"
+                  scroll={{ x: 800 }}
+                />
+              </div>
             </>
           ) : (
             <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
               <p>Không có đơn đặt hàng nào khả dụng để tạo phiếu nhập kho.</p>
               <p>Tất cả đơn đặt hàng đã có phiếu nhập hoặc không ở trạng thái phù hợp.</p>
+              <Button 
+                type="primary" 
+                onClick={() => fetchOrdersWithoutReceipt(1, 10)}
+                loading={ordersWithoutReceiptLoading}
+              >
+                Làm mới danh sách
+              </Button>
             </div>
           )}
         </div>
