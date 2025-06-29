@@ -108,7 +108,7 @@ class GoodsReceiptDetailCreateSerializer(serializers.ModelSerializer):
             else:
                 # Nếu sản phẩm đã tồn tại và không phải instance hiện tại, báo lỗi
                 raise serializers.ValidationError(
-                    f"Sản phẩm '{product_variant.name}' đã tồn tại trong phiếu nhập kho này. "
+                    f"Sản phẩm '{product_variant.product.name if product_variant.product else product_variant.sku}' đã tồn tại trong phiếu nhập kho này. "
                     f"Mỗi sản phẩm chỉ có thể có một chi tiết trong một phiếu nhập kho."
                 )
         

@@ -6,6 +6,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework import serializers
 from rest_framework import status
+from django.db.models import Sum, Count, Q
 from apps.core.utils.permissions import IsSuperUser, IsStoreEmployee
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
@@ -142,6 +143,251 @@ class InventoryViewSet(viewsets.ModelViewSet):
             
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
+
+    @action(detail=False, methods=['get'], url_path='store_inventory', url_name='store_inventory')
+    def store_inventory(self, request):
+        """
+        Lấy danh sách sản phẩm trong kho của một cửa hàng nhất định
+        """
+        store_id = request.query_params.get('store_id')
+        search_query = request.query_params.get('search', None)
+        min_quantity = request.query_params.get('min_quantity', None)
+        max_quantity = request.query_params.get('max_quantity', None)
+        in_stock_only = request.query_params.get('in_stock_only', 'false').lower() == 'true'
+        out_of_stock_only = request.query_params.get('out_of_stock_only', 'false').lower() == 'true'
+        ordering = request.query_params.get('ordering', '-last_updated')
+        
+        # Lấy queryset cơ bản
+        queryset = self.get_queryset()
+        
+        # Lọc theo cửa hàng
+        if store_id:
+            queryset = queryset.filter(store_id=store_id)
+        
+        # Lọc theo tìm kiếm
+        if search_query:
+            queryset = queryset.filter(
+                Q(product_variant__product__name__icontains=search_query) |
+                Q(product_variant__sku__icontains=search_query) |
+                Q(product_variant__name__icontains=search_query)
+            )
+        
+        # Lọc theo số lượng tối thiểu
+        if min_quantity is not None:
+            queryset = queryset.filter(quantity__gte=int(min_quantity))
+        
+        # Lọc theo số lượng tối đa
+        if max_quantity is not None:
+            queryset = queryset.filter(quantity__lte=int(max_quantity))
+        
+        # Lọc chỉ sản phẩm còn hàng
+        if in_stock_only:
+            queryset = queryset.filter(quantity__gt=0)
+        
+        # Lọc chỉ sản phẩm hết hàng
+        if out_of_stock_only:
+            queryset = queryset.filter(quantity=0)
+        
+        # Sắp xếp
+        if ordering:
+            queryset = queryset.order_by(ordering)
+        
+        serializer = self.get_serializer(queryset, many=True)
+        
+        # Thống kê tổng quan
+        total_products = queryset.count()
+        total_quantity = queryset.aggregate(total=Sum('quantity'))['total'] or 0
+        in_stock_count = queryset.filter(quantity__gt=0).count()
+        out_of_stock_count = queryset.filter(quantity=0).count()
+        low_stock_count = queryset.filter(quantity__gt=0, quantity__lte=10).count()
+        
+        return Response({
+            'store_id': store_id,
+            'filters': {
+                'search': search_query,
+                'min_quantity': min_quantity,
+                'max_quantity': max_quantity,
+                'in_stock_only': in_stock_only,
+                'out_of_stock_only': out_of_stock_only,
+                'ordering': ordering
+            },
+            'statistics': {
+                'total_products': total_products,
+                'total_quantity': total_quantity,
+                'in_stock_count': in_stock_count,
+                'out_of_stock_count': out_of_stock_count,
+                'low_stock_count': low_stock_count
+            },
+            'inventory_items': serializer.data
+        })
+
+    @action(detail=False, methods=['get'], url_path='store_statistics', url_name='store_statistics')
+    def store_statistics(self, request):
+        """
+        Thống kê tồn kho của một cửa hàng
+        """
+        store_id = request.query_params.get('store_id')
+        
+        if not store_id:
+            return Response({
+                'error': 'store_id là bắt buộc'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        queryset = self.get_queryset().filter(store_id=store_id)
+        
+        # Thống kê tổng quan
+        total_products = queryset.count()
+        total_quantity = queryset.aggregate(total=Sum('quantity'))['total'] or 0
+        total_value = queryset.aggregate(
+            total_value=Sum('quantity' * 'product_variant__product__base_price')
+        )['total_value'] or 0
+        
+        # Thống kê theo trạng thái tồn kho
+        in_stock_count = queryset.filter(quantity__gt=0).count()
+        out_of_stock_count = queryset.filter(quantity=0).count()
+        low_stock_count = queryset.filter(quantity__gt=0, quantity__lte=10).count()
+        
+        # Thống kê theo danh mục sản phẩm
+        category_stats = queryset.values(
+            'product_variant__product__category__name'
+        ).annotate(
+            product_count=Count('id'),
+            total_quantity=Sum('quantity'),
+            total_value=Sum('quantity' * 'product_variant__product__base_price')
+        ).order_by('-total_quantity')
+        
+        # Thống kê theo thương hiệu
+        brand_stats = queryset.values(
+            'product_variant__product__brand__name'
+        ).annotate(
+            product_count=Count('id'),
+            total_quantity=Sum('quantity'),
+            total_value=Sum('quantity' * 'product_variant__product__base_price')
+        ).order_by('-total_quantity')
+        
+        # Top sản phẩm có số lượng cao nhất
+        top_products = queryset.order_by('-quantity')[:10].values(
+            'product_variant__product__name',
+            'product_variant__name',
+            'product_variant__sku',
+            'quantity',
+            'last_updated'
+        )
+        
+        # Sản phẩm sắp hết hàng (số lượng <= 10)
+        low_stock_products = queryset.filter(
+            quantity__gt=0, 
+            quantity__lte=10
+        ).order_by('quantity').values(
+            'product_variant__product__name',
+            'product_variant__name',
+            'product_variant__sku',
+            'quantity',
+            'last_updated'
+        )
+        
+        # Sản phẩm hết hàng
+        out_of_stock_products = queryset.filter(
+            quantity=0
+        ).order_by('-last_updated').values(
+            'product_variant__product__name',
+            'product_variant__name',
+            'product_variant__sku',
+            'quantity',
+            'last_updated'
+        )
+        
+        return Response({
+            'store_id': store_id,
+            'overview': {
+                'total_products': total_products,
+                'total_quantity': total_quantity,
+                'total_value': float(total_value),
+                'in_stock_count': in_stock_count,
+                'out_of_stock_count': out_of_stock_count,
+                'low_stock_count': low_stock_count
+            },
+            'category_statistics': list(category_stats),
+            'brand_statistics': list(brand_stats),
+            'top_products': list(top_products),
+            'low_stock_products': list(low_stock_products),
+            'out_of_stock_products': list(out_of_stock_products)
+        })
+
+    @action(detail=False, methods=['get'], url_path='product_search', url_name='product_search')
+    def product_search(self, request):
+        """
+        Tìm kiếm sản phẩm trong kho theo tên, SKU, hoặc mô tả
+        """
+        query = request.query_params.get('q', '')
+        store_id = request.query_params.get('store_id')
+        limit = int(request.query_params.get('limit', 20))
+        
+        if not query:
+            return Response({
+                'error': 'Tham số q (query) là bắt buộc'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        queryset = self.get_queryset()
+        
+        # Lọc theo cửa hàng nếu có
+        if store_id:
+            queryset = queryset.filter(store_id=store_id)
+        
+        # Tìm kiếm theo nhiều trường
+        queryset = queryset.filter(
+            Q(product_variant__product__name__icontains=query) |
+            Q(product_variant__name__icontains=query) |
+            Q(product_variant__sku__icontains=query) |
+            Q(product_variant__product__description__icontains=query)
+        )
+        
+        # Giới hạn kết quả
+        queryset = queryset[:limit]
+        
+        serializer = self.get_serializer(queryset, many=True)
+        
+        return Response({
+            'query': query,
+            'store_id': store_id,
+            'total_results': queryset.count(),
+            'results': serializer.data
+        })
+
+    @action(detail=False, methods=['get'], url_path='low_stock_alert', url_name='low_stock_alert')
+    def low_stock_alert(self, request):
+        """
+        Cảnh báo sản phẩm sắp hết hàng
+        """
+        store_id = request.query_params.get('store_id')
+        threshold = int(request.query_params.get('threshold', 10))
+        
+        queryset = self.get_queryset()
+        
+        # Lọc theo cửa hàng nếu có
+        if store_id:
+            queryset = queryset.filter(store_id=store_id)
+        
+        # Lọc sản phẩm có số lượng <= threshold và > 0
+        low_stock_items = queryset.filter(
+            quantity__gt=0,
+            quantity__lte=threshold
+        ).order_by('quantity')
+        
+        # Lọc sản phẩm hết hàng
+        out_of_stock_items = queryset.filter(quantity=0).order_by('-last_updated')
+        
+        low_stock_serializer = self.get_serializer(low_stock_items, many=True)
+        out_of_stock_serializer = self.get_serializer(out_of_stock_items, many=True)
+        
+        return Response({
+            'store_id': store_id,
+            'threshold': threshold,
+            'low_stock_count': low_stock_items.count(),
+            'out_of_stock_count': out_of_stock_items.count(),
+            'low_stock_items': low_stock_serializer.data,
+            'out_of_stock_items': out_of_stock_serializer.data
+        })
 
     def update(self, request, *args, **kwargs):
         # Chỉ cho phép cập nhật trường quantity

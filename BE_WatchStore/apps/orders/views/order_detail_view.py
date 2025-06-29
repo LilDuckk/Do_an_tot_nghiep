@@ -6,6 +6,7 @@ from rest_framework.permissions import IsAuthenticated, OR
 from apps.core.mixins import SoftDeleteMixin
 from django.db import transaction
 from apps.inventory.models.inventory import Inventory
+from apps.inventory.models.inventory_transaction import InventoryTransaction
 
 class OrderDetailViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
     queryset = OrderDetail.objects.all()
@@ -51,6 +52,19 @@ class OrderDetailViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
                     inventory.quantity += quantity
                     inventory.updated_by = self.request.user
                     inventory.save()
+                    
+                    # Tạo inventory transaction
+                    InventoryTransaction.objects.create(
+                        inventory=inventory,
+                        transaction_type='IN',
+                        quantity=quantity,
+                        unit_price=instance.unit_price,
+                        reference_type='order_detail_delete',
+                        reference_id=instance.id,
+                        note=f"Xóa chi tiết đơn hàng - hoàn trả tồn kho: {instance.product_variant.product.name if instance.product_variant.product else instance.product_variant.sku}",
+                        created_by=self.request.user,
+                        updated_by=self.request.user
+                    )
             
             # Xóa mềm order detail
             instance.delete()

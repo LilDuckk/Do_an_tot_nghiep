@@ -111,6 +111,29 @@ export const INVENTORY_ENDPOINTS = {
   INVENTORY_TRANSACTIONS: `${API_BASE_URL}/inventory/inventory-transactions/`,
   INVENTORY_TRANSACTION_DETAIL: (id) => `${API_BASE_URL}/inventory/inventory-transactions/${id}/`,
   INVENTORY_TRANSACTION_SUMMARY: (id) => `${API_BASE_URL}/inventory/inventory-transactions/${id}/transaction_summary/`,
+  
+  // Stock Takes
+  STOCK_TAKES: `${API_BASE_URL}/inventory/stock-takes/`,
+  STOCK_TAKE_DETAIL: (id) => `${API_BASE_URL}/inventory/stock-takes/${id}/`,
+  STOCK_TAKE_SUMMARY: (id) => `${API_BASE_URL}/inventory/stock-takes/${id}/summary/`,
+  
+  // Stock Transfers
+  STOCK_TRANSFERS: `${API_BASE_URL}/inventory/stock-transfers/`,
+  STOCK_TRANSFER_DETAIL: (id) => `${API_BASE_URL}/inventory/stock-transfers/${id}/`,
+  STOCK_TRANSFER_SUMMARY: (id) => `${API_BASE_URL}/inventory/stock-transfers/${id}/summary/`,
+  STOCK_TRANSFER_CONFIRM: (id) => `${API_BASE_URL}/inventory/stock-transfers/${id}/confirm_transfer/`,
+  STOCK_TRANSFER_CANCEL: (id) => `${API_BASE_URL}/inventory/stock-transfers/${id}/cancel_transfer/`,
+  STOCK_TRANSFER_STATISTICS: `${API_BASE_URL}/inventory/stock-transfers/statistics/`,
+  
+  // Stock Transfer Details
+  STOCK_TRANSFER_DETAILS: `${API_BASE_URL}/inventory/stock-transfer-details/`,
+  STOCK_TRANSFER_DETAIL_ITEM: (id) => `${API_BASE_URL}/inventory/stock-transfer-details/${id}/`,
+  
+  // Inventory Management APIs
+  STORE_INVENTORY: `${API_BASE_URL}/inventory/inventories/store_inventory/`,
+  STORE_STATISTICS: `${API_BASE_URL}/inventory/inventories/store_statistics/`,
+  PRODUCT_SEARCH: `${API_BASE_URL}/inventory/inventories/product_search/`,
+  LOW_STOCK_ALERT: `${API_BASE_URL}/inventory/inventories/low_stock_alert/`,
 };
 
 // Content endpoints

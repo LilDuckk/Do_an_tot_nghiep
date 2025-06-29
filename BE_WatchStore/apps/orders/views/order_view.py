@@ -1,18 +1,21 @@
 from rest_framework import viewsets, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from django_filters import rest_framework as filters
+from django.db import transaction
+from django.db.models import Count, Sum
+from django.utils import timezone
+from rest_framework.permissions import OR
+
 from apps.orders.models.order import Orders
 from apps.orders.models.order_detail import OrderDetail
 from apps.orders.serializers.order_serializer import OrderSerializer
+from apps.orders.serializers.order_detail_serializer import OrderDetailSerializer
 from apps.core.utils.permissions import IsSuperUser, IsStoreEmployee
-from rest_framework.permissions import IsAuthenticated, OR
 from apps.core.mixins import SoftDeleteMixin
-from django_filters import rest_framework as filters
-from rest_framework.response import Response
 from apps.stores.models.employee import Employee
 from apps.inventory.models.inventory import Inventory
-from django.db import transaction
-from django.utils import timezone
-import json
-from datetime import datetime
+from apps.inventory.models.inventory_transaction import InventoryTransaction
 
 class OrderFilter(filters.FilterSet):
     # Bộ lọc theo thông tin khách hàng
@@ -75,12 +78,15 @@ class OrderViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
     ordering_fields = ['id', 'created_at', 'order_date', 'total_amount']
     ordering = ['-created_at']
 
+    def get_serializer_class(self):
+        return OrderSerializer
+
     def get_permissions(self):
         """
         Tùy chỉnh permission cho từng action
         """
-        if self.action in ['list', 'retrieve']:
-            # Cho phép user đã đăng nhập có quyền xem danh sách và chi tiết đơn hàng
+        if self.action in ['list', 'retrieve', 'list_all']:
+            # Cho phép tất cả người dùng xem danh sách và chi tiết đơn hàng
             return [IsStoreEmployee()]
         elif self.action in ['create', 'update', 'partial_update', 'destroy']:
             # Cho phép superuser hoặc nhân viên cửa hàng có quyền tương ứng
@@ -134,6 +140,19 @@ class OrderViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
                         inventory.quantity += quantity
                         inventory.updated_by = self.request.user
                         inventory.save()
+                        
+                        # Tạo inventory transaction
+                        InventoryTransaction.objects.create(
+                            inventory=inventory,
+                            transaction_type='IN',
+                            quantity=quantity,
+                            unit_price=detail.unit_price,
+                            reference_type='order_cancel',
+                            reference_id=instance.id,
+                            note=f"Hủy đơn hàng - hoàn trả tồn kho: {detail.product_variant.product.name if detail.product_variant.product else detail.product_variant.sku}",
+                            created_by=self.request.user,
+                            updated_by=self.request.user
+                        )
             
             # Xóa mềm tất cả order details liên quan
             order_details = OrderDetail.objects.filter(order=instance, is_deleted=False)
@@ -145,57 +164,38 @@ class OrderViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
 
     @transaction.atomic
     def create(self, request, *args, **kwargs):
+        """
+        Tạo đơn hàng mới với xử lý inventory
+        """
         try:
+            # Lấy dữ liệu từ request
+            order_data = request.data.copy()
+            order_details_data = order_data.pop('order_details', [])
+            
+            # Lấy thông tin user và store
             user = request.user
-            store_id = request.data.get('store')
-            employee_id_from_request = request.data.get('employee_id')
-            employee_to_assign = None
-
-            if user.is_superuser:
-                # Nếu là superuser và có gửi employee_id
-                if employee_id_from_request:
-                    try:
-                        employee_to_assign = Employee.objects.get(id=employee_id_from_request, is_deleted=False)
-                        # Kiểm tra xem employee có thuộc cửa hàng được chọn không
-                        if str(employee_to_assign.store.id) != str(store_id):
-                            return Response(
-                                {"detail": "Nhân viên được chỉ định không thuộc cửa hàng được chọn"},
-                                status=status.HTTP_400_BAD_REQUEST
-                            )
-                    except Employee.DoesNotExist:
-                        return Response(
-                            {"detail": "Không tìm thấy nhân viên với ID đã cung cấp"},
-                            status=status.HTTP_400_BAD_REQUEST
-                        )
-                else:
-                    # Nếu superuser không gửi employee_id, mặc định gán cho chính superuser nếu là employee
-                    try:
-                        employee_to_assign = Employee.objects.get(user=user, is_deleted=False)
-                    except Employee.DoesNotExist:
-                        # Superuser không phải là employee, employee_to_assign vẫn là None
-                        pass
-            else:
-                # Nếu không phải superuser, chỉ cho phép tạo đơn cho cửa hàng của mình và gán employee tự động
-                try:
-                    employee_to_assign = Employee.objects.get(user=user, is_deleted=False)
-                    if str(employee_to_assign.store.id) != str(store_id):
-                        return Response(
-                            {"detail": "Bạn chỉ có thể tạo đơn hàng cho cửa hàng của mình"},
-                            status=status.HTTP_403_FORBIDDEN
-                        )
-                except Employee.DoesNotExist:
-                    return Response(
-                        {"detail": "Không tìm thấy thông tin nhân viên của bạn"},
-                        status=status.HTTP_403_FORBIDDEN
-                    )
-
-            # Tạo đơn hàng trước
-            serializer = self.get_serializer(data=request.data)
+            store_id = order_data.get('store')
+            order_status = order_data.get('status', 'pending')
+            
+            # Tạo serializer cho order
+            serializer = self.get_serializer(data=order_data)
             serializer.is_valid(raise_exception=True)
-            order = serializer.save(created_by=user, updated_by=user, employee=employee_to_assign)
+            order = serializer.save(created_by=user, updated_by=user)
 
-            # Kiểm tra status và xử lý inventory nếu cần
-            order_status = request.data.get('status')
+            # Tạo order details
+            total_amount = 0
+            for detail_data in order_details_data:
+                detail_data['order'] = order.id
+                detail_serializer = OrderDetailSerializer(data=detail_data)
+                detail_serializer.is_valid(raise_exception=True)
+                detail = detail_serializer.save()
+                total_amount += detail.final_price
+
+            # Cập nhật tổng tiền cho order
+            order.total_amount = total_amount
+            order.save()
+
+            # Xử lý inventory nếu status là deducted
             if order_status and self._get_status_type(order_status) == "deducted":
                 # Nếu status là deducted, cần trừ inventory
                 order_details = request.data.get('order_details', [])
@@ -247,6 +247,18 @@ class OrderViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
                         inventory.quantity -= detail['quantity']
                         inventory.updated_by = user
                         inventory.save()
+                        
+                        # Tạo inventory transaction
+                        InventoryTransaction.objects.create(
+                            inventory=inventory,
+                            transaction_type='OUT',
+                            quantity=detail['quantity'],
+                            reference_type='order',
+                            reference_id=order.id,
+                            note=f"Tạo đơn hàng - trừ tồn kho: {inventory.product_variant.product.name if inventory.product_variant.product else inventory.product_variant.sku}",
+                            created_by=user,
+                            updated_by=user
+                        )
 
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -260,63 +272,23 @@ class OrderViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
 
     @transaction.atomic
     def update(self, request, *args, **kwargs):
+        """
+        Cập nhật đơn hàng với xử lý inventory
+        """
         try:
             instance = self.get_object()
             user = request.user
-            store_id_from_request = request.data.get('store', getattr(instance.store, 'id', None))
-            employee_id_from_request = request.data.get('employee_id')
-            employee_to_assign = None
-
-            # Lưu status cũ để so sánh
+            
+            # Lưu trạng thái cũ
             old_status = instance.status
-            new_status = request.data.get('status', old_status)
-
-            if user.is_superuser:
-                # Nếu là superuser và có gửi employee_id
-                if employee_id_from_request is not None: # Check if it's explicitly sent, even if null
-                    try:
-                        employee_to_assign = Employee.objects.get(id=employee_id_from_request, is_deleted=False)
-                        # Kiểm tra xem employee có thuộc cửa hàng được chọn không
-                        if str(employee_to_assign.store.id) != str(store_id_from_request):
-                            return Response(
-                                {"detail": "Nhân viên được chỉ định không thuộc cửa hàng được chọn"},
-                                status=status.HTTP_400_BAD_REQUEST
-                            )
-                    except Employee.DoesNotExist:
-                        return Response(
-                            {"detail": "Không tìm thấy nhân viên với ID đã cung cấp"},
-                            status=status.HTTP_400_BAD_REQUEST
-                        )
-                else: # superuser sends employee_id: null or no employee_id
-                    # if employee_id is explicitly null, set employee_to_assign to None
-                    if 'employee_id' in request.data and request.data['employee_id'] is None:
-                        employee_to_assign = None
-                    else:
-                        # Superuser does not explicitly set employee_id, keep existing employee or assign if not exists
-                        employee_to_assign = instance.employee
-            else:
-                # Nếu không phải superuser, chỉ cho phép cập nhật đơn hàng của mình và giữ nguyên employee
-                try:
-                    current_employee = Employee.objects.get(user=user, is_deleted=False)
-                    if str(current_employee.store.id) != str(store_id_from_request):
-                        return Response(
-                            {"detail": "Bạn chỉ có thể cập nhật đơn hàng cho cửa hàng của mình"},
-                            status=status.HTTP_403_FORBIDDEN
-                        )
-                    # Employee thường không được phép thay đổi trường employee của order
-                    employee_to_assign = instance.employee # Giữ nguyên employee hiện tại của order
-                except Employee.DoesNotExist:
-                    return Response(
-                        {"detail": "Không tìm thấy thông tin nhân viên của bạn"},
-                        status=status.HTTP_403_FORBIDDEN
-                    )
-
-            # Tạo serializer với partial=True để cho phép cập nhật từng phần
+            
+            # Cập nhật order
             serializer = self.get_serializer(instance, data=request.data, partial=True)
             serializer.is_valid(raise_exception=True)
-
-            # Cập nhật order, truyền employee_to_assign vào serializer.save()
-            order = serializer.save(updated_by=user, employee=employee_to_assign)
+            order = serializer.save(updated_by=user)
+            
+            # Lấy trạng thái mới
+            new_status = order.status
 
             # Xử lý inventory dựa trên thay đổi status
             if old_status != new_status:
@@ -330,11 +302,11 @@ class OrderViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
                 
                 # Nếu chuyển từ trạng thái đã trừ kho sang trạng thái trả lại kho
                 if old_status_type == "deducted" and new_status_type == "returned":
-                    self._return_inventory_to_stock(order_details, store_id, user)
+                    self._return_inventory_to_stock(order_details, store_id, user, instance.id)
                 
                 # Nếu chuyển từ trạng thái chưa trừ kho sang trạng thái trừ kho
                 elif old_status_type == "returned" and new_status_type == "deducted":
-                    self._deduct_inventory_from_stock(order_details, store_id, user)
+                    self._deduct_inventory_from_stock(order_details, store_id, user, instance.id)
 
             return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -360,7 +332,7 @@ class OrderViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
             # Nếu status không thuộc 2 loại trên, coi như returned (không trừ kho)
             return "returned"
     
-    def _deduct_inventory_from_stock(self, order_details, store_id, user):
+    def _deduct_inventory_from_stock(self, order_details, store_id, user, order_id):
         """
         Trừ số lượng sản phẩm khỏi inventory
         """
@@ -380,6 +352,19 @@ class OrderViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
                     inventory.quantity -= quantity
                     inventory.updated_by = user
                     inventory.save()
+                    
+                    # Tạo inventory transaction
+                    InventoryTransaction.objects.create(
+                        inventory=inventory,
+                        transaction_type='OUT',
+                        quantity=quantity,
+                        unit_price=detail.unit_price,
+                        reference_type='order',
+                        reference_id=order_id,
+                        note=f"Cập nhật đơn hàng - trừ tồn kho: {detail.product_variant.product.name if detail.product_variant.product else detail.product_variant.sku}",
+                        created_by=user,
+                        updated_by=user
+                    )
                 else:
                     # Rollback transaction nếu không đủ hàng
                     transaction.set_rollback(True)
@@ -389,7 +374,7 @@ class OrderViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
                 transaction.set_rollback(True)
                 raise Exception(f"Không tìm thấy tồn kho cho sản phẩm này tại cửa hàng")
     
-    def _return_inventory_to_stock(self, order_details, store_id, user):
+    def _return_inventory_to_stock(self, order_details, store_id, user, order_id):
         """
         Trả lại số lượng sản phẩm vào inventory
         """
@@ -408,7 +393,97 @@ class OrderViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
                 inventory.quantity += quantity
                 inventory.updated_by = user
                 inventory.save()
+                
+                # Tạo inventory transaction
+                InventoryTransaction.objects.create(
+                    inventory=inventory,
+                    transaction_type='IN',
+                    quantity=quantity,
+                    unit_price=detail.unit_price,
+                    reference_type='order_cancel',
+                    reference_id=order_id,
+                    note=f"Cập nhật đơn hàng - hoàn trả tồn kho: {detail.product_variant.product.name if detail.product_variant.product else detail.product_variant.sku}",
+                    created_by=user,
+                    updated_by=user
+                )
             else:
                 # Rollback transaction nếu không tìm thấy inventory
                 transaction.set_rollback(True)
-                raise Exception(f"Không tìm thấy tồn kho cho sản phẩm này tại cửa hàng") 
+                raise Exception(f"Không tìm thấy tồn kho cho sản phẩm này tại cửa hàng")
+
+    @action(detail=False, methods=['get'])
+    def list_all(self, request):
+        """Lấy tất cả đơn hàng không phân trang"""
+        queryset = self.filter_queryset(self.get_queryset())
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['get'])
+    def order_details(self, request, pk=None):
+        """Lấy chi tiết đơn hàng"""
+        order = self.get_object()
+        order_details = OrderDetail.objects.filter(order=order, is_deleted=False)
+        serializer = OrderDetailSerializer(order_details, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'])
+    def cancel_order(self, request, pk=None):
+        """Hủy đơn hàng"""
+        order = self.get_object()
+        
+        if order.status == 'cancelled':
+            return Response(
+                {'error': 'Đơn hàng đã được hủy trước đó'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if order.status == 'delivered':
+            return Response(
+                {'error': 'Không thể hủy đơn hàng đã giao'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Cập nhật trạng thái
+        order.status = 'cancelled'
+        order.updated_by = request.user
+        order.save()
+        
+        return Response({
+            'message': f'Đã hủy đơn hàng #{order.id}',
+            'order': OrderSerializer(order).data
+        })
+
+    @action(detail=False, methods=['get'])
+    def statistics(self, request):
+        """Thống kê đơn hàng"""
+        queryset = self.get_queryset()
+        
+        # Thống kê theo trạng thái
+        status_stats = queryset.values('status').annotate(
+            count=Count('id'),
+            total_amount=Sum('total_amount')
+        )
+        
+        # Thống kê theo cửa hàng
+        store_stats = queryset.values('store__name').annotate(
+            count=Count('id'),
+            total_amount=Sum('total_amount')
+        ).filter(store__isnull=False)
+        
+        # Thống kê theo thời gian
+        today = timezone.now().date()
+        today_orders = queryset.filter(order_date__date=today)
+        today_stats = {
+            'count': today_orders.count(),
+            'total_amount': today_orders.aggregate(total=Sum('total_amount'))['total'] or 0
+        }
+        
+        statistics_data = {
+            'total_orders': queryset.count(),
+            'total_revenue': queryset.aggregate(total=Sum('total_amount'))['total'] or 0,
+            'today_stats': today_stats,
+            'status_statistics': status_stats,
+            'store_statistics': store_stats
+        }
+        
+        return Response(statistics_data) 

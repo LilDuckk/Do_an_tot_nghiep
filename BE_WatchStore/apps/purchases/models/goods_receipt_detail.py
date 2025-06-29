@@ -70,7 +70,7 @@ class GoodsReceiptDetail(BaseModel):
         ]
     
     def __str__(self):
-        return f"{self.goods_receipt.receipt_number} - {self.product_variant.name}"
+        return f"{self.goods_receipt.receipt_number} - {self.product_variant.product.name if self.product_variant.product else self.product_variant.sku}"
     
     def save(self, *args, **kwargs):
         # Tự động tính toán các giá trị

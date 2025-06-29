@@ -1911,22 +1911,78 @@ GET /api/inventory/stock-transfers/{id}/summary/ - Thống kê chuyển kho
             "source_store": 1,
             "source_store_info": {
                 "id": 1,
-                "name": "Watch Store Hà Nội"
+                "name": "Watch Store Hà Nội",
+                "address": "123 Nguyễn Huệ, Quận 1, Hà Nội",
+                "phone": "024-1234-5678",
+                "is_active": true
             },
             "destination_store": 2,
             "destination_store_info": {
                 "id": 2,
-                "name": "Watch Store Hồ Chí Minh"
+                "name": "Watch Store Hồ Chí Minh",
+                "address": "456 Lê Lợi, Quận 1, TP.HCM",
+                "phone": "028-8765-4321",
+                "is_active": true
             },
             "transfer_date": "2024-06-10T09:00:00Z",
             "status": "completed",
             "note": "Chuyển kho nội bộ tháng 6",
             "created_by": 1,
             "created_by_username": "admin",
-            "updated_by": 1,
-            "updated_by_username": "admin",
             "created_at": "2024-06-10T09:00:00Z",
-            "updated_at": "2024-06-10T18:00:00Z"
+            "details_count": 3
+        },
+        {
+            "id": 2,
+            "source_store": 1,
+            "source_store_info": {
+                "id": 1,
+                "name": "Watch Store Hà Nội",
+                "address": "123 Nguyễn Huệ, Quận 1, Hà Nội",
+                "phone": "024-1234-5678",
+                "is_active": true
+            },
+            "destination_store": 2,
+            "destination_store_info": {
+                "id": 2,
+                "name": "Watch Store Hồ Chí Minh",
+                "address": "456 Lê Lợi, Quận 1, TP.HCM",
+                "phone": "028-8765-4321",
+                "is_active": true
+            },
+            "transfer_date": "2024-07-05T10:00:00Z",
+            "status": "pending",
+            "note": "Chuyển kho cho đợt khuyến mãi",
+            "created_by": 1,
+            "created_by_username": "admin",
+            "created_at": "2024-07-05T10:00:00Z",
+            "details_count": 2
+        },
+        {
+            "id": 3,
+            "source_store": 2,
+            "source_store_info": {
+                "id": 2,
+                "name": "Watch Store Hồ Chí Minh",
+                "address": "456 Lê Lợi, Quận 1, TP.HCM",
+                "phone": "028-8765-4321",
+                "is_active": true
+            },
+            "destination_store": 1,
+            "destination_store_info": {
+                "id": 1,
+                "name": "Watch Store Hà Nội",
+                "address": "123 Nguyễn Huệ, Quận 1, Hà Nội",
+                "phone": "024-1234-5678",
+                "is_active": true
+            },
+            "transfer_date": "2024-08-15T14:00:00Z",
+            "status": "in_transit",
+            "note": "Chuyển kho bổ sung hàng tồn",
+            "created_by": 2,
+            "created_by_username": "staff.hcm",
+            "created_at": "2024-08-15T14:00:00Z",
+            "details_count": 1
         }
     ]
 }
@@ -1937,12 +1993,18 @@ GET /api/inventory/stock-transfers/{id}/summary/ - Thống kê chuyển kho
     "source_store": 1,
     "source_store_info": {
         "id": 1,
-        "name": "Watch Store Hà Nội"
+        "name": "Watch Store Hà Nội",
+        "address": "123 Nguyễn Huệ, Quận 1, Hà Nội",
+        "phone": "024-1234-5678",
+        "is_active": true
     },
     "destination_store": 2,
     "destination_store_info": {
         "id": 2,
-        "name": "Watch Store Hồ Chí Minh"
+        "name": "Watch Store Hồ Chí Minh",
+        "address": "456 Lê Lợi, Quận 1, TP.HCM",
+        "phone": "028-8765-4321",
+        "is_active": true
     },
     "transfer_date": "2024-06-10T09:00:00Z",
     "status": "completed",
@@ -1953,6 +2015,7 @@ GET /api/inventory/stock-transfers/{id}/summary/ - Thống kê chuyển kho
     "updated_by_username": "admin",
     "created_at": "2024-06-10T09:00:00Z",
     "updated_at": "2024-06-10T18:00:00Z",
+    "details_count": 3,
     "details": [
         {
             "id": 1,
@@ -1961,99 +2024,1378 @@ GET /api/inventory/stock-transfers/{id}/summary/ - Thống kê chuyển kho
             "product_variant_info": {
                 "id": 1,
                 "name": "Rolex Submariner",
-                "sku": "ROLEX-SUB-001"
+                "sku": "ROLEX-SUB-001",
+                "price": "8000000.00",
+                "product_name": "Rolex Submariner"
             },
             "quantity": 5,
-            "received_quantity": 5
+            "received_quantity": 5,
+            "created_at": "2024-06-10T09:00:00Z",
+            "updated_at": "2024-06-10T09:00:00Z"
+        },
+        {
+            "id": 2,
+            "stock_transfer": 1,
+            "product_variant": 2,
+            "product_variant_info": {
+                "id": 2,
+                "name": "Patek Philippe Nautilus",
+                "sku": "PATEK-NAUT-001",
+                "price": "15000000.00",
+                "product_name": "Patek Philippe Nautilus"
+            },
+            "quantity": 7,
+            "received_quantity": 7,
+            "created_at": "2024-06-10T09:00:00Z",
+            "updated_at": "2024-06-10T09:00:00Z"
+        },
+        {
+            "id": 3,
+            "stock_transfer": 1,
+            "product_variant": 3,
+            "product_variant_info": {
+                "id": 3,
+                "name": "Omega Speedmaster",
+                "sku": "OMEGA-SPEED-001",
+                "price": "12000000.00",
+                "product_name": "Omega Speedmaster"
+            },
+            "quantity": 3,
+            "received_quantity": 3,
+            "created_at": "2024-06-10T09:00:00Z",
+            "updated_at": "2024-06-10T09:00:00Z"
         }
     ]
 }
 
 ## POST /api/inventory/stock-transfers/
+**Tạo chuyển kho mới**
+
 **Request Body:**
 ```json
 {
     "source_store": 1,
     "destination_store": 2,
-    "transfer_date": "2024-07-05T10:00:00Z",
+    "transfer_date": "2024-09-20T10:00:00Z",
     "status": "pending",
-    "note": "Chuyển kho cho đợt khuyến mãi"
+    "note": "Chuyển kho cho đợt khuyến mãi cuối năm"
 }
 ```
+
 **Response (201 Created):**
 ```json
 {
-    "id": 2,
+    "id": 4,
     "source_store": 1,
+    "source_store_info": {
+        "id": 1,
+        "name": "Watch Store Hà Nội",
+        "address": "123 Nguyễn Huệ, Quận 1, Hà Nội",
+        "phone": "024-1234-5678",
+        "is_active": true
+    },
     "destination_store": 2,
-    "transfer_date": "2024-07-05T10:00:00Z",
+    "destination_store_info": {
+        "id": 2,
+        "name": "Watch Store Hồ Chí Minh",
+        "address": "456 Lê Lợi, Quận 1, TP.HCM",
+        "phone": "028-8765-4321",
+        "is_active": true
+    },
+    "transfer_date": "2024-09-20T10:00:00Z",
     "status": "pending",
-    "note": "Chuyển kho cho đợt khuyến mãi",
+    "note": "Chuyển kho cho đợt khuyến mãi cuối năm",
     "created_by": 1,
     "created_by_username": "admin",
-    "created_at": "2024-07-05T10:00:00Z"
+    "updated_by": null,
+    "updated_by_username": null,
+    "created_at": "2024-09-20T10:00:00Z",
+    "updated_at": "2024-09-20T10:00:00Z",
+    "details_count": 0,
+    "details": []
 }
 ```
 
+**Các trường bắt buộc:**
+- `source_store`: ID của cửa hàng nguồn (integer)
+- `destination_store`: ID của cửa hàng đích (integer)
+- `transfer_date`: Ngày chuyển kho (datetime)
+
+**Các trường tùy chọn:**
+- `status`: Trạng thái chuyển kho (string, mặc định 'pending')
+- `note`: Ghi chú (string)
+
+**Validation Rules:**
+- `source_store` và `destination_store` phải khác nhau
+- `transfer_date` không được trong quá khứ
+- `status` phải là một trong: 'pending', 'in_transit', 'completed', 'cancelled'
+
 ## PUT /api/inventory/stock-transfers/{id}/
+**Cập nhật chuyển kho**
+
 **Request Body:**
 ```json
 {
-    "status": "completed",
-    "note": "Đã chuyển kho và nhận đủ hàng"
-}
-```
-**Response (200 OK):**
-```json
-{
-    "id": 2,
     "source_store": 1,
     "destination_store": 2,
-    "transfer_date": "2024-07-05T10:00:00Z",
-    "status": "completed",
-    "note": "Đã chuyển kho và nhận đủ hàng",
-    "updated_by": 1,
-    "updated_by_username": "admin",
-    "updated_at": "2024-07-05T18:00:00Z"
+    "transfer_date": "2024-09-20T10:00:00Z",
+    "status": "in_transit",
+    "note": "Đã bắt đầu chuyển kho cho đợt khuyến mãi cuối năm"
 }
 ```
 
+**Response (200 OK):** Tương tự GET /{id}/
+
 ## DELETE /api/inventory/stock-transfers/{id}/
+**Xóa chuyển kho (soft delete)**
+
 **Response (204 No Content):** Không có nội dung
 
 ## GET /api/inventory/stock-transfers/{id}/summary/
+**Thống kê chuyển kho**
+
+**Response (200 OK):**
 ```json
 {
     "id": 1,
-    "source_store": 1,
-    "destination_store": 2,
+    "source_store": {
+        "id": 1,
+        "name": "Watch Store Hà Nội"
+    },
+    "destination_store": {
+        "id": 2,
+        "name": "Watch Store Hồ Chí Minh"
+    },
     "total_items": 3,
     "total_quantity": 15,
+    "total_received": 15,
+    "completion_rate": 100.0,
     "details": [
         {
-            "product_variant": {
+            "id": 1,
+            "stock_transfer": 1,
+            "product_variant": 1,
+            "product_variant_info": {
                 "id": 1,
-                "name": "Rolex Submariner"
+                "name": "Rolex Submariner",
+                "sku": "ROLEX-SUB-001",
+                "price": "8000000.00",
+                "product_name": "Rolex Submariner"
             },
             "quantity": 5,
-            "received_quantity": 5
+            "received_quantity": 5,
+            "created_at": "2024-06-10T09:00:00Z",
+            "updated_at": "2024-06-10T09:00:00Z"
         },
         {
-            "product_variant": {
+            "id": 2,
+            "stock_transfer": 1,
+            "product_variant": 2,
+            "product_variant_info": {
                 "id": 2,
-                "name": "Patek Philippe Nautilus"
+                "name": "Patek Philippe Nautilus",
+                "sku": "PATEK-NAUT-001",
+                "price": "15000000.00",
+                "product_name": "Patek Philippe Nautilus"
             },
             "quantity": 7,
-            "received_quantity": 7
+            "received_quantity": 7,
+            "created_at": "2024-06-10T09:00:00Z",
+            "updated_at": "2024-06-10T09:00:00Z"
         },
         {
-            "product_variant": {
+            "id": 3,
+            "stock_transfer": 1,
+            "product_variant": 3,
+            "product_variant_info": {
                 "id": 3,
-                "name": "Omega Speedmaster"
+                "name": "Omega Speedmaster",
+                "sku": "OMEGA-SPEED-001",
+                "price": "12000000.00",
+                "product_name": "Omega Speedmaster"
             },
             "quantity": 3,
-            "received_quantity": 3
+            "received_quantity": 3,
+            "created_at": "2024-06-10T09:00:00Z",
+            "updated_at": "2024-06-10T09:00:00Z"
         }
     ]
 }
 ```
+
+## POST /api/inventory/stock-transfers/{id}/confirm_transfer/
+**Xác nhận chuyển kho**
+
+**Response (200 OK):**
+```json
+{
+    "message": "Đã xác nhận chuyển kho #1",
+    "stock_transfer": {
+        "id": 1,
+        "source_store": 1,
+        "destination_store": 2,
+        "transfer_date": "2024-06-10T09:00:00Z",
+        "status": "completed",
+        "note": "Chuyển kho nội bộ tháng 6",
+        "created_by": 1,
+        "created_by_username": "admin",
+        "updated_by": 1,
+        "updated_by_username": "admin",
+        "created_at": "2024-06-10T09:00:00Z",
+        "updated_at": "2024-06-10T18:00:00Z",
+        "details_count": 3,
+        "details": [...]
+    }
+}
+```
+
+## POST /api/inventory/stock-transfers/{id}/cancel_transfer/
+**Hủy chuyển kho**
+
+**Response (200 OK):**
+```json
+{
+    "message": "Đã hủy chuyển kho #2",
+    "stock_transfer": {
+        "id": 2,
+        "source_store": 1,
+        "destination_store": 2,
+        "transfer_date": "2024-07-05T10:00:00Z",
+        "status": "cancelled",
+        "note": "Chuyển kho cho đợt khuyến mãi",
+        "created_by": 1,
+        "created_by_username": "admin",
+        "updated_by": 1,
+        "updated_by_username": "admin",
+        "created_at": "2024-07-05T10:00:00Z",
+        "updated_at": "2024-07-05T11:00:00Z",
+        "details_count": 2,
+        "details": [...]
+    }
+}
+```
+
+## GET /api/inventory/stock-transfers/statistics/
+**Thống kê tổng quan chuyển kho**
+
+**Response (200 OK):**
+```json
+{
+    "total_transfers": 3,
+    "total_items": 6,
+    "status_statistics": [
+        {
+            "status": "completed",
+            "count": 1,
+            "total_quantity": 15,
+            "total_received": 15
+        },
+        {
+            "status": "pending",
+            "count": 1,
+            "total_quantity": 8,
+            "total_received": 0
+        },
+        {
+            "status": "in_transit",
+            "count": 1,
+            "total_quantity": 4,
+            "total_received": 2
+        }
+    ],
+    "source_store_statistics": [
+        {
+            "source_store__name": "Watch Store Hà Nội",
+            "count": 2
+        },
+        {
+            "source_store__name": "Watch Store Hồ Chí Minh",
+            "count": 1
+        }
+    ],
+    "destination_store_statistics": [
+        {
+            "destination_store__name": "Watch Store Hồ Chí Minh",
+            "count": 2
+        },
+        {
+            "destination_store__name": "Watch Store Hà Nội",
+            "count": 1
+        }
+    ]
+}
+```
+
+# API Endpoints cho StockTransferDetail
+## GET /api/inventory/stock-transfer-details/
+{
+    "count": 6,
+    "next": null,
+    "previous": null,
+    "results": [
+        {
+            "id": 1,
+            "stock_transfer": 1,
+            "product_variant": 1,
+            "product_variant_info": {
+                "id": 1,
+                "name": "Rolex Submariner",
+                "sku": "ROLEX-SUB-001",
+                "price": "8000000.00",
+                "product_name": "Rolex Submariner"
+            },
+            "quantity": 5,
+            "received_quantity": 5,
+            "created_at": "2024-06-10T09:00:00Z",
+            "updated_at": "2024-06-10T09:00:00Z"
+        },
+        {
+            "id": 2,
+            "stock_transfer": 1,
+            "product_variant": 2,
+            "product_variant_info": {
+                "id": 2,
+                "name": "Patek Philippe Nautilus",
+                "sku": "PATEK-NAUT-001",
+                "price": "15000000.00",
+                "product_name": "Patek Philippe Nautilus"
+            },
+            "quantity": 7,
+            "received_quantity": 7,
+            "created_at": "2024-06-10T09:00:00Z",
+            "updated_at": "2024-06-10T09:00:00Z"
+        }
+    ]
+}
+
+## GET /api/inventory/stock-transfer-details/{id}/
+**Lấy chi tiết một chi tiết chuyển kho**
+
+**Response (200 OK):** Tương tự item trong danh sách
+
+## POST /api/inventory/stock-transfer-details/
+**Tạo chi tiết chuyển kho mới**
+
+**Request Body:**
+```json
+{
+    "stock_transfer": 4,
+    "product_variant": 1,
+    "quantity": 3,
+    "received_quantity": 0
+}
+```
+
+**Response (201 Created):**
+```json
+{
+    "id": 7,
+    "stock_transfer": 4,
+    "product_variant": 1,
+    "product_variant_info": {
+        "id": 1,
+        "name": "Rolex Submariner",
+        "sku": "ROLEX-SUB-001",
+        "price": "8000000.00",
+        "product_name": "Rolex Submariner"
+    },
+    "quantity": 3,
+    "received_quantity": 0,
+    "created_at": "2024-09-20T10:30:00Z",
+    "updated_at": "2024-09-20T10:30:00Z"
+}
+```
+
+**Các trường bắt buộc:**
+- `stock_transfer`: ID của chuyển kho (integer)
+- `product_variant`: ID của biến thể sản phẩm (integer)
+- `quantity`: Số lượng chuyển (integer > 0)
+
+**Các trường tùy chọn:**
+- `received_quantity`: Số lượng đã nhận (integer >= 0, mặc định 0)
+
+**Validation Rules:**
+- `quantity` phải lớn hơn 0
+- `received_quantity` không được vượt quá `quantity`
+- `stock_transfer` và `product_variant` phải tồn tại
+- Không được trùng lặp `stock_transfer` + `product_variant`
+
+## PUT /api/inventory/stock-transfer-details/{id}/
+**Cập nhật chi tiết chuyển kho**
+
+**Request Body:**
+```json
+{
+    "stock_transfer": 4,
+    "product_variant": 1,
+    "quantity": 3,
+    "received_quantity": 2
+}
+```
+
+**Response (200 OK):** Tương tự GET /{id}/
+
+## PATCH /api/inventory/stock-transfer-details/{id}/
+**Cập nhật một phần chi tiết chuyển kho**
+
+**Request Body:**
+```json
+{
+    "received_quantity": 3
+}
+```
+
+**Response (200 OK):** Tương tự GET /{id}/
+
+## DELETE /api/inventory/stock-transfer-details/{id}/
+**Xóa chi tiết chuyển kho**
+
+**Response (204 No Content):** Không có nội dung
+
+# Các tính năng tìm kiếm và lọc cho StockTransfer
+## StockTransfers
+- Tìm kiếm theo: 
+  + Ghi chú: `?search=keyword` (tìm trong `note`)
+  + Cửa hàng nguồn: `?search=keyword` (tìm trong `source_store__name`)
+  + Cửa hàng đích: `?search=keyword` (tìm trong `destination_store__name`)
+- Lọc theo: 
+  + Cửa hàng nguồn: `?source_store=1`
+  + Cửa hàng đích: `?destination_store=2`
+  + Trạng thái: `?status=completed`
+  + Người tạo: `?created_by=1`
+  + Ngày chuyển kho: `?transfer_date_from=2024-06-01&transfer_date_to=2024-06-30`
+- Sắp xếp theo: 
+  + Ngày chuyển kho: `?ordering=transfer_date` hoặc `?ordering=-transfer_date`
+  + Trạng thái: `?ordering=status` hoặc `?ordering=-status`
+  + Thời gian tạo: `?ordering=created_at` hoặc `?ordering=-created_at`
+- Phân trang: Mặc định 10 items/trang
+
+## StockTransferDetails
+- Tìm kiếm theo: 
+  + Mã chuyển kho: `?search=keyword` (tìm trong `stock_transfer__id`)
+  + Sản phẩm: `?search=keyword` (tìm trong `product_variant__name`, `product_variant__sku`)
+- Lọc theo: 
+  + Chuyển kho: `?stock_transfer=1`
+  + Sản phẩm: `?product_variant=1`
+  + Số lượng đã nhận: `?received_quantity_min=1&received_quantity_max=10`
+- Sắp xếp theo: 
+  + Sản phẩm: `?ordering=product_variant__name` hoặc `?ordering=-product_variant__name`
+  + Số lượng: `?ordering=quantity` hoặc `?ordering=-quantity`
+  + Số lượng đã nhận: `?ordering=received_quantity` hoặc `?ordering=-received_quantity`
+  + Thời gian tạo: `?ordering=created_at` hoặc `?ordering=-created_at`
+- Phân trang: Mặc định 10 items/trang
+
+# Quyền truy cập cho StockTransfer
+## StockTransfers
+- Cho phép user đã đăng nhập xem danh sách và chi tiết chuyển kho (IsStoreEmployee)
+- Yêu cầu quyền superuser hoặc nhân viên cửa hàng cho các thao tác thêm/sửa/xóa (OR(IsSuperUser(), IsStoreEmployee))
+- Người dùng thông thường chỉ có thể xem chuyển kho liên quan đến cửa hàng họ thuộc về
+- Superuser có thể xem và quản lý tất cả chuyển kho
+
+## StockTransferDetails
+- Cho phép user đã đăng nhập xem danh sách và chi tiết chi tiết chuyển kho (IsStoreEmployee)
+- Yêu cầu quyền superuser hoặc nhân viên cửa hàng cho các thao tác thêm/sửa/xóa (OR(IsSuperUser(), IsStoreEmployee))
+- Người dùng thông thường chỉ có thể xem chi tiết chuyển kho liên quan đến cửa hàng họ thuộc về
+- Superuser có thể xem và quản lý tất cả chi tiết chuyển kho
+
+# Tính năng đặc biệt của StockTransfer
+## Quản lý trạng thái chuyển kho
+- `pending`: Chờ xử lý (mới tạo)
+- `in_transit`: Đang chuyển kho
+- `completed`: Hoàn thành
+- `cancelled`: Đã hủy
+
+## Tự động tính toán
+- Tự động tính tổng số lượng và số lượng đã nhận
+- Tự động tính tỷ lệ hoàn thành chuyển kho
+- Tự động cập nhật thời gian khi thay đổi trạng thái
+
+## Liên kết với Inventory
+- Khi xác nhận chuyển kho, có thể tự động cập nhật tồn kho
+- Tạo InventoryTransaction để ghi lại lịch sử chuyển kho
+- Kiểm tra tồn kho trước khi cho phép chuyển
+
+## Validation và ràng buộc
+- Không thể chuyển kho từ cửa hàng đến chính nó
+- Số lượng đã nhận không được vượt quá số lượng chuyển
+- Không thể thay đổi chuyển kho đã hoàn thành
+- Mỗi sản phẩm chỉ có thể xuất hiện một lần trong chi tiết chuyển kho
+
+## Dashboard và báo cáo
+- Thống kê chuyển kho theo trạng thái, cửa hàng, thời gian
+- Theo dõi tiến độ chuyển kho
+- Báo cáo hiệu quả chuyển kho giữa các cửa hàng
+- Thông tin tổng quan về chuyển kho (số lượng, tỷ lệ hoàn thành)
+
+## API đặc biệt
+- `GET /{id}/summary/`: Thống kê chi tiết chuyển kho
+- `POST /{id}/confirm_transfer/`: Xác nhận chuyển kho
+- `POST /{id}/cancel_transfer/`: Hủy chuyển kho
+- `GET /statistics/`: Thống kê tổng quan chuyển kho
+
+# Trạng thái chuyển kho và ý nghĩa
+## pending
+- Chuyển kho mới được tạo
+- Có thể chỉnh sửa thông tin và chi tiết
+- Chưa bắt đầu quá trình chuyển kho
+
+## in_transit
+- Chuyển kho đang được thực hiện
+- Hàng đã được đóng gói và vận chuyển
+- Có thể cập nhật số lượng đã nhận
+
+## completed
+- Chuyển kho đã hoàn thành
+- Tất cả hàng đã được nhận
+- Không thể chỉnh sửa thông tin
+
+## cancelled
+- Chuyển kho đã bị hủy
+- Không thể khôi phục hoặc chỉnh sửa
+- Có thể tạo chuyển kho mới thay thế
+
+# Quy trình làm việc chuyển kho
+1. **Tạo chuyển kho** → Trạng thái `pending`
+   - Chọn cửa hàng nguồn và đích
+   - Thêm chi tiết sản phẩm cần chuyển
+   - Đặt ngày chuyển kho
+
+2. **Bắt đầu chuyển kho** → Trạng thái `in_transit`
+   - Xác nhận bắt đầu quá trình chuyển kho
+   - Có thể cập nhật số lượng đã nhận
+
+3. **Hoàn thành chuyển kho** → Trạng thái `completed`
+   - Xác nhận tất cả hàng đã được nhận
+   - Cập nhật tồn kho (nếu cần)
+
+4. **Hủy chuyển kho** → Trạng thái `cancelled`
+   - Hủy chuyển kho nếu cần thiết
+   - Không thể khôi phục sau khi hủy
+
+# ============================================================================
+# BÁO CÁO TỔNG HỢP - HOÀN THIỆN HỆ THỐNG QUẢN LÝ KHO HÀNG VÀ THỐNG KÊ DOANH THU
+# ============================================================================
+
+# ============================================================================
+# 1. PHÂN TÍCH MỐI QUAN HỆ GIỮA STOCK TRANSFER VÀ STOCK TAKE
+# ============================================================================
+
+## 1.1 Mối quan hệ giữa Stock Transfer và Stock Take
+
+### Không có mối quan hệ trực tiếp
+- **Stock Transfer**: Chuyển kho giữa các cửa hàng
+- **Stock Take**: Kiểm kê kho tại một cửa hàng cụ thể
+
+### Mối quan hệ gián tiếp qua Inventory
+```python
+# Stock Transfer ảnh hưởng đến Inventory
+source_store.inventory.quantity -= transfer_quantity
+destination_store.inventory.quantity += transfer_quantity
+
+# Stock Take so sánh với Inventory
+expected_quantity = inventory.quantity  # Từ bảng Inventory
+actual_quantity = counted_quantity      # Từ kiểm kê thực tế
+discrepancy = actual_quantity - expected_quantity
+```
+
+## 1.2 Logic của Stock Transfer đối với Inventory
+
+### Hiện tại đã có:
+✅ **Logic tự động cập nhật inventory khi confirm transfer**
+✅ **Tạo InventoryTransaction cho mọi thay đổi**
+✅ **Kiểm tra tồn kho trước khi chuyển**
+✅ **Hoàn trả inventory khi cancel transfer**
+
+### Quy trình hoạt động:
+1. **Tạo Stock Transfer** → Status: 'pending'
+2. **Start Transfer** → Status: 'in_transit'
+3. **Update Received Quantities** → Cập nhật số lượng thực nhận
+4. **Confirm Transfer** → Status: 'completed' + Cập nhật inventory
+5. **Cancel Transfer** → Status: 'cancelled' + Hoàn trả inventory
+
+# ============================================================================
+# 2. LOGIC TỰ ĐỘNG TÍNH TOÁN HÀNG HÓA VÀ NHẬP XUẤT KHO
+# ============================================================================
+
+## 2.1 Stock Transfer Logic (Đã hoàn thiện)
+
+### API Endpoints:
+```
+POST /api/inventory/stock-transfers/{id}/confirm_transfer/ - Xác nhận chuyển kho
+POST /api/inventory/stock-transfers/{id}/cancel_transfer/ - Hủy chuyển kho
+POST /api/inventory/stock-transfers/{id}/start_transfer/ - Bắt đầu chuyển kho
+POST /api/inventory/stock-transfers/{id}/update_received_quantities/ - Cập nhật số lượng nhận
+GET /api/inventory/stock-transfers/{id}/summary/ - Thống kê chuyển kho
+GET /api/inventory/stock-transfers/statistics/ - Thống kê tổng quan
+```
+
+### Logic tự động:
+```python
+# Khi confirm transfer:
+1. Kiểm tra tồn kho nguồn
+2. Trừ tồn kho nguồn + tạo transaction OUT
+3. Cộng tồn kho đích + tạo transaction IN
+4. Cập nhật trạng thái thành 'completed'
+
+# Khi cancel transfer:
+1. Hoàn trả tồn kho nguồn + tạo transaction IN
+2. Trừ lại tồn kho đích + tạo transaction OUT
+3. Cập nhật trạng thái thành 'cancelled'
+```
+
+## 2.2 Stock Take Logic (Đã hoàn thiện)
+
+### API Endpoints:
+```
+POST /api/inventory/stock-takes/{id}/complete_stock_take/ - Hoàn thành kiểm kê
+POST /api/inventory/stock-takes/{id}/cancel_stock_take/ - Hủy kiểm kê
+POST /api/inventory/stock-takes/{id}/update_stock_take_details/ - Cập nhật chi tiết
+GET /api/inventory/stock-takes/{id}/summary/ - Thống kê kiểm kê
+GET /api/inventory/stock-takes/statistics/ - Thống kê tổng quan
+```
+
+### Logic tự động:
+```python
+# Khi complete stock take:
+1. So sánh expected vs actual quantity
+2. Điều chỉnh inventory theo actual quantity
+3. Tạo transaction cho chênh lệch
+4. Cập nhật trạng thái thành 'completed'
+
+# Khi cancel stock take:
+1. Hoàn trả inventory về expected quantity
+2. Tạo transaction hoàn trả
+3. Cập nhật trạng thái thành 'cancelled'
+```
+
+## 2.3 Order Logic (Đã hoàn thiện)
+
+### Logic tự động:
+```python
+# Khi tạo order với status 'deducted':
+1. Kiểm tra tồn kho
+2. Trừ tồn kho + tạo transaction OUT
+3. Lưu order với status tương ứng
+
+# Khi cập nhật order status:
+- Từ 'returned' sang 'deducted': Trừ tồn kho
+- Từ 'deducted' sang 'returned': Hoàn trả tồn kho
+- Tạo transaction tương ứng
+
+# Khi xóa order:
+1. Hoàn trả tồn kho nếu status là 'deducted'
+2. Tạo transaction hoàn trả
+3. Xóa mềm order
+```
+
+## 2.4 Goods Receipt Logic (Đã có sẵn)
+
+### Logic tự động:
+```python
+# Khi confirm goods receipt:
+1. Cộng tồn kho + tạo transaction IN
+2. Cập nhật received_quantity trong purchase order
+3. Cập nhật trạng thái purchase order
+
+# Khi cancel goods receipt:
+1. Trừ lại tồn kho + tạo transaction OUT
+2. Cập nhật trạng thái
+```
+
+# ============================================================================
+# 3. CẤU TRÚC TỐI ƯU CHO THỐNG KÊ DOANH THU
+# ============================================================================
+
+## 3.1 API Thống kê Doanh thu (Đã hoàn thiện)
+
+### API Endpoints:
+```
+GET /api/reports/daily-revenue/calculate_daily_revenue/ - Tính doanh thu theo ngày
+GET /api/reports/daily-revenue/inventory_analysis/ - Phân tích tồn kho
+GET /api/reports/daily-revenue/revenue_forecast/ - Dự báo doanh thu
+GET /api/reports/daily-revenue/top_products/ - Top sản phẩm bán chạy
+GET /api/reports/daily-revenue/store_performance/ - Hiệu suất cửa hàng
+```
+
+### Tính năng thống kê:
+1. **Doanh thu theo ngày**: Từ orders + inventory transactions
+2. **Phân tích tồn kho**: IN/OUT theo thời gian, sản phẩm, cửa hàng
+3. **Dự báo doanh thu**: Dựa trên dữ liệu lịch sử
+4. **Top sản phẩm**: Theo doanh thu và số lượng bán
+5. **Hiệu suất cửa hàng**: So sánh giữa các cửa hàng
+
+## 3.2 Cấu trúc dữ liệu tối ưu
+
+### InventoryTransaction (Tracking mọi thay đổi):
+```python
+- transaction_type: 'IN' | 'OUT'
+- quantity: Số lượng
+- unit_price: Đơn giá
+- reference_type: 'order' | 'stock_transfer' | 'goods_receipt' | 'stock_take'
+- reference_id: ID của đối tượng liên quan
+- note: Ghi chú chi tiết
+- created_at: Thời gian tạo
+```
+
+### Quan hệ dữ liệu:
+```
+Orders → OrderDetail → InventoryTransaction
+StockTransfer → StockTransferDetail → InventoryTransaction
+StockTake → StockTakeDetail → InventoryTransaction
+GoodsReceipt → GoodsReceiptDetail → InventoryTransaction
+```
+
+# ============================================================================
+# 4. DỮ LIỆU MẪU ĐẦY ĐỦ
+# ============================================================================
+
+## 4.1 Stock Transfer Data
+
+### Tạo Stock Transfer:
+```json
+POST /api/inventory/stock-transfers/
+{
+    "source_store": 1,
+    "destination_store": 2,
+    "transfer_date": "2024-01-15",
+    "note": "Chuyển kho từ cửa hàng chính sang chi nhánh",
+    "details": [
+        {
+            "product_variant": 1,
+            "quantity": 10
+        },
+        {
+            "product_variant": 2,
+            "quantity": 5
+        }
+    ]
+}
+```
+
+### Cập nhật số lượng nhận:
+```json
+POST /api/inventory/stock-transfers/1/update_received_quantities/
+{
+    "received_quantities": [
+        {
+            "detail_id": 1,
+            "received_quantity": 9
+        },
+        {
+            "detail_id": 2,
+            "received_quantity": 5
+        }
+    ]
+}
+```
+
+### Xác nhận chuyển kho:
+```json
+POST /api/inventory/stock-transfers/1/confirm_transfer/
+```
+
+## 4.2 Stock Take Data
+
+### Tạo Stock Take:
+```json
+POST /api/inventory/stock-takes/
+{
+    "store": 1,
+    "start_date": "2024-01-15",
+    "notes": "Kiểm kê định kỳ tháng 1",
+    "details": [
+        {
+            "product_variant": 1,
+            "expected_quantity": 100,
+            "actual_quantity": 98,
+            "notes": "Thiếu 2 sản phẩm"
+        },
+        {
+            "product_variant": 2,
+            "expected_quantity": 50,
+            "actual_quantity": 52,
+            "notes": "Thừa 2 sản phẩm"
+        }
+    ]
+}
+```
+
+### Hoàn thành kiểm kê:
+```json
+POST /api/inventory/stock-takes/1/complete_stock_take/
+```
+
+## 4.3 Revenue Statistics Data
+
+### Tính doanh thu theo ngày:
+```json
+GET /api/reports/daily-revenue/calculate_daily_revenue/?start_date=2024-01-01&end_date=2024-01-31&store=1
+```
+
+### Phân tích tồn kho:
+```json
+GET /api/reports/daily-revenue/inventory_analysis/?days=30&store=1
+```
+
+### Dự báo doanh thu:
+```json
+GET /api/reports/daily-revenue/revenue_forecast/?days=7&store=1
+```
+
+### Top sản phẩm:
+```json
+GET /api/reports/daily-revenue/top_products/?days=30&limit=10&store=1
+```
+
+### Hiệu suất cửa hàng:
+```json
+GET /api/reports/daily-revenue/store_performance/?days=30
+```
+
+# ============================================================================
+# 5. FILTERS VÀ ORDERING
+# ============================================================================
+
+## 5.1 Stock Transfer Filters
+```python
+filterset_fields = ['source_store', 'destination_store', 'status', 'created_by']
+search_fields = ['note', 'source_store__name', 'destination_store__name']
+ordering_fields = ['transfer_date', 'created_at', 'status']
+ordering = ['-created_at']
+```
+
+## 5.2 Stock Take Filters
+```python
+filterset_fields = ['store', 'status', 'created_by']
+search_fields = ['notes', 'store__name']
+ordering_fields = ['start_date', 'end_date', 'created_at', 'status']
+ordering = ['-created_at']
+```
+
+## 5.3 Revenue Statistics Filters
+```python
+# Query Parameters:
+- start_date: Ngày bắt đầu
+- end_date: Ngày kết thúc
+- store: ID cửa hàng
+- days: Số ngày (mặc định 30)
+- limit: Giới hạn kết quả (mặc định 10)
+```
+
+# ============================================================================
+# 6. PERMISSIONS VÀ SECURITY
+# ============================================================================
+
+## 6.1 Permissions
+```python
+# Read operations (list, retrieve):
+- IsStoreEmployee(): Cho phép tất cả nhân viên cửa hàng
+
+# Write operations (create, update, delete):
+- OR(IsSuperUser(), IsStoreEmployee()): Superuser hoặc nhân viên cửa hàng
+```
+
+## 6.2 Transaction Safety
+```python
+# Tất cả operations cập nhật inventory đều sử dụng:
+@transaction.atomic
+def method_name(self, request, *args, **kwargs):
+    try:
+        # Logic cập nhật
+        pass
+    except Exception as e:
+        transaction.set_rollback(True)
+        return Response({'error': str(e)}, status=500)
+```
+
+# ============================================================================
+# 7. TÓM TẮT CÁC THAY ĐỔI ĐÃ THỰC HIỆN
+# ============================================================================
+
+## 7.1 Files đã cập nhật:
+1. **apps/inventory/views/stock_transfer_view.py** - Logic tự động cập nhật inventory
+2. **apps/inventory/views/stock_take_view.py** - Logic tự động điều chỉnh inventory
+3. **apps/orders/views/order_view.py** - Thêm InventoryTransaction cho orders
+4. **apps/orders/views/order_detail_view.py** - Thêm InventoryTransaction cho order details
+5. **apps/reports/views/daily_revenue_view.py** - API thống kê doanh thu tổng hợp
+6. **apps/inventory/views/inventory_view.py** - Thêm API quản lý tồn kho theo cửa hàng
+
+## 7.2 Logic đã hoàn thiện:
+✅ **Stock Transfer**: Tự động cập nhật inventory khi confirm/cancel
+✅ **Stock Take**: Tự động điều chỉnh inventory khi complete/cancel
+✅ **Orders**: Tự động trừ/hoàn trả inventory theo status
+✅ **InventoryTransaction**: Tracking mọi thay đổi inventory
+✅ **Revenue Statistics**: Thống kê doanh thu từ nhiều nguồn dữ liệu
+✅ **Inventory Management**: API quản lý tồn kho theo cửa hàng
+
+## 7.3 API Endpoints đã thêm:
+✅ **Stock Transfer**: 6 endpoints mới
+✅ **Stock Take**: 5 endpoints mới
+✅ **Revenue Statistics**: 5 endpoints mới
+✅ **Orders**: 3 endpoints mới
+✅ **Inventory**: 4 endpoints mới
+
+## 7.4 Tính năng bảo mật:
+✅ **Transaction Safety**: Tất cả operations đều có rollback
+✅ **Permission Control**: Phân quyền chi tiết
+✅ **Data Validation**: Kiểm tra dữ liệu trước khi xử lý
+✅ **Error Handling**: Xử lý lỗi đầy đủ
+
+# ============================================================================
+# 8. KẾT LUẬN
+# ============================================================================
+
+## 8.1 Hệ thống đã hoàn thiện:
+- ✅ **Logic tự động**: Mọi thay đổi inventory đều được tự động tính toán
+- ✅ **Tracking đầy đủ**: Mọi transaction đều được ghi lại trong InventoryTransaction
+- ✅ **Thống kê tối ưu**: Cấu trúc dữ liệu tối ưu cho thống kê doanh thu
+- ✅ **Bảo mật cao**: Transaction safety và permission control
+- ✅ **API đầy đủ**: Tất cả chức năng đều có API endpoints
+
+## 8.2 Khả năng mở rộng:
+- Dễ dàng thêm các loại transaction mới
+- Có thể thêm các loại thống kê mới
+- Hỗ trợ multi-store operations
+- Scalable cho hệ thống lớn
+
+## 8.3 Hiệu suất:
+- Sử dụng database transactions để đảm bảo consistency
+- Indexing tối ưu cho các trường thường query
+- Caching có thể được thêm vào cho thống kê
+
+Hệ thống quản lý kho hàng và thống kê doanh thu đã được hoàn thiện với đầy đủ logic tự động và API endpoints cần thiết.
+
+# ============================================================================
+# 9. INVENTORY MANAGEMENT APIs - MỚI THÊM
+# ============================================================================
+
+## 9.1 API Endpoints cho Inventory Management
+
+### 1. Store Inventory API
+```
+GET /api/inventory/inventories/store_inventory/
+```
+**Mô tả**: Lấy danh sách sản phẩm trong kho của một cửa hàng nhất định
+
+**Query Parameters**:
+- `store_id` (required): ID của cửa hàng
+- `search` (optional): Tìm kiếm theo tên sản phẩm, SKU
+- `min_quantity` (optional): Số lượng tối thiểu
+- `max_quantity` (optional): Số lượng tối đa
+- `in_stock_only` (optional): Chỉ lấy sản phẩm còn hàng (true/false)
+- `out_of_stock_only` (optional): Chỉ lấy sản phẩm hết hàng (true/false)
+- `ordering` (optional): Sắp xếp (mặc định: -last_updated)
+
+**Response**:
+```json
+{
+    "store_id": 1,
+    "filters": {
+        "search": "casio",
+        "min_quantity": 5,
+        "max_quantity": 100,
+        "in_stock_only": true,
+        "out_of_stock_only": false,
+        "ordering": "-last_updated"
+    },
+    "statistics": {
+        "total_products": 50,
+        "total_quantity": 1250,
+        "in_stock_count": 45,
+        "out_of_stock_count": 5,
+        "low_stock_count": 8
+    },
+    "inventory_items": [...]
+}
+```
+
+### 2. Store Statistics API
+```
+GET /api/inventory/inventories/store_statistics/
+```
+**Mô tả**: Thống kê tồn kho của một cửa hàng
+
+**Query Parameters**:
+- `store_id` (required): ID của cửa hàng
+
+**Response**:
+```json
+{
+    "store_id": 1,
+    "overview": {
+        "total_products": 50,
+        "total_quantity": 1250,
+        "total_value": 125000000.00,
+        "in_stock_count": 45,
+        "out_of_stock_count": 5,
+        "low_stock_count": 8
+    },
+    "category_statistics": [
+        {
+            "product_variant__product__category__name": "Đồng hồ nam",
+            "product_count": 25,
+            "total_quantity": 650,
+            "total_value": 65000000.00
+        }
+    ],
+    "brand_statistics": [
+        {
+            "product_variant__product__brand__name": "Casio",
+            "product_count": 15,
+            "total_quantity": 400,
+            "total_value": 40000000.00
+        }
+    ],
+    "top_products": [
+        {
+            "product_variant__product__name": "Casio G-Shock",
+            "product_variant__name": "GA-100-1A1",
+            "product_variant__sku": "CAS-GA100-1A1",
+            "quantity": 50,
+            "last_updated": "2024-01-15T10:30:00Z"
+        }
+    ],
+    "low_stock_products": [...],
+    "out_of_stock_products": [...]
+}
+```
+
+### 3. Product Search API
+```
+GET /api/inventory/inventories/product_search/
+```
+**Mô tả**: Tìm kiếm sản phẩm trong kho theo tên, SKU, hoặc mô tả
+
+**Query Parameters**:
+- `q` (required): Từ khóa tìm kiếm
+- `store_id` (optional): ID của cửa hàng
+- `limit` (optional): Giới hạn kết quả (mặc định: 20)
+
+**Response**:
+```json
+{
+    "query": "casio",
+    "store_id": 1,
+    "total_results": 15,
+    "results": [...]
+}
+```
+
+### 4. Low Stock Alert API
+```
+GET /api/inventory/inventories/low_stock_alert/
+```
+**Mô tả**: Cảnh báo sản phẩm sắp hết hàng
+
+**Query Parameters**:
+- `store_id` (optional): ID của cửa hàng
+- `threshold` (optional): Ngưỡng cảnh báo (mặc định: 10)
+
+**Response**:
+```json
+{
+    "store_id": 1,
+    "threshold": 10,
+    "low_stock_count": 8,
+    "out_of_stock_count": 5,
+    "low_stock_items": [...],
+    "out_of_stock_items": [...]
+}
+```
+
+## 9.2 Ví dụ sử dụng API
+
+### Lấy danh sách sản phẩm trong kho cửa hàng:
+```bash
+GET /api/inventory/inventories/store_inventory/?store_id=1&in_stock_only=true&ordering=-quantity
+```
+
+### Thống kê tồn kho cửa hàng:
+```bash
+GET /api/inventory/inventories/store_statistics/?store_id=1
+```
+
+### Tìm kiếm sản phẩm:
+```bash
+GET /api/inventory/inventories/product_search/?q=casio&store_id=1&limit=10
+```
+
+### Cảnh báo sắp hết hàng:
+```bash
+GET /api/inventory/inventories/low_stock_alert/?store_id=1&threshold=5
+```
+
+## 9.3 Tính năng nổi bật
+
+### ✅ **Lọc và tìm kiếm thông minh**:
+- Tìm kiếm theo tên sản phẩm, SKU, mô tả
+- Lọc theo số lượng (min/max)
+- Lọc theo trạng thái tồn kho (còn hàng/hết hàng)
+
+### ✅ **Thống kê chi tiết**:
+- Tổng quan tồn kho
+- Thống kê theo danh mục, thương hiệu
+- Top sản phẩm có số lượng cao nhất
+- Sản phẩm sắp hết hàng
+
+### ✅ **Cảnh báo thông minh**:
+- Cảnh báo sản phẩm sắp hết hàng
+- Cảnh báo sản phẩm hết hàng
+- Ngưỡng cảnh báo có thể tùy chỉnh
+
+### ✅ **Bảo mật và phân quyền**:
+- Kiểm tra quyền truy cập theo cửa hàng
+- Chỉ hiển thị dữ liệu cửa hàng được phép
+- Validation dữ liệu đầu vào
+
+Hệ thống quản lý tồn kho đã được hoàn thiện với đầy đủ tính năng cần thiết cho việc quản lý kho hàng theo cửa hàng!
+
+# ============================================================================
+# 10. STOCK TRANSFER DETAIL APIs - MỚI THÊM
+# ============================================================================
+
+## 10.1 API Endpoints cho StockTransferDetail
+
+### Base URL: `/api/inventory/stock-transfer-details/`
+
+### CRUD Operations:
+- `GET /api/inventory/stock-transfer-details/` - Lấy danh sách chi tiết chuyển kho (có phân trang)
+- `GET /api/inventory/stock-transfer-details/{id}/` - Lấy chi tiết một chi tiết chuyển kho
+- `POST /api/inventory/stock-transfer-details/` - Tạo chi tiết chuyển kho mới
+- `PUT /api/inventory/stock-transfer-details/{id}/` - Cập nhật chi tiết chuyển kho
+- `PATCH /api/inventory/stock-transfer-details/{id}/` - Cập nhật một phần chi tiết chuyển kho
+- `DELETE /api/inventory/stock-transfer-details/{id}/` - Xóa chi tiết chuyển kho
+
+### Custom Actions:
+- `GET /api/inventory/stock-transfer-details/by_stock_transfer/?stock_transfer_id=1` - Lấy danh sách chi tiết theo chuyển kho
+- `GET /api/inventory/stock-transfer-details/by_product_variant/?product_variant_id=1` - Lấy danh sách chi tiết theo sản phẩm
+- `PATCH /api/inventory/stock-transfer-details/{id}/update_received_quantity/` - Cập nhật số lượng đã nhận
+
+## 10.2 Dữ liệu mẫu cho StockTransferDetail
+
+### GET /api/inventory/stock-transfer-details/
+```json
+{
+    "count": 3,
+    "next": null,
+    "previous": null,
+    "results": [
+        {
+            "id": 1,
+            "stock_transfer": 1,
+            "stock_transfer_info": {
+                "id": 1,
+                "source_store": "Watch Store Hà Nội",
+                "destination_store": "Watch Store Hồ Chí Minh",
+                "status": "completed",
+                "transfer_date": "2024-06-10T09:00:00Z"
+            },
+            "product_variant": 1,
+            "product_variant_info": {
+                "id": 1,
+                "name": "Rolex Submariner",
+                "sku": "ROLEX-SUB-001",
+                "price": "8000000.00"
+            },
+            "quantity": 5,
+            "received_quantity": 5,
+            "created_by": 1,
+            "created_by_username": "admin",
+            "updated_by": 1,
+            "updated_by_username": "admin",
+            "created_at": "2024-06-10T09:00:00Z",
+            "updated_at": "2024-06-10T09:00:00Z"
+        }
+    ]
+}
+```
+
+### POST /api/inventory/stock-transfer-details/
+**Tạo chi tiết chuyển kho mới**
+
+**Request Body:**
+```json
+{
+    "stock_transfer": 1,
+    "product_variant": 1,
+    "quantity": 3,
+    "received_quantity": 0
+}
+```
+
+**Response (201 Created):**
+```json
+{
+    "id": 4,
+    "stock_transfer": 1,
+    "stock_transfer_info": {
+        "id": 1,
+        "source_store": "Watch Store Hà Nội",
+        "destination_store": "Watch Store Hồ Chí Minh",
+        "status": "pending",
+        "transfer_date": "2024-06-10T09:00:00Z"
+    },
+    "product_variant": 1,
+    "product_variant_info": {
+        "id": 1,
+        "name": "Rolex Submariner",
+        "sku": "ROLEX-SUB-001",
+        "price": "8000000.00"
+    },
+    "quantity": 3,
+    "received_quantity": 0,
+    "created_by": 1,
+    "created_by_username": "admin",
+    "updated_by": 1,
+    "updated_by_username": "admin",
+    "created_at": "2024-06-10T10:30:00Z",
+    "updated_at": "2024-06-10T10:30:00Z"
+}
+```
+
+### PATCH /api/inventory/stock-transfer-details/{id}/update_received_quantity/
+**Cập nhật số lượng đã nhận**
+
+**Request Body:**
+```json
+{
+    "received_quantity": 2
+}
+```
+
+**Response (200 OK):**
+```json
+{
+    "message": "Đã cập nhật số lượng nhận thành công",
+    "detail": {
+        "id": 4,
+        "stock_transfer": 1,
+        "product_variant": 1,
+        "quantity": 3,
+        "received_quantity": 2,
+        "created_at": "2024-06-10T10:30:00Z",
+        "updated_at": "2024-06-10T11:00:00Z"
+    }
+}
+```
+
+### GET /api/inventory/stock-transfer-details/by_stock_transfer/?stock_transfer_id=1
+**Lấy danh sách chi tiết theo chuyển kho**
+
+**Response (200 OK):**
+```json
+{
+    "stock_transfer_id": 1,
+    "details": [
+        {
+            "id": 1,
+            "stock_transfer": 1,
+            "product_variant": 1,
+            "quantity": 5,
+            "received_quantity": 5
+        },
+        {
+            "id": 2,
+            "stock_transfer": 1,
+            "product_variant": 2,
+            "quantity": 7,
+            "received_quantity": 7
+        }
+    ],
+    "total_count": 2
+}
+```
+
+## 10.3 Validation Rules
+
+### Tạo chi tiết chuyển kho:
+- `stock_transfer` và `product_variant` là bắt buộc
+- `quantity` phải lớn hơn 0
+- `received_quantity` không được vượt quá `quantity`
+- Không được trùng lặp `stock_transfer` + `product_variant`
+- Không thể thêm vào chuyển kho đã hoàn thành hoặc đã hủy
+
+### Cập nhật chi tiết chuyển kho:
+- Không thể cập nhật chi tiết của chuyển kho đã hoàn thành hoặc đã hủy
+- `received_quantity` không được vượt quá `quantity`
+
+### Xóa chi tiết chuyển kho:
+- Không thể xóa chi tiết của chuyển kho đã hoàn thành hoặc đã hủy
+
+## 10.4 Các tính năng tìm kiếm và lọc
+
+### Filters:
+- `stock_transfer`: Lọc theo chuyển kho
+- `product_variant`: Lọc theo sản phẩm
+
+### Search:
+- Tìm kiếm theo tên sản phẩm, SKU
+- Tìm kiếm theo ghi chú chuyển kho
+
+### Ordering:
+- `quantity`: Sắp xếp theo số lượng
+- `received_quantity`: Sắp xếp theo số lượng đã nhận
+- `created_at`: Sắp xếp theo thời gian tạo
+
+## 10.5 Quyền truy cập
+
+### Read operations (list, retrieve):
+- `IsStoreEmployee()`: Cho phép tất cả nhân viên cửa hàng
+
+### Write operations (create, update, delete):
+- `OR(IsSuperUser(), IsStoreEmployee())`: Superuser hoặc nhân viên cửa hàng
+
+## 10.6 Ví dụ sử dụng API
+
+### Tạo chi tiết chuyển kho:
+```bash
+POST /api/inventory/stock-transfer-details/
+{
+    "stock_transfer": 1,
+    "product_variant": 1,
+    "quantity": 5,
+    "received_quantity": 0
+}
+```
+
+### Cập nhật số lượng nhận:
+```bash
+PATCH /api/inventory/stock-transfer-details/1/update_received_quantity/
+{
+    "received_quantity": 3
+}
+```
+
+### Lấy chi tiết theo chuyển kho:
+```bash
+GET /api/inventory/stock-transfer-details/by_stock_transfer/?stock_transfer_id=1
+```
+
+### Lọc theo sản phẩm:
+```bash
+GET /api/inventory/stock-transfer-details/?product_variant=1
+```
+
+## 10.7 Tính năng nổi bật
+
+### ✅ **Validation thông minh**:
+- Kiểm tra trạng thái chuyển kho trước khi cho phép thao tác
+- Ngăn chặn trùng lặp sản phẩm trong cùng chuyển kho
+- Validation số lượng nhận không vượt quá số lượng chuyển
+
+### ✅ **API linh hoạt**:
+- CRUD operations đầy đủ
+- Custom actions cho các tác vụ đặc biệt
+- Lọc và tìm kiếm theo nhiều tiêu chí
+
+### ✅ **Bảo mật và phân quyền**:
+- Kiểm tra quyền truy cập theo từng action
+- Validation dữ liệu đầu vào
+- Xử lý lỗi đầy đủ
+
+### ✅ **Tích hợp với StockTransfer**:
+- Liên kết chặt chẽ với chuyển kho
+- Cập nhật thông tin chuyển kho tự động
+- Tracking người tạo và cập nhật
+
+Hệ thống quản lý chi tiết chuyển kho đã được hoàn thiện với đầy đủ tính năng cần thiết!

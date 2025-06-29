@@ -465,7 +465,7 @@ class PurchaseOrderViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
                     'id': detail.id,
                     'product_variant': {
                         'id': detail.product_variant.id,
-                        'name': detail.product_variant.name,
+                        'name': detail.product_variant.product.name if detail.product_variant.product else detail.product_variant.sku,
                         'sku': detail.product_variant.sku,
                         'product_name': detail.product_variant.product.name
                     },
