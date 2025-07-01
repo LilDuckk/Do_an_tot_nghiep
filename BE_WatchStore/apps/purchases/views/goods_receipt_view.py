@@ -244,7 +244,7 @@ class GoodsReceiptViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
                     # Tạo inventory transaction
                     InventoryTransaction.objects.create(
                         inventory=inventory,
-                        transaction_type='in',
+                        transaction_type='IN',
                         quantity=detail.accepted_quantity,
                         unit_price=detail.unit_price,
                         reference_type='goods_receipt',
@@ -267,7 +267,7 @@ class GoodsReceiptViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
                         # Tạo inventory transaction
                         InventoryTransaction.objects.create(
                             inventory=inventory,
-                            transaction_type='out',
+                            transaction_type='OUT',
                             quantity=detail.accepted_quantity,
                             unit_price=detail.unit_price,
                             reference_type='goods_receipt',
@@ -329,7 +329,7 @@ class GoodsReceiptViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
                     # Tạo inventory transaction
                     InventoryTransaction.objects.create(
                         inventory=inventory,
-                        transaction_type='in',
+                        transaction_type='IN',
                         quantity=detail.accepted_quantity,
                         unit_price=detail.unit_price,
                         reference_type='goods_receipt',

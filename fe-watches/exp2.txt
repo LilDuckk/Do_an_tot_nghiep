@@ -1,0 +1,60 @@
+Rất hay! Dưới đây là các API báo cáo mà bạn chưa tận dụng hết cho dashboard, cùng với ý tưởng thiết kế và đề xuất giao diện/UX để bạn tham khảo:
+1. SALES_PRODUCT_PERFORMANCE
+API: /api/reports/sales/product_performance/
+Ý nghĩa: Theo dõi hiệu suất từng sản phẩm theo thời gian (ngày/tuần/tháng).
+Ý tưởng thiết kế:
+Biểu đồ đường hoặc cột:
+Cho phép chọn 1 sản phẩm (dropdown hoặc autocomplete).
+Hiển thị số lượng bán, doanh thu, số đơn, discount... theo từng ngày/tuần/tháng.
+Bảng chi tiết:
+Danh sách các kỳ (ngày/tuần/tháng), số lượng bán, doanh thu, discount, v.v.
+Đề xuất giao diện:
+Thêm một tab hoặc card “Hiệu suất sản phẩm”.
+Cho phép chọn sản phẩm và kỳ (daily/weekly/monthly).
+Biểu đồ trực quan + bảng số liệu.
+2. REVENUE REPORT SUMMARY
+API: /api/reports/revenue/daily_revenue/ và /api/reports/revenue/monthly_revenue/
+Ý nghĩa: Ngoài biểu đồ, còn có summary tổng hợp (tổng đơn, tổng doanh thu, tổng giảm giá, AOV...).
+Ý tưởng thiết kế:
+Card thống kê nhỏ bên dưới hoặc bên cạnh biểu đồ:
+Tổng số đơn, tổng doanh thu, tổng giảm giá, tổng khách, AOV, discount rate...
+So sánh kỳ:
+So sánh tháng này với tháng trước, tuần này với tuần trước (hiển thị % tăng/giảm).
+Đề xuất giao diện:
+Thêm dải card nhỏ (mini-statistics) dưới biểu đồ.
+Có thể dùng màu sắc để nhấn mạnh tăng/giảm.
+3. SALES_BEST_SELLERS (đã có nhưng có thể mở rộng)
+API: /api/reports/sales/best_sellers/
+Ý nghĩa: Đã có biểu đồ top sản phẩm, nhưng có thể thêm bảng chi tiết:
+Số lượng bán, doanh thu, discount, tồn kho, lãi gộp, v.v.
+Ý tưởng thiết kế:
+Bảng sortable, filter theo brand, category.
+Tooltip hiển thị chi tiết khi hover vào sản phẩm.
+4. SALES_INVENTORY_TURNOVER (đã có nhưng có thể mở rộng)
+API: /api/reports/sales/inventory_turnover/
+Ý nghĩa: Đã có biểu đồ, có thể thêm bảng chi tiết:
+Số lượng bán, tồn kho, turnover rate, days of inventory...
+Ý tưởng thiết kế:
+Bảng sortable, filter theo brand, category.
+Biểu đồ phụ: Top sản phẩm tồn kho lâu nhất.
+5. PROFIT_ANALYSIS (đã có nhưng có thể mở rộng)
+API: /api/reports/revenue/profit_analysis/
+Ý nghĩa: Đã có biểu đồ, có thể thêm card thống kê:
+Lãi gộp, tỷ suất lãi gộp, profit per order, cost of goods sold...
+Ý tưởng thiết kế:
+Card nhỏ: Lãi gộp, tỷ suất lãi gộp, profit/order, cost percentage.
+Biểu đồ phụ: So sánh lãi gộp các tháng.
+6. Cảnh báo tự động (ALERTS)
+API: /api/reports/dashboard/alerts/
+Ý nghĩa: Đã có, có thể mở rộng thêm các loại cảnh báo (ví dụ: sản phẩm bán chậm, tồn kho thấp, doanh thu giảm mạnh...).
+Ý tưởng thiết kế:
+Card cảnh báo nổi bật, có icon, màu sắc theo mức độ.
+Có thể click để xem chi tiết hoặc chuyển hướng đến trang liên quan.
+Tóm tắt đề xuất giao diện/UX:
+Thêm tab hoặc section mới:
+“Hiệu suất sản phẩm”, “So sánh kỳ”, “Chi tiết doanh thu”, “Cảnh báo nâng cao”...
+Bổ sung bảng chi tiết dưới các biểu đồ.
+Card mini-statistics cho các chỉ số tổng hợp.
+Chọn sản phẩm/kỳ động (dropdown, autocomplete).
+So sánh kỳ (hiển thị % tăng/giảm).
+Tooltip, filter, sort cho bảng số liệu.

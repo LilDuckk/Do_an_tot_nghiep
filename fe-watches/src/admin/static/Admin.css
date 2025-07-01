@@ -223,22 +223,4 @@
     font-size: 0.95rem;
     padding: 0.7rem 0.8rem;
   }
-}
-
-.admin-dashboard-container {
-  max-width: 600px;
-  margin: 80px auto;
-  padding: 32px;
-  background: var(--bg);
-  border-radius: 8px;
-  box-shadow: 0 2px 8px var(--shadow);
-  text-align: center;
-}
-.admin-dashboard-container h2 {
-  color: var(--text);
-  margin-bottom: 16px;
-}
-.admin-dashboard-container p {
-  color: var(--text);
-  font-size: 18px;
 } 

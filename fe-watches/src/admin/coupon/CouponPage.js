@@ -15,6 +15,7 @@ import {
 import { EditOutlined, DeleteOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import '../static/AdminCommon.css';
+import { ORDER_ENDPOINTS } from '../../config/api';
 
 const { Option } = Select;
 
@@ -26,6 +27,7 @@ const CouponListPage = () => {
   const [editingId, setEditingId] = useState(null);
   const [searchText, setSearchText] = useState('');
   const [debouncedSearchText, setDebouncedSearchText] = useState('');
+  const [filters, setFilters] = useState({ code: '', discount_type: '', is_active: '' });
 
   // Debounce search text
   useEffect(() => {
@@ -36,25 +38,24 @@ const CouponListPage = () => {
     return () => clearTimeout(timer);
   }, [searchText]);
 
+  // Fetch coupons with filters
   const fetchCoupons = useCallback(async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('accessToken');
       const queryParams = new URLSearchParams();
-      if (debouncedSearchText) {
-        queryParams.append('search', debouncedSearchText);
-      }
-      
-      const response = await fetch(`http://localhost:8000/api/orders/coupons/?${queryParams}`, {
+      if (debouncedSearchText) queryParams.append('search', debouncedSearchText);
+      if (filters.code) queryParams.append('code', filters.code);
+      if (filters.discount_type) queryParams.append('discount_type', filters.discount_type);
+      if (filters.is_active !== '') queryParams.append('is_active', filters.is_active);
+      const response = await fetch(`${ORDER_ENDPOINTS.COUPONS}?${queryParams}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-
       if (response.status === 403) {
         message.error('Bạn không có quyền xem danh sách này.');
         setCoupons([]);
         return;
       }
-
       const data = await response.json();
       setCoupons(Array.isArray(data.results) ? data.results : []);
     } catch (error) {
@@ -63,7 +64,7 @@ const CouponListPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [debouncedSearchText]);
+  }, [debouncedSearchText, filters]);
 
   useEffect(() => {
     fetchCoupons();
@@ -235,9 +236,36 @@ const CouponListPage = () => {
             prefix={<SearchOutlined />}
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
-            style={{ width: 300 }}
+            style={{ width: 200 }}
             allowClear
           />
+          <Select
+            placeholder="Lọc theo mã"
+            value={filters.code}
+            onChange={val => setFilters(f => ({ ...f, code: val }))}
+            allowClear
+            style={{ width: 120 }}
+          />
+          <Select
+            placeholder="Loại giảm giá"
+            value={filters.discount_type}
+            onChange={val => setFilters(f => ({ ...f, discount_type: val }))}
+            allowClear
+            style={{ width: 120 }}
+          >
+            <Option value="percentage">Phần trăm</Option>
+            <Option value="fixed">Cố định</Option>
+          </Select>
+          <Select
+            placeholder="Trạng thái"
+            value={filters.is_active}
+            onChange={val => setFilters(f => ({ ...f, is_active: val }))}
+            allowClear
+            style={{ width: 120 }}
+          >
+            <Option value="true">Hoạt động</Option>
+            <Option value="false">Không hoạt động</Option>
+          </Select>
           <Button
             type="primary"
             icon={<PlusOutlined />}

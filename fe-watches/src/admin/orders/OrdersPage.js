@@ -15,8 +15,9 @@ import {
   Row,
   Col,
   Card,
+  Tooltip,
 } from 'antd';
-import { EditOutlined, DeleteOutlined, PlusOutlined, SearchOutlined, EyeOutlined, ShoppingCartOutlined, FilterOutlined } from '@ant-design/icons';
+import { EditOutlined, DeleteOutlined, PlusOutlined, SearchOutlined, ShoppingCartOutlined, FilterOutlined, SettingOutlined, CarOutlined, CheckCircleOutlined, StopOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { ORDER_ENDPOINTS, STORE_ENDPOINTS, PRODUCT_ENDPOINTS, CUSTOMER_ENDPOINTS } from '../../config/api';
 import '../static/AdminCommon.css';
@@ -30,8 +31,7 @@ const OrdersPage = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [form] = Form.useForm();
   const [editingId, setEditingId] = useState(null);
-  const [searchText, setSearchText] = useState('');
-  const [debouncedSearchText, setDebouncedSearchText] = useState('');
+
   const [customers, setCustomers] = useState([]);
   const [customerSearchText, setCustomerSearchText] = useState('');
   const [customerSearchLoading, setCustomerSearchLoading] = useState(false);
@@ -72,14 +72,7 @@ const OrdersPage = () => {
   const userEmployeeId = user.employee_id || null;
   const userStoreId = user.store_id || null;
 
-  // Debounce search text
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearchText(searchText);
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [searchText]);
+  // Debounce search text - removed unused effect
 
   // Debounce filter value
   useEffect(() => {
@@ -214,14 +207,14 @@ const OrdersPage = () => {
   };
 
   // Thêm hàm lọc nhân viên theo cửa hàng
-  const filterEmployeesByStore = (storeId) => {
+  const filterEmployeesByStore = useCallback((storeId) => {
     if (!storeId) {
       setFilteredEmployees([]);
       return;
     }
     const filtered = employees.filter(emp => emp.store === storeId);
     setFilteredEmployees(filtered);
-  };
+  }, [employees]);
 
   const fetchProducts = async () => {
     try {
@@ -243,7 +236,6 @@ const OrdersPage = () => {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
-      console.log('Variants data:', data);
       setVariants(Array.isArray(data) ? data : []);
     } catch (error) {
       message.error('Lỗi khi tải danh sách biến thể');
@@ -297,7 +289,7 @@ const OrdersPage = () => {
     } else {
       setFilteredEmployees([]);
     }
-  }, [storeFilter]);
+  }, [storeFilter, filterEmployeesByStore]);
 
   const handleSubmit = async (values) => {
     try {
@@ -377,33 +369,8 @@ const OrdersPage = () => {
     }
   };
 
-  const handleDelete = async (id) => {
-    try {
-      const token = localStorage.getItem('accessToken');
-      const response = await fetch(ORDER_ENDPOINTS.ORDER_DETAIL(id), {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (response.status === 403) {
-        message.error('Bạn không có quyền xóa đơn hàng này.');
-        return;
-      }
-
-      message.success('Xóa đơn hàng thành công');
-      fetchOrders();
-    } catch (error) {
-      message.error('Có lỗi xảy ra khi xóa');
-    }
-  };
-
-  const handleProductChange = (productId) => {
-    if (productId) {
-      fetchVariants(productId);
-    } else {
-      setVariants([]);
-    }
-  };
+  // handleDelete function removed - unused
+  // handleProductChange function removed - unused
 
   const handleOrderDetailSubmit = async (values) => {
     try {
@@ -429,9 +396,10 @@ const OrdersPage = () => {
         });
         if (response.status === 403) {
           message.error('Bạn không có quyền sửa chi tiết đơn hàng.');
-          return;
+          return false;
         }
         message.success('Cập nhật chi tiết đơn hàng thành công');
+        return true;
       } else {
         // Thêm mới
         const response = await fetch(ORDER_ENDPOINTS.ORDER_DETAILS, {
@@ -447,14 +415,14 @@ const OrdersPage = () => {
         });
         if (response.status === 403) {
           message.error('Bạn không có quyền thêm chi tiết đơn hàng.');
-          return;
+          return false;
         }
         message.success('Thêm chi tiết đơn hàng thành công');
+        return true;
       }
-      return true; // Trả về true nếu thêm/sửa thành công
     } catch (error) {
       message.error('Có lỗi xảy ra khi thêm/sửa chi tiết đơn hàng');
-      return false; // Trả về false nếu có lỗi
+      return false;
     }
   };
 
@@ -521,23 +489,28 @@ const OrdersPage = () => {
       key: 'action',
       render: (_, record) => (
         <Space>
-          <Button
-            icon={<EditOutlined />}
-            onClick={() => {
-              setEditingOrderDetail(record);
-              const productId = record.variant?.product || record.product?.id;
-              setSelectedProductId(productId);
-              fetchVariants(productId).then(() => {
-                orderDetailForm.setFieldsValue({
-                  product: productId,
-                  product_variant: record.variant?.id || record.product_variant,
-                  quantity: record.quantity,
-                  coupon_id: record.coupon?.id || null,
+          <Tooltip title="Chi tiết đơn hàng">
+            <Button
+              type="primary"
+              icon={<ShoppingCartOutlined />}
+              onClick={() => {
+                setShowAddProductForm(true);
+                setEditingOrderDetail(record);
+                const productId = record.variant?.product || record.product?.id;
+                setSelectedProductId(productId);
+                fetchVariants(productId).then(() => {
+                  orderDetailForm.setFieldsValue({
+                    product: productId,
+                    product_variant: record.variant?.id || record.product_variant,
+                    quantity: record.quantity,
+                    coupon_id: record.coupon?.id || null,
+                  });
+                  setSelectedVariant(record.variant || null);
                 });
-                setSelectedVariant(record.variant || null);
-              });
-            }}
-          />
+              }}
+              size="middle"
+            />
+          </Tooltip>
           <Popconfirm
             title="Bạn có chắc chắn muốn xóa?"
             onConfirm={() => handleDeleteOrderDetail(record.id)}
@@ -595,6 +568,40 @@ const OrdersPage = () => {
       setModalVisible(true);
     } catch (error) {
       message.error('Có lỗi xảy ra khi lấy thông tin đơn hàng');
+    }
+  };
+
+  const handleOrderStatusAction = async (id, action) => {
+    try {
+      const token = localStorage.getItem('accessToken');
+      let url = '';
+      let actionText = '';
+      if (action === 'process') {
+        url = ORDER_ENDPOINTS.ORDER_PROCESS(id);
+        actionText = 'Chuyển sang đang xử lý';
+      } else if (action === 'ship') {
+        url = ORDER_ENDPOINTS.ORDER_SHIP(id);
+        actionText = 'Chuyển sang đang giao hàng';
+      } else if (action === 'confirm') {
+        url = ORDER_ENDPOINTS.ORDER_CONFIRM(id);
+        actionText = 'Xác nhận hoàn thành';
+      } else if (action === 'cancel') {
+        url = ORDER_ENDPOINTS.ORDER_CANCEL(id);
+        actionText = 'Hủy đơn hàng';
+      }
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (response.ok) {
+        message.success(data.message || `${actionText} thành công!`);
+        fetchOrders();
+      } else {
+        message.error(data.error || `Không thể ${actionText.toLowerCase()}`);
+      }
+    } catch (error) {
+      message.error('Có lỗi xảy ra khi cập nhật trạng thái đơn hàng');
     }
   };
 
@@ -665,26 +672,67 @@ const OrdersPage = () => {
       key: 'action',
       render: (_, record) => (
         <Space>
-          <Button
-            type="primary"
-            icon={<ShoppingCartOutlined />}
-            onClick={() => {
-              setSelectedOrderId(record.id);
-              fetchOrderDetails(record.id);
-              setOrderDetailModalVisible(true);
-            }}
-          />
-          <Button
-            type="primary"
-            icon={<EditOutlined />}
-            onClick={() => handleEdit(record)}
-          />
-          <Popconfirm
-            title="Bạn có chắc chắn muốn xóa?"
-            onConfirm={() => handleDelete(record.id)}
-          >
-            <Button danger icon={<DeleteOutlined />} />
-          </Popconfirm>
+          <Tooltip title="Chi tiết đơn hàng">
+            <Button
+              type="primary"
+              icon={<ShoppingCartOutlined />}
+              onClick={() => {
+                setSelectedOrderId(record.id);
+                fetchOrderDetails(record.id);
+                setOrderDetailModalVisible(true);
+              }}
+              size="middle"
+            />
+          </Tooltip>
+          <Tooltip title="Chỉnh sửa đơn hàng">
+            <Button
+              type="primary"
+              icon={<EditOutlined />}
+              onClick={() => handleEdit(record)}
+              size="middle"
+            />
+          </Tooltip>
+          {record.status === 'pending' && (
+            <Tooltip title="Chuyển sang đang xử lý">
+              <Button
+                icon={<SettingOutlined />}
+                onClick={() => handleOrderStatusAction(record.id, 'process')}
+                size="middle"
+                style={{ background: '#1890ff', borderColor: '#1890ff', color: '#fff' }}
+              />
+            </Tooltip>
+          )}
+          {record.status === 'processing' && (
+            <Tooltip title="Chuyển sang đang giao hàng">
+              <Button
+                icon={<CarOutlined />}
+                onClick={() => handleOrderStatusAction(record.id, 'ship')}
+                size="middle"
+                style={{ background: '#1890ff', borderColor: '#1890ff', color: '#fff' }}
+              />
+            </Tooltip>
+          )}
+          {record.status === 'shipped' && (
+            <Tooltip title="Xác nhận hoàn thành">
+              <Button
+                icon={<CheckCircleOutlined />}
+                onClick={() => handleOrderStatusAction(record.id, 'confirm')}
+                size="middle"
+                style={{ background: '#52c41a', borderColor: '#52c41a', color: '#fff' }}
+              />
+            </Tooltip>
+          )}
+          {record.status !== 'delivered' && record.status !== 'cancelled' && (
+            <Tooltip title="Hủy đơn hàng">
+              <Button
+                icon={<StopOutlined />}
+                onClick={() => handleOrderStatusAction(record.id, 'cancel')}
+                size="middle"
+                danger
+                style={{ borderColor: '#ff4d4f', color: '#ff4d4f', background: '#fff' }}
+              />
+            </Tooltip>
+          )}
         </Space>
       ),
     },
@@ -1232,13 +1280,20 @@ const OrdersPage = () => {
           <Form
             form={orderDetailForm}
             onFinish={async (values) => {
-              const success = await handleOrderDetailSubmit(values);
+              let success = false;
+              if (editingOrderDetail) {
+                // Gọi logic update
+                success = await handleOrderDetailSubmit({ ...values, id: editingOrderDetail.id });
+              } else {
+                // Gọi logic thêm mới
+                success = await handleOrderDetailSubmit(values);
+              }
               if (success) {
-                // Chỉ reset form và cập nhật danh sách nếu thêm thành công
                 orderDetailForm.resetFields();
                 setSelectedProductId(null);
                 setVariants([]);
                 setSelectedVariant(null);
+                setEditingOrderDetail(null);
                 fetchOrderDetails(selectedOrderId);
               }
             }}
@@ -1351,7 +1406,7 @@ const OrdersPage = () => {
             <Form.Item>
               <Space>
                 <Button type="primary" htmlType="submit">
-                  Thêm vào đơn hàng
+                  {editingOrderDetail ? 'Cập nhật sản phẩm' : 'Thêm vào đơn hàng'}
                 </Button>
                 <Button onClick={() => {
                   setShowAddProductForm(false);
@@ -1359,6 +1414,7 @@ const OrdersPage = () => {
                   setSelectedProductId(null);
                   setVariants([]);
                   setSelectedVariant(null);
+                  setEditingOrderDetail(null);
                 }}>
                   Hủy
                 </Button>

@@ -133,6 +133,467 @@ POST /api/stores/suppliers/ - Tạo nhà cung cấp mới
 PUT /api/stores/suppliers/{id}/ - Cập nhật nhà cung cấp
 DELETE /api/stores/suppliers/{id}/ - Xóa nhà cung cấp
 
+---
+
+## 📊 **MODULE REPORTS - BÁO CÁO THỐNG KÊ**
+
+### 🚀 **Tối ưu hiệu suất với SQL queries**
+Module Reports được thiết kế để sử dụng SQL queries tối ưu thay vì tạo thêm bảng mới, đảm bảo:
+- **Hiệu suất cao**: Sử dụng JOIN, GROUP BY, và các hàm tổng hợp của SQL
+- **Dữ liệu real-time**: Tính toán từ dữ liệu gốc, không có dữ liệu dư thừa
+- **Tự động lọc quyền**: Theo cửa hàng của người dùng
+- **Không tạo bảng mới**: Sử dụng trực tiếp các bảng Orders, OrderDetail, Inventory, InventoryTransaction
+
+### 🔄 **Đường đi dữ liệu chính:**
+
+1. **Mua hàng (Purchase)** → **Nhập kho (Goods Receipt)** → **Tồn kho (Inventory)**
+2. **Bán hàng (Order)** → **Xuất kho (Inventory Transaction)** → **Doanh thu**
+3. **Khuyến mãi (Coupon)** → **Giảm giá (OrderDetail)** → **Doanh thu thực**
+
+### 📈 **Các chỉ số thống kê:**
+
+1. **Doanh thu (Revenue)**: Tổng tiền bán hàng
+2. **Doanh số (Sales Volume)**: Số lượng sản phẩm bán ra
+3. **Lãi gộp (Gross Profit)**: Doanh thu - Chi phí hàng bán
+4. **Vốn hàng bán (COGS)**: Chi phí nhập kho
+5. **Sản phẩm bán chạy (Best Sellers)**: Sản phẩm bán nhiều nhất
+6. **Hiệu quả khuyến mãi (Promotion Effectiveness)**: Tỷ lệ giảm giá
+
+---
+
+## 🎯 **DASHBOARD API**
+
+### **GET /api/reports/dashboard/overview/**
+**Tổng quan dashboard**
+
+**Query Parameters:**
+- `period` (int): Số ngày (7, 30, 90, 365) - mặc định: 30
+- `store_id` (int): ID cửa hàng (tùy chọn)
+
+**Response:**
+```json
+{
+  "period": {
+    "days": 30,
+    "start_date": "2024-01-01",
+    "end_date": "2024-01-30"
+  },
+  "revenue": {
+    "gross_revenue": 50000000.00,
+    "net_revenue": 45000000.00,
+    "total_discounts": 5000000.00,
+    "revenue_growth": 15.5,
+    "average_order_value": 250000.00
+  },
+  "orders": {
+    "total_orders": 200,
+    "total_customers": 150,
+    "orders_per_customer": 1.33
+  },
+  "products": {
+    "total_items_sold": 500,
+    "total_products_sold": 50,
+    "average_items_per_order": 2.5
+  },
+  "inventory": {
+    "total_products_in_stock": 100,
+    "total_stock_quantity": 1000,
+    "total_stores": 3
+  },
+  "purchasing": {
+    "total_receipts": 25,
+    "total_items_received": 300,
+    "total_purchase_orders": 30,
+    "total_purchase_amount": 30000000.00
+  },
+  "kpis": {
+    "revenue_per_day": 1500000.00,
+    "orders_per_day": 6.67,
+    "items_per_day": 16.67,
+    "discount_rate": 10.0
+  }
+}
+```
+
+### **GET /api/reports/dashboard/recent_activity/**
+**Hoạt động gần đây**
+
+**Query Parameters:**
+- `limit` (int): Số lượng bản ghi - mặc định: 10
+- `store_id` (int): ID cửa hàng (tùy chọn)
+
+**Response:**
+```json
+{
+  "recent_orders": [
+    {
+      "id": 1,
+      "order_date": "2024-01-30T10:00:00Z",
+      "customer_name": "Nguyễn Văn A",
+      "total_amount": 500000.00,
+      "status": "delivered",
+      "store_name": "Cửa hàng 1"
+    }
+  ],
+  "recent_receipts": [
+    {
+      "id": 1,
+      "receipt_number": "GR001",
+      "receipt_date": "2024-01-30T09:00:00Z",
+      "supplier_name": "Nhà cung cấp A",
+      "total_amount": 10000000.00,
+      "status": "confirmed",
+      "store_name": "Cửa hàng 1"
+    }
+  ],
+  "recent_purchase_orders": [
+    {
+      "id": 1,
+      "po_number": "PO001",
+      "order_date": "2024-01-29T10:00:00Z",
+      "supplier_name": "Nhà cung cấp A",
+      "total_amount": 15000000.00,
+      "status": "ordered",
+      "store_name": "Cửa hàng 1"
+    }
+  ]
+}
+```
+
+### **GET /api/reports/dashboard/alerts/**
+**Cảnh báo và thông báo**
+
+**Query Parameters:**
+- `store_id` (int): ID cửa hàng (tùy chọn)
+
+**Response:**
+```json
+{
+  "alerts": [
+    {
+      "type": "low_stock",
+      "severity": "warning",
+      "message": "Sản phẩm Đồng hồ A chỉ còn 5 trong kho",
+      "product_name": "Đồng hồ A",
+      "current_stock": 5,
+      "store_name": "Cửa hàng 1"
+    },
+    {
+      "type": "pending_orders",
+      "severity": "info",
+      "message": "Có 10 đơn hàng đang chờ xử lý",
+      "count": 10
+    }
+  ],
+  "total_alerts": 2
+}
+```
+
+---
+
+## 📊 **REVENUE REPORT API**
+
+### **GET /api/reports/revenue/daily_revenue/**
+**Báo cáo doanh thu theo ngày**
+
+**Query Parameters:**
+- `start_date` (string): Ngày bắt đầu (YYYY-MM-DD) - mặc định: 30 ngày trước
+- `end_date` (string): Ngày kết thúc (YYYY-MM-DD) - mặc định: hôm nay
+- `store_id` (int): ID cửa hàng (tùy chọn)
+
+**Response:**
+```json
+{
+  "summary": {
+    "period": {
+      "start_date": "2024-01-01",
+      "end_date": "2024-01-30"
+    },
+    "total_orders": 200,
+    "total_gross_revenue": 50000000.00,
+    "total_net_revenue": 45000000.00,
+    "total_discounts": 5000000.00,
+    "total_coupon_discounts": 2000000.00,
+    "total_items": 500,
+    "total_customers": 150,
+    "average_order_value": 250000.00,
+    "average_discount_rate": 10.0
+  },
+  "daily_data": [
+    {
+      "date": "2024-01-01",
+      "total_orders": 5,
+      "gross_revenue": 1250000.00,
+      "net_revenue": 1125000.00,
+      "total_discounts": 125000.00,
+      "coupon_discounts": 50000.00,
+      "total_items": 12,
+      "total_customers": 5,
+      "average_order_value": 250000.00,
+      "discount_rate": 10.0
+    }
+  ]
+}
+```
+
+### **GET /api/reports/revenue/monthly_revenue/**
+**Báo cáo doanh thu theo tháng**
+
+**Query Parameters:**
+- `year` (int): Năm - mặc định: năm hiện tại
+- `store_id` (int): ID cửa hàng (tùy chọn)
+
+**Response:**
+```json
+{
+  "summary": {
+    "year": 2024,
+    "total_orders": 2400,
+    "total_gross_revenue": 600000000.00,
+    "total_net_revenue": 540000000.00,
+    "total_discounts": 60000000.00,
+    "total_coupon_discounts": 24000000.00,
+    "total_items": 6000,
+    "total_customers": 1800,
+    "average_order_value": 250000.00,
+    "average_discount_rate": 10.0
+  },
+  "monthly_data": [
+    {
+      "month": 1,
+      "month_name": "January",
+      "total_orders": 200,
+      "gross_revenue": 50000000.00,
+      "net_revenue": 45000000.00,
+      "total_discounts": 5000000.00,
+      "coupon_discounts": 2000000.00,
+      "total_items": 500,
+      "total_customers": 150,
+      "average_order_value": 250000.00,
+      "discount_rate": 10.0
+    }
+  ]
+}
+```
+
+### **GET /api/reports/revenue/profit_analysis/**
+**Phân tích lãi gộp**
+
+**Query Parameters:**
+- `start_date` (string): Ngày bắt đầu (YYYY-MM-DD) - mặc định: 30 ngày trước
+- `end_date` (string): Ngày kết thúc (YYYY-MM-DD) - mặc định: hôm nay
+- `store_id` (int): ID cửa hàng (tùy chọn)
+
+**Response:**
+```json
+{
+  "period": {
+    "start_date": "2024-01-01",
+    "end_date": "2024-01-30"
+  },
+  "revenue": {
+    "gross_revenue": 50000000.00,
+    "total_discounts": 5000000.00,
+    "net_revenue": 45000000.00,
+    "discount_rate": 10.0
+  },
+  "costs": {
+    "cost_of_goods_sold": 30000000.00,
+    "cost_percentage": 66.67
+  },
+  "profit": {
+    "gross_profit": 15000000.00,
+    "gross_profit_margin": 33.33,
+    "profit_per_order": 75000.00
+  },
+  "volume": {
+    "total_orders": 200,
+    "total_items": 500,
+    "average_order_value": 250000.00
+  }
+}
+```
+
+---
+
+## 📈 **SALES ANALYSIS API**
+
+### **GET /api/reports/sales/best_sellers/**
+**Sản phẩm bán chạy nhất**
+
+**Query Parameters:**
+- `start_date` (string): Ngày bắt đầu (YYYY-MM-DD) - mặc định: 30 ngày trước
+- `end_date` (string): Ngày kết thúc (YYYY-MM-DD) - mặc định: hôm nay
+- `store_id` (int): ID cửa hàng (tùy chọn)
+- `limit` (int): Số lượng sản phẩm - mặc định: 10
+
+**Response:**
+```json
+{
+  "summary": {
+    "period": {
+      "start_date": "2024-01-01",
+      "end_date": "2024-01-30"
+    },
+    "total_products": 10,
+    "total_quantity_sold": 500,
+    "total_revenue": 50000000.00,
+    "total_net_revenue": 45000000.00,
+    "total_discounts": 5000000.00,
+    "average_revenue_per_product": 5000000.00
+  },
+  "best_sellers": [
+    {
+      "product_variant_id": 1,
+      "sku": "DH001",
+      "product_name": "Đồng hồ Casio",
+      "brand_name": "Casio",
+      "total_quantity": 50,
+      "total_revenue": 5000000.00,
+      "total_orders": 25,
+      "average_price": 100000.00,
+      "total_discount": 500000.00,
+      "net_revenue": 4500000.00,
+      "current_stock": 20,
+      "gross_profit_margin": 30.0,
+      "revenue_per_order": 200000.00
+    }
+  ]
+}
+```
+
+### **GET /api/reports/sales/product_performance/**
+**Hiệu suất sản phẩm theo thời gian**
+
+**Query Parameters:**
+- `start_date` (string): Ngày bắt đầu (YYYY-MM-DD) - mặc định: 30 ngày trước
+- `end_date` (string): Ngày kết thúc (YYYY-MM-DD) - mặc định: hôm nay
+- `store_id` (int): ID cửa hàng (tùy chọn)
+- `product_variant_id` (int): ID sản phẩm (tùy chọn)
+- `period_type` (string): Loại kỳ (daily, weekly, monthly) - mặc định: daily
+
+**Response:**
+```json
+{
+  "summary": {
+    "period": {
+      "start_date": "2024-01-01",
+      "end_date": "2024-01-30",
+      "period_type": "daily"
+    },
+    "total_quantity": 500,
+    "total_revenue": 50000000.00,
+    "total_net_revenue": 45000000.00,
+    "total_orders": 200,
+    "total_discounts": 5000000.00,
+    "average_quantity_per_period": 16.67,
+    "average_revenue_per_period": 1666666.67
+  },
+  "performance_data": [
+    {
+      "period": "2024-01-01",
+      "period_label": "2024-01-01",
+      "total_quantity": 12,
+      "total_revenue": 1200000.00,
+      "total_orders": 5,
+      "total_discount": 120000.00,
+      "net_revenue": 1080000.00,
+      "average_quantity_per_order": 2.4,
+      "average_revenue_per_order": 240000.00,
+      "discount_rate": 10.0
+    }
+  ]
+}
+```
+
+### **GET /api/reports/sales/inventory_turnover/**
+**Tỷ lệ luân chuyển tồn kho**
+
+**Query Parameters:**
+- `store_id` (int): ID cửa hàng (tùy chọn)
+- `limit` (int): Số lượng sản phẩm - mặc định: 20
+
+**Response:**
+```json
+{
+  "summary": {
+    "total_products": 20,
+    "total_quantity_sold": 1000,
+    "total_revenue": 100000000.00,
+    "total_current_stock": 500,
+    "average_turnover_rate": 200.0,
+    "average_days_of_inventory": 182.5
+  },
+  "inventory_turnover": [
+    {
+      "product_variant_id": 1,
+      "sku": "DH001",
+      "product_name": "Đồng hồ Casio",
+      "total_sold": 100,
+      "total_revenue": 10000000.00,
+      "total_orders": 50,
+      "current_stock": 20,
+      "turnover_rate": 500.0,
+      "days_of_inventory": 73.0,
+      "average_quantity_per_order": 2.0,
+      "revenue_per_unit": 100000.00
+    }
+  ]
+}
+```
+
+---
+
+## 🔧 **CÁCH SỬ DỤNG API**
+
+### **1. Dashboard tổng quan:**
+```bash
+GET /api/reports/dashboard/overview/?period=30&store_id=1
+```
+
+### **2. Báo cáo doanh thu hàng ngày:**
+```bash
+GET /api/reports/revenue/daily_revenue/?start_date=2024-01-01&end_date=2024-01-31&store_id=1
+```
+
+### **3. Sản phẩm bán chạy:**
+```bash
+GET /api/reports/sales/best_sellers/?start_date=2024-01-01&end_date=2024-01-31&limit=10
+```
+
+### **4. Phân tích lãi gộp:**
+```bash
+GET /api/reports/revenue/profit_analysis/?start_date=2024-01-01&end_date=2024-01-31
+```
+
+### **5. Tỷ lệ luân chuyển tồn kho:**
+```bash
+GET /api/reports/sales/inventory_turnover/?limit=20
+```
+
+---
+
+## 📋 **LƯU Ý QUAN TRỌNG**
+
+1. **Quyền truy cập**: Tất cả API đều yêu cầu quyền `IsStoreEmployee` hoặc `IsSuperUser`
+2. **Lọc theo cửa hàng**: Nhân viên chỉ thấy dữ liệu của cửa hàng mình
+3. **Tính toán lãi gộp**: Hiện tại là placeholder, cần tính từ giá nhập kho thực tế
+4. **Tỷ lệ luân chuyển**: Được tính dựa trên tồn kho hiện tại (có thể cải thiện bằng tồn kho trung bình)
+5. **Thời gian**: Tất cả thời gian đều theo múi giờ của server
+
+---
+
+## 🚀 **TÍNH NĂNG NÂNG CAO (TODO)**
+
+1. **Tính toán COGS chính xác** từ inventory transactions
+2. **Báo cáo theo nhà cung cấp** và **khách hàng**
+3. **Dự báo doanh thu** dựa trên dữ liệu lịch sử
+4. **So sánh kỳ** (tháng này vs tháng trước)
+5. **Export báo cáo** ra Excel/PDF
+6. **Biểu đồ trực quan** cho dashboard
+7. **Cảnh báo tự động** khi có bất thường
+8. **Phân tích xu hướng** theo thời gian
+
 ## Dữ liệu mẫu cho Stores
 ### GET /api/stores/stores/
 {
@@ -2973,7 +3434,7 @@ Hệ thống quản lý kho hàng và thống kê doanh thu đã được hoàn 
 
 ### 1. Store Inventory API
 ```
-GET /api/inventory/store_inventory/
+GET /api/inventory/inventories/store_inventory/
 ```
 **Mô tả**: Lấy danh sách sản phẩm trong kho của một cửa hàng nhất định
 
@@ -3011,7 +3472,7 @@ GET /api/inventory/store_inventory/
 
 ### 2. Store Statistics API
 ```
-GET /api/inventory/store_statistics/
+GET /api/inventory/inventories/store_statistics/
 ```
 **Mô tả**: Thống kê tồn kho của một cửa hàng
 
@@ -3062,7 +3523,7 @@ GET /api/inventory/store_statistics/
 
 ### 3. Product Search API
 ```
-GET /api/inventory/product_search/
+GET /api/inventory/inventories/product_search/
 ```
 **Mô tả**: Tìm kiếm sản phẩm trong kho theo tên, SKU, hoặc mô tả
 
@@ -3083,7 +3544,7 @@ GET /api/inventory/product_search/
 
 ### 4. Low Stock Alert API
 ```
-GET /api/inventory/low_stock_alert/
+GET /api/inventory/inventories/low_stock_alert/
 ```
 **Mô tả**: Cảnh báo sản phẩm sắp hết hàng
 
@@ -3107,22 +3568,22 @@ GET /api/inventory/low_stock_alert/
 
 ### Lấy danh sách sản phẩm trong kho cửa hàng:
 ```bash
-GET /api/inventory/store_inventory/?store_id=1&in_stock_only=true&ordering=-quantity
+GET /api/inventory/inventories/store_inventory/?store_id=1&in_stock_only=true&ordering=-quantity
 ```
 
 ### Thống kê tồn kho cửa hàng:
 ```bash
-GET /api/inventory/store_statistics/?store_id=1
+GET /api/inventory/inventories/store_statistics/?store_id=1
 ```
 
 ### Tìm kiếm sản phẩm:
 ```bash
-GET /api/inventory/product_search/?q=casio&store_id=1&limit=10
+GET /api/inventory/inventories/product_search/?q=casio&store_id=1&limit=10
 ```
 
 ### Cảnh báo sắp hết hàng:
 ```bash
-GET /api/inventory/low_stock_alert/?store_id=1&threshold=5
+GET /api/inventory/inventories/low_stock_alert/?store_id=1&threshold=5
 ```
 
 ## 9.3 Tính năng nổi bật
@@ -3149,3 +3610,897 @@ GET /api/inventory/low_stock_alert/?store_id=1&threshold=5
 - Validation dữ liệu đầu vào
 
 Hệ thống quản lý tồn kho đã được hoàn thiện với đầy đủ tính năng cần thiết cho việc quản lý kho hàng theo cửa hàng!
+
+# ============================================================================
+# 10. STOCK TRANSFER DETAIL APIs - MỚI THÊM
+# ============================================================================
+
+## 10.1 API Endpoints cho StockTransferDetail
+
+### Base URL: `/api/inventory/stock-transfer-details/`
+
+### CRUD Operations:
+- `GET /api/inventory/stock-transfer-details/` - Lấy danh sách chi tiết chuyển kho (có phân trang)
+- `GET /api/inventory/stock-transfer-details/{id}/` - Lấy chi tiết một chi tiết chuyển kho
+- `POST /api/inventory/stock-transfer-details/` - Tạo chi tiết chuyển kho mới
+- `PUT /api/inventory/stock-transfer-details/{id}/` - Cập nhật chi tiết chuyển kho
+- `PATCH /api/inventory/stock-transfer-details/{id}/` - Cập nhật một phần chi tiết chuyển kho
+- `DELETE /api/inventory/stock-transfer-details/{id}/` - Xóa chi tiết chuyển kho
+
+### Custom Actions:
+- `GET /api/inventory/stock-transfer-details/by_stock_transfer/?stock_transfer_id=1` - Lấy danh sách chi tiết theo chuyển kho
+- `GET /api/inventory/stock-transfer-details/by_product_variant/?product_variant_id=1` - Lấy danh sách chi tiết theo sản phẩm
+- `PATCH /api/inventory/stock-transfer-details/{id}/update_received_quantity/` - Cập nhật số lượng đã nhận
+
+## 10.2 Dữ liệu mẫu cho StockTransferDetail
+
+### GET /api/inventory/stock-transfer-details/
+```json
+{
+    "count": 3,
+    "next": null,
+    "previous": null,
+    "results": [
+        {
+            "id": 1,
+            "stock_transfer": 1,
+            "stock_transfer_info": {
+                "id": 1,
+                "source_store": "Watch Store Hà Nội",
+                "destination_store": "Watch Store Hồ Chí Minh",
+                "status": "completed",
+                "transfer_date": "2024-06-10T09:00:00Z"
+            },
+            "product_variant": 1,
+            "product_variant_info": {
+                "id": 1,
+                "name": "Rolex Submariner",
+                "sku": "ROLEX-SUB-001",
+                "price": "8000000.00"
+            },
+            "quantity": 5,
+            "received_quantity": 5,
+            "created_by": 1,
+            "created_by_username": "admin",
+            "updated_by": 1,
+            "updated_by_username": "admin",
+            "created_at": "2024-06-10T09:00:00Z",
+            "updated_at": "2024-06-10T09:00:00Z"
+        }
+    ]
+}
+```
+
+### POST /api/inventory/stock-transfer-details/
+**Tạo chi tiết chuyển kho mới**
+
+**Request Body:**
+```json
+{
+    "stock_transfer": 1,
+    "product_variant": 1,
+    "quantity": 3,
+    "received_quantity": 0
+}
+```
+
+**Response (201 Created):**
+```json
+{
+    "id": 4,
+    "stock_transfer": 1,
+    "stock_transfer_info": {
+        "id": 1,
+        "source_store": "Watch Store Hà Nội",
+        "destination_store": "Watch Store Hồ Chí Minh",
+        "status": "pending",
+        "transfer_date": "2024-06-10T09:00:00Z"
+    },
+    "product_variant": 1,
+    "product_variant_info": {
+        "id": 1,
+        "name": "Rolex Submariner",
+        "sku": "ROLEX-SUB-001",
+        "price": "8000000.00"
+    },
+    "quantity": 3,
+    "received_quantity": 0,
+    "created_by": 1,
+    "created_by_username": "admin",
+    "updated_by": 1,
+    "updated_by_username": "admin",
+    "created_at": "2024-06-10T10:30:00Z",
+    "updated_at": "2024-06-10T10:30:00Z"
+}
+```
+
+### PATCH /api/inventory/stock-transfer-details/{id}/update_received_quantity/
+**Cập nhật số lượng đã nhận**
+
+**Request Body:**
+```json
+{
+    "received_quantity": 2
+}
+```
+
+**Response (200 OK):**
+```json
+{
+    "message": "Đã cập nhật số lượng nhận thành công",
+    "detail": {
+        "id": 4,
+        "stock_transfer": 1,
+        "product_variant": 1,
+        "quantity": 3,
+        "received_quantity": 2,
+        "created_at": "2024-06-10T10:30:00Z",
+        "updated_at": "2024-06-10T11:00:00Z"
+    }
+}
+```
+
+### GET /api/inventory/stock-transfer-details/by_stock_transfer/?stock_transfer_id=1
+**Lấy danh sách chi tiết theo chuyển kho**
+
+**Response (200 OK):**
+```json
+{
+    "stock_transfer_id": 1,
+    "details": [
+        {
+            "id": 1,
+            "stock_transfer": 1,
+            "product_variant": 1,
+            "quantity": 5,
+            "received_quantity": 5
+        },
+        {
+            "id": 2,
+            "stock_transfer": 1,
+            "product_variant": 2,
+            "quantity": 7,
+            "received_quantity": 7
+        }
+    ],
+    "total_count": 2
+}
+```
+
+## 10.3 Validation Rules
+
+### Tạo chi tiết chuyển kho:
+- `stock_transfer` và `product_variant` là bắt buộc
+- `quantity` phải lớn hơn 0
+- `received_quantity` không được vượt quá `quantity`
+- Không được trùng lặp `stock_transfer` + `product_variant`
+- Không thể thêm vào chuyển kho đã hoàn thành hoặc đã hủy
+
+### Cập nhật chi tiết chuyển kho:
+- Không thể cập nhật chi tiết của chuyển kho đã hoàn thành hoặc đã hủy
+- `received_quantity` không được vượt quá `quantity`
+
+### Xóa chi tiết chuyển kho:
+- Không thể xóa chi tiết của chuyển kho đã hoàn thành hoặc đã hủy
+
+## 10.4 Các tính năng tìm kiếm và lọc
+
+### Filters:
+- `stock_transfer`: Lọc theo chuyển kho
+- `product_variant`: Lọc theo sản phẩm
+
+### Search:
+- Tìm kiếm theo tên sản phẩm, SKU
+- Tìm kiếm theo ghi chú chuyển kho
+
+### Ordering:
+- `quantity`: Sắp xếp theo số lượng
+- `received_quantity`: Sắp xếp theo số lượng đã nhận
+- `created_at`: Sắp xếp theo thời gian tạo
+
+## 10.5 Quyền truy cập
+
+### Read operations (list, retrieve):
+- `IsStoreEmployee()`: Cho phép tất cả nhân viên cửa hàng
+
+### Write operations (create, update, delete):
+- `OR(IsSuperUser(), IsStoreEmployee())`: Superuser hoặc nhân viên cửa hàng
+
+## 10.6 Ví dụ sử dụng API
+
+### Tạo chi tiết chuyển kho:
+```bash
+POST /api/inventory/stock-transfer-details/
+{
+    "stock_transfer": 1,
+    "product_variant": 1,
+    "quantity": 5,
+    "received_quantity": 0
+}
+```
+
+### Cập nhật số lượng nhận:
+```bash
+PATCH /api/inventory/stock-transfer-details/1/update_received_quantity/
+{
+    "received_quantity": 3
+}
+```
+
+### Lấy chi tiết theo chuyển kho:
+```bash
+GET /api/inventory/stock-transfer-details/by_stock_transfer/?stock_transfer_id=1
+```
+
+### Lọc theo sản phẩm:
+```bash
+GET /api/inventory/stock-transfer-details/?product_variant=1
+```
+
+## 10.7 Tính năng nổi bật
+
+### ✅ **Validation thông minh**:
+- Kiểm tra trạng thái chuyển kho trước khi cho phép thao tác
+- Ngăn chặn trùng lặp sản phẩm trong cùng chuyển kho
+- Validation số lượng nhận không vượt quá số lượng chuyển
+
+### ✅ **API linh hoạt**:
+- CRUD operations đầy đủ
+- Custom actions cho các tác vụ đặc biệt
+- Lọc và tìm kiếm theo nhiều tiêu chí
+
+### ✅ **Bảo mật và phân quyền**:
+- Kiểm tra quyền truy cập theo từng action
+- Validation dữ liệu đầu vào
+- Xử lý lỗi đầy đủ
+
+### ✅ **Tích hợp với StockTransfer**:
+- Liên kết chặt chẽ với chuyển kho
+- Cập nhật thông tin chuyển kho tự động
+- Tracking người tạo và cập nhật
+
+Hệ thống quản lý chi tiết chuyển kho đã được hoàn thiện với đầy đủ tính năng cần thiết!
+
+# API DOCUMENTATION - COUPON MANAGEMENT
+
+## 📋 PHÂN TÍCH MỐI QUAN HỆ COUPON
+
+### 🔗 Mối quan hệ với các Model khác:
+
+1. **Coupon ↔ OrderDetail** (1:N)
+   - Coupon có thể được áp dụng cho nhiều OrderDetail
+   - OrderDetail có thể có 1 Coupon hoặc không có
+   - Foreign Key: `coupon = models.ForeignKey(Coupon, ...)`
+
+2. **Coupon ↔ UserAccount** (N:1)
+   - Coupon được tạo/cập nhật bởi UserAccount
+   - Foreign Keys: `created_by`, `updated_by`
+
+3. **Coupon ↔ Orders** (Gián tiếp qua OrderDetail)
+   - Coupon ảnh hưởng đến giá trị đơn hàng thông qua OrderDetail
+   - Logic tính toán: `final_price = (unit_price - discount) * quantity`
+
+### 🧮 Logic xử lý Coupon:
+
+1. **Validation Logic** (`coupon.is_valid()`):
+   - Kiểm tra `is_active = True`
+   - Kiểm tra thời gian hiệu lực: `start_date <= now <= expires_at`
+   - Kiểm tra giới hạn sử dụng: `usage_count < usage_limit`
+
+2. **Discount Calculation** (`coupon.apply_discount(amount)`):
+   - **Percentage**: `discount = (amount * discount_value) / 100`
+   - **Fixed Amount**: `discount = discount_value`
+   - Đảm bảo: `discount <= amount` (không âm)
+
+3. **Usage Tracking** (`coupon.get_usage_count()`):
+   - Đếm số OrderDetail sử dụng coupon với `order.status = 'completed'`
+
+---
+
+## 🚀 API ENDPOINTS - COUPON
+
+### Base URL: `/api/orders/coupons/`
+
+---
+
+### 1. 📋 Lấy danh sách Coupon
+**GET** `/api/orders/coupons/`
+
+**Query Parameters:**
+- `code` (string): Lọc theo mã coupon
+- `discount_type` (string): Lọc theo loại giảm giá (`percentage`, `fixed`)
+- `is_active` (boolean): Lọc theo trạng thái hoạt động
+- `search` (string): Tìm kiếm theo mã coupon
+- `ordering` (string): Sắp xếp (`code`, `created_at`, `-created_at`)
+- `page` (integer): Số trang
+- `page_size` (integer): Số lượng item mỗi trang
+
+**Response (200):**
+```json
+{
+    "count": 5,
+    "next": null,
+    "previous": null,
+    "results": [
+        {
+            "id": 1,
+            "code": "SUMMER2024",
+            "description": "Giảm giá mùa hè 2024",
+            "discount_type": "percentage",
+            "discount_value": "15.00",
+            "minimum_order_amount": "500000.00",
+            "start_date": "2024-06-01T00:00:00Z",
+            "expires_at": "2024-08-31T23:59:59Z",
+            "usage_limit": 100,
+            "is_active": true,
+            "is_valid": true,
+            "usage_count": 25,
+            "created_at": "2024-05-15T10:30:00Z",
+            "updated_at": "2024-05-15T10:30:00Z"
+        }
+    ]
+}
+```
+
+---
+
+### 2. 🔍 Lấy chi tiết Coupon
+**GET** `/api/orders/coupons/{id}/`
+
+**Response (200):**
+```json
+{
+    "id": 1,
+    "code": "SUMMER2024",
+    "description": "Giảm giá mùa hè 2024 cho tất cả sản phẩm",
+    "discount_type": "percentage",
+    "discount_value": "15.00",
+    "minimum_order_amount": "500000.00",
+    "start_date": "2024-06-01T00:00:00Z",
+    "expires_at": "2024-08-31T23:59:59Z",
+    "usage_limit": 100,
+    "is_active": true,
+    "is_valid": true,
+    "usage_count": 25,
+    "created_at": "2024-05-15T10:30:00Z",
+    "updated_at": "2024-05-15T10:30:00Z"
+}
+```
+
+---
+
+### 3. ➕ Tạo Coupon mới
+**POST** `/api/orders/coupons/`
+
+**Request Body:**
+```json
+{
+    "code": "WELCOME2024",
+    "description": "Mã giảm giá chào mừng khách hàng mới",
+    "discount_type": "fixed",
+    "discount_value": "100000.00",
+    "minimum_order_amount": "1000000.00",
+    "start_date": "2024-01-01T00:00:00Z",
+    "expires_at": "2024-12-31T23:59:59Z",
+    "usage_limit": 50,
+    "is_active": true
+}
+```
+
+**Response (201):**
+```json
+{
+    "id": 2,
+    "code": "WELCOME2024",
+    "description": "Mã giảm giá chào mừng khách hàng mới",
+    "discount_type": "fixed",
+    "discount_value": "100000.00",
+    "minimum_order_amount": "1000000.00",
+    "start_date": "2024-01-01T00:00:00Z",
+    "expires_at": "2024-12-31T23:59:59Z",
+    "usage_limit": 50,
+    "is_active": true,
+    "is_valid": true,
+    "usage_count": 0,
+    "created_at": "2024-05-15T14:20:00Z",
+    "updated_at": "2024-05-15T14:20:00Z"
+}
+```
+
+---
+
+### 4. ✏️ Cập nhật Coupon
+**PUT** `/api/orders/coupons/{id}/`
+
+**Request Body:**
+```json
+{
+    "code": "SUMMER2024_UPDATED",
+    "description": "Giảm giá mùa hè 2024 - Cập nhật",
+    "discount_type": "percentage",
+    "discount_value": "20.00",
+    "minimum_order_amount": "300000.00",
+    "start_date": "2024-06-01T00:00:00Z",
+    "expires_at": "2024-09-30T23:59:59Z",
+    "usage_limit": 200,
+    "is_active": true
+}
+```
+
+**Response (200):**
+```json
+{
+    "id": 1,
+    "code": "SUMMER2024_UPDATED",
+    "description": "Giảm giá mùa hè 2024 - Cập nhật",
+    "discount_type": "percentage",
+    "discount_value": "20.00",
+    "minimum_order_amount": "300000.00",
+    "start_date": "2024-06-01T00:00:00Z",
+    "expires_at": "2024-09-30T23:59:59Z",
+    "usage_limit": 200,
+    "is_active": true,
+    "is_valid": true,
+    "usage_count": 25,
+    "created_at": "2024-05-15T10:30:00Z",
+    "updated_at": "2024-05-15T14:25:00Z"
+}
+```
+
+---
+
+### 5. 🔄 Cập nhật một phần Coupon
+**PATCH** `/api/orders/coupons/{id}/`
+
+**Request Body:**
+```json
+{
+    "discount_value": "25.00",
+    "is_active": false
+}
+```
+
+**Response (200):**
+```json
+{
+    "id": 1,
+    "code": "SUMMER2024_UPDATED",
+    "description": "Giảm giá mùa hè 2024 - Cập nhật",
+    "discount_type": "percentage",
+    "discount_value": "25.00",
+    "minimum_order_amount": "300000.00",
+    "start_date": "2024-06-01T00:00:00Z",
+    "expires_at": "2024-09-30T23:59:59Z",
+    "usage_limit": 200,
+    "is_active": false,
+    "is_valid": false,
+    "usage_count": 25,
+    "created_at": "2024-05-15T10:30:00Z",
+    "updated_at": "2024-05-15T14:30:00Z"
+}
+```
+
+---
+
+### 6. 🗑️ Xóa Coupon (Soft Delete)
+**DELETE** `/api/orders/coupons/{id}/`
+
+**Response (204):** No Content
+
+---
+
+## 📊 DỮ LIỆU MẪU COUPON
+
+### 1. Coupon giảm giá theo phần trăm
+```json
+{
+    "id": 1,
+    "code": "SUMMER2024",
+    "description": "Giảm giá 15% cho tất cả sản phẩm mùa hè",
+    "discount_type": "percentage",
+    "discount_value": "15.00",
+    "minimum_order_amount": "500000.00",
+    "start_date": "2024-06-01T00:00:00Z",
+    "expires_at": "2024-08-31T23:59:59Z",
+    "usage_limit": 100,
+    "is_active": true,
+    "is_valid": true,
+    "usage_count": 25
+}
+```
+
+### 2. Coupon giảm giá cố định
+```json
+{
+    "id": 2,
+    "code": "WELCOME100K",
+    "description": "Giảm giá 100,000 VNĐ cho đơn hàng đầu tiên",
+    "discount_type": "fixed",
+    "discount_value": "100000.00",
+    "minimum_order_amount": "1000000.00",
+    "start_date": "2024-01-01T00:00:00Z",
+    "expires_at": "2024-12-31T23:59:59Z",
+    "usage_limit": 50,
+    "is_active": true,
+    "is_valid": true,
+    "usage_count": 12
+}
+```
+
+### 3. Coupon VIP khách hàng
+```json
+{
+    "id": 3,
+    "code": "VIP2024",
+    "description": "Giảm giá đặc biệt cho khách hàng VIP",
+    "discount_type": "percentage",
+    "discount_value": "25.00",
+    "minimum_order_amount": "2000000.00",
+    "start_date": "2024-01-01T00:00:00Z",
+    "expires_at": "2024-12-31T23:59:59Z",
+    "usage_limit": 10,
+    "is_active": true,
+    "is_valid": true,
+    "usage_count": 3
+}
+```
+
+### 4. Coupon khuyến mãi flash sale
+```json
+{
+    "id": 4,
+    "code": "FLASH50",
+    "description": "Flash sale - Giảm giá 50% trong 24h",
+    "discount_type": "percentage",
+    "discount_value": "50.00",
+    "minimum_order_amount": "300000.00",
+    "start_date": "2024-07-15T00:00:00Z",
+    "expires_at": "2024-07-16T00:00:00Z",
+    "usage_limit": 200,
+    "is_active": true,
+    "is_valid": true,
+    "usage_count": 150
+}
+```
+
+### 5. Coupon đã hết hạn
+```json
+{
+    "id": 5,
+    "code": "EXPIRED2023",
+    "description": "Coupon đã hết hạn từ năm 2023",
+    "discount_type": "fixed",
+    "discount_value": "50000.00",
+    "minimum_order_amount": "500000.00",
+    "start_date": "2023-01-01T00:00:00Z",
+    "expires_at": "2023-12-31T23:59:59Z",
+    "usage_limit": 100,
+    "is_active": true,
+    "is_valid": false,
+    "usage_count": 45
+}
+```
+
+---
+
+## 🔐 PERMISSIONS
+
+### Quyền truy cập:
+- **GET** (list, retrieve): Tất cả người dùng (`AllowAny`)
+- **POST, PUT, PATCH, DELETE**: Chỉ SuperUser hoặc StoreEmployee
+
+### Validation Rules:
+1. **Thời gian**: `start_date < expires_at`
+2. **Percentage discount**: `discount_value <= 100`
+3. **Code**: Phải unique
+4. **Usage limit**: Phải > 0
+
+---
+
+## 💡 SỬ DỤNG COUPON TRONG ORDER
+
+### Khi tạo OrderDetail với Coupon:
+```json
+{
+    "order": 1,
+    "product_variant": 5,
+    "quantity": 2,
+    "coupon_id": 1
+}
+```
+
+### Logic tính toán:
+1. **Unit Price**: `product_variant.product.base_price + price_adjustment`
+2. **Discount**: `coupon.apply_discount(unit_price)`
+3. **Final Price**: `(unit_price - discount) * quantity`
+
+### Ví dụ tính toán:
+- **Product Price**: 1,000,000 VNĐ
+- **Coupon**: 15% discount
+- **Discount Amount**: 150,000 VNĐ
+- **Final Unit Price**: 850,000 VNĐ
+- **Quantity**: 2
+- **Total Final Price**: 1,700,000 VNĐ
+
+---
+
+# API DOCUMENTATION - ORDER STATUS MANAGEMENT
+
+## 🚀 API ENDPOINTS - ORDER STATUS
+
+### Base URL: `/api/orders/orders/`
+
+---
+
+## 📋 QUẢN LÝ TRẠNG THÁI ĐƠN HÀNG
+
+### 🔄 Workflow trạng thái đơn hàng:
+```
+pending → processing → shipped → delivered
+    ↓
+cancelled
+```
+
+---
+
+### 1. ✅ Xác nhận đơn hàng hoàn thành
+**POST** `/api/orders/orders/{id}/confirm_order/`
+
+**Mô tả:** Chuyển đơn hàng sang trạng thái "delivered" (đã giao hàng)
+
+**Trạng thái có thể xác nhận:** `pending`, `processing`, `shipped`
+
+**Response (200):**
+```json
+{
+    "message": "Đã xác nhận đơn hàng #123 hoàn thành",
+    "order": {
+        "id": 123,
+        "customer": {
+            "id": 1,
+            "first_name": "Nguyễn",
+            "last_name": "Văn A",
+            "email": "nguyenvana@email.com"
+        },
+        "store": {
+            "id": 1,
+            "name": "Cơ sở 1: Nguyễn Trãi"
+        },
+        "status": "delivered",
+        "total_amount": "2500000.00",
+        "order_date": "2024-05-15T10:30:00Z",
+        "created_at": "2024-05-15T10:30:00Z",
+        "updated_at": "2024-05-15T14:30:00Z"
+    }
+}
+```
+
+**Response (400) - Đã hoàn thành:**
+```json
+{
+    "error": "Đơn hàng đã được xác nhận hoàn thành trước đó"
+}
+```
+
+**Response (400) - Đã hủy:**
+```json
+{
+    "error": "Không thể xác nhận đơn hàng đã hủy"
+}
+```
+
+---
+
+### 2. 🚚 Chuyển đơn hàng sang đang giao
+**POST** `/api/orders/orders/{id}/ship_order/`
+
+**Mô tả:** Chuyển đơn hàng sang trạng thái "shipped" (đang giao hàng)
+
+**Trạng thái có thể chuyển:** `pending`, `processing`
+
+**Response (200):**
+```json
+{
+    "message": "Đã chuyển đơn hàng #123 sang trạng thái đang giao",
+    "order": {
+        "id": 123,
+        "status": "shipped",
+        "updated_at": "2024-05-15T14:30:00Z"
+    }
+}
+```
+
+**Response (400) - Đã giao:**
+```json
+{
+    "error": "Đơn hàng đã được chuyển sang trạng thái đang giao"
+}
+```
+
+---
+
+### 3. ⚙️ Chuyển đơn hàng sang đang xử lý
+**POST** `/api/orders/orders/{id}/process_order/`
+
+**Mô tả:** Chuyển đơn hàng sang trạng thái "processing" (đang xử lý)
+
+**Trạng thái có thể chuyển:** `pending`
+
+**Response (200):**
+```json
+{
+    "message": "Đã chuyển đơn hàng #123 sang trạng thái đang xử lý",
+    "order": {
+        "id": 123,
+        "status": "processing",
+        "updated_at": "2024-05-15T14:30:00Z"
+    }
+}
+```
+
+**Response (400) - Đã xử lý:**
+```json
+{
+    "error": "Đơn hàng đã được chuyển sang trạng thái đang xử lý"
+}
+```
+
+---
+
+### 4. ❌ Hủy đơn hàng
+**POST** `/api/orders/orders/{id}/cancel_order/`
+
+**Mô tả:** Chuyển đơn hàng sang trạng thái "cancelled" (đã hủy)
+
+**Trạng thái có thể hủy:** Tất cả trạng thái trừ `delivered`
+
+**Response (200):**
+```json
+{
+    "message": "Đã hủy đơn hàng #123",
+    "order": {
+        "id": 123,
+        "status": "cancelled",
+        "updated_at": "2024-05-15T14:30:00Z"
+    }
+}
+```
+
+**Response (400) - Đã hủy:**
+```json
+{
+    "error": "Đơn hàng đã được hủy trước đó"
+}
+```
+
+**Response (400) - Đã giao:**
+```json
+{
+    "error": "Không thể hủy đơn hàng đã giao"
+}
+```
+
+---
+
+## 📊 DỮ LIỆU MẪU ORDER STATUS
+
+### 1. Đơn hàng chờ xử lý
+```json
+{
+    "id": 1,
+    "customer": {
+        "id": 1,
+        "first_name": "Nguyễn",
+        "last_name": "Văn A"
+    },
+    "status": "pending",
+    "total_amount": "1500000.00",
+    "order_date": "2024-05-15T10:00:00Z",
+    "created_at": "2024-05-15T10:00:00Z"
+}
+```
+
+### 2. Đơn hàng đang xử lý
+```json
+{
+    "id": 2,
+    "customer": {
+        "id": 2,
+        "first_name": "Trần",
+        "last_name": "Thị B"
+    },
+    "status": "processing",
+    "total_amount": "2500000.00",
+    "order_date": "2024-05-15T11:00:00Z",
+    "created_at": "2024-05-15T11:00:00Z"
+}
+```
+
+### 3. Đơn hàng đang giao
+```json
+{
+    "id": 3,
+    "customer": {
+        "id": 3,
+        "first_name": "Lê",
+        "last_name": "Văn C"
+    },
+    "status": "shipped",
+    "total_amount": "3000000.00",
+    "order_date": "2024-05-15T12:00:00Z",
+    "created_at": "2024-05-15T12:00:00Z"
+}
+```
+
+### 4. Đơn hàng đã hoàn thành
+```json
+{
+    "id": 4,
+    "customer": {
+        "id": 4,
+        "first_name": "Phạm",
+        "last_name": "Thị D"
+    },
+    "status": "delivered",
+    "total_amount": "1800000.00",
+    "order_date": "2024-05-15T13:00:00Z",
+    "created_at": "2024-05-15T13:00:00Z"
+}
+```
+
+### 5. Đơn hàng đã hủy
+```json
+{
+    "id": 5,
+    "customer": {
+        "id": 5,
+        "first_name": "Hoàng",
+        "last_name": "Văn E"
+    },
+    "status": "cancelled",
+    "total_amount": "1200000.00",
+    "order_date": "2024-05-15T14:00:00Z",
+    "created_at": "2024-05-15T14:00:00Z"
+}
+```
+
+---
+
+## 🔐 PERMISSIONS - ORDER STATUS
+
+### Quyền truy cập:
+- **Tất cả API status**: Chỉ SuperUser hoặc StoreEmployee
+- **Validation**: Kiểm tra quyền truy cập đơn hàng theo store
+
+### Business Rules:
+1. **Workflow hợp lệ**: Chỉ cho phép chuyển trạng thái theo thứ tự
+2. **Không thể thay đổi**: Đơn hàng đã hoàn thành (`delivered`)
+3. **Không thể thay đổi**: Đơn hàng đã hủy (`cancelled`)
+4. **Inventory tracking**: Tự động cập nhật inventory khi thay đổi status
+
+---
+
+## 💡 SỬ DỤNG API ORDER STATUS
+
+### Workflow điển hình:
+1. **Tạo đơn hàng** → `pending`
+2. **Bắt đầu xử lý** → `processing` (trừ inventory)
+3. **Giao hàng** → `shipped`
+4. **Xác nhận hoàn thành** → `delivered`
+
+### Ví dụ sử dụng:
+```bash
+# 1. Chuyển sang đang xử lý
+POST /api/orders/orders/123/process_order/
+
+# 2. Chuyển sang đang giao
+POST /api/orders/orders/123/ship_order/
+
+# 3. Xác nhận hoàn thành
+POST /api/orders/orders/123/confirm_order/
+```
+
+### Lưu ý:
+- Mỗi thay đổi status sẽ tự động cập nhật `updated_at`
+- Hệ thống sẽ ghi log người thực hiện thay đổi
+- Inventory sẽ được cập nhật tương ứng với status

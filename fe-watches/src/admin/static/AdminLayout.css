@@ -27,6 +27,14 @@
   --dark-icon: #bbbbbb;
   --dark-input-text: #222222;
   --dark-input-bg: #acacac;
+  --dashboard-bg: #f5f6fa;
+  --dashboard-card-bg: #fff;
+  --dashboard-chart-bg: #fff;
+  --dashboard-table-bg: #fff;
+  --dashboard-text-main: #222;
+  --dashboard-text-sub: #666;
+  --dashboard-border: #e0e0e0;
+  --dashboard-shadow: 0 2px 16px rgba(0,0,0,0.08);
 }
 
 /* Theme Application */
@@ -38,6 +46,14 @@ body[data-admin-theme="light"] {
 body[data-admin-theme="dark"] {
   background-color: var(--dark-bg) !important;
   color: var(--dark-text) !important;
+  --dashboard-bg: #18191c;
+  --dashboard-card-bg: #23242a;
+  --dashboard-chart-bg: #23242a;
+  --dashboard-table-bg: #23242a;
+  --dashboard-text-main: #f0f0f0;
+  --dashboard-text-sub: #b0b0b0;
+  --dashboard-border: #33343a;
+  --dashboard-shadow: 0 2px 16px rgba(0,0,0,0.32);
 }
 
 /* Admin-specific theme variables */

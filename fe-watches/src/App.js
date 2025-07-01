@@ -46,7 +46,7 @@ import BannerManagement from './admin/system/BannerManagement';
 import ContactManagement from './admin/system/ContactManagement';
 import FooterManagement from './admin/system/FooterManagement';
 import NewsManagement from './admin/system/NewsManagement';
-import CouponListPage from './admin/coupon/CouponListPage';
+import CouponListPage from './admin/coupon/CouponPage';
 import CustomersListPage from './admin/customers/CustomersListPage';
 import EmployeesPage from './admin/employee/EmployeesPage';
 import SupplierPage from './admin/suppliers/SupplierPage';

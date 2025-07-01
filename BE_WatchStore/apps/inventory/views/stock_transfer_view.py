@@ -131,7 +131,8 @@ class StockTransferViewSet(viewsets.ModelViewSet):
             for detail in stock_transfer.stocktransferdetail_set.all():
                 source_inventory = Inventory.objects.filter(
                     store=stock_transfer.source_store,
-                    product_variant=detail.product_variant
+                    product_variant=detail.product_variant,
+                    is_deleted=False
                 ).first()
                 
                 if not source_inventory or source_inventory.quantity < detail.quantity:
@@ -149,9 +150,10 @@ class StockTransferViewSet(viewsets.ModelViewSet):
             
             # 2. Trừ tồn kho nguồn và tạo transaction OUT
             for detail in stock_transfer.stocktransferdetail_set.all():
-                source_inventory = Inventory.objects.get(
+                source_inventory = Inventory.objects.select_for_update().get(
                     store=stock_transfer.source_store,
-                    product_variant=detail.product_variant
+                    product_variant=detail.product_variant,
+                    is_deleted=False
                 )
                 source_inventory.quantity -= detail.quantity
                 source_inventory.updated_by = request.user
@@ -171,9 +173,11 @@ class StockTransferViewSet(viewsets.ModelViewSet):
             
             # 3. Cộng tồn kho đích và tạo transaction IN
             for detail in stock_transfer.stocktransferdetail_set.all():
+                # Tìm hoặc tạo inventory record cho kho đích
                 dest_inventory, created = Inventory.objects.get_or_create(
                     store=stock_transfer.destination_store,
                     product_variant=detail.product_variant,
+                    is_deleted=False,
                     defaults={
                         'quantity': 0,
                         'created_by': request.user,
@@ -181,16 +185,22 @@ class StockTransferViewSet(viewsets.ModelViewSet):
                     }
                 )
                 
-                received_qty = detail.received_quantity or detail.quantity
-                dest_inventory.quantity += received_qty
-                dest_inventory.updated_by = request.user
-                dest_inventory.save()
+                # Nếu inventory đã tồn tại, cập nhật số lượng
+                if not created:
+                    dest_inventory.quantity += detail.quantity
+                    dest_inventory.updated_by = request.user
+                    dest_inventory.save()
+                else:
+                    # Nếu mới tạo, cộng số lượng chuyển kho
+                    dest_inventory.quantity = detail.quantity
+                    dest_inventory.updated_by = request.user
+                    dest_inventory.save()
                 
                 # Tạo inventory transaction IN
                 InventoryTransaction.objects.create(
                     inventory=dest_inventory,
                     transaction_type='IN',
-                    quantity=received_qty,
+                    quantity=detail.quantity,
                     reference_type='stock_transfer',
                     reference_id=stock_transfer.id,
                     note=f"Chuyển kho từ {stock_transfer.source_store.name} - {detail.product_variant.product.name if detail.product_variant.product else detail.product_variant.sku}",
@@ -256,7 +266,8 @@ class StockTransferViewSet(viewsets.ModelViewSet):
                         # Trừ lại tồn kho đích
                         dest_inventory = Inventory.objects.filter(
                             store=stock_transfer.destination_store,
-                            product_variant=detail.product_variant
+                            product_variant=detail.product_variant,
+                            is_deleted=False
                         ).first()
                         
                         if dest_inventory:
@@ -279,7 +290,8 @@ class StockTransferViewSet(viewsets.ModelViewSet):
                         # Cộng lại tồn kho nguồn
                         source_inventory = Inventory.objects.filter(
                             store=stock_transfer.source_store,
-                            product_variant=detail.product_variant
+                            product_variant=detail.product_variant,
+                            is_deleted=False
                         ).first()
                         
                         if source_inventory:

@@ -443,15 +443,170 @@ class OrderViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Cập nhật trạng thái
-        order.status = 'cancelled'
+        try:
+            with transaction.atomic():
+                # Lưu trạng thái cũ
+                old_status = order.status
+                
+                # Cập nhật trạng thái
+                order.status = 'cancelled'
+                order.updated_by = request.user
+                order.save()
+                
+                # Xử lý inventory nếu đơn hàng đã trừ kho
+                if self._get_status_type(old_status) == "deducted":
+                    order_details = OrderDetail.objects.filter(order=order, is_deleted=False)
+                    store_id = order.store.id
+                    
+                    # Gọi logic hoàn trả inventory
+                    self._return_inventory_to_stock(order_details, store_id, request.user, order.id)
+                
+                return Response({
+                    'message': f'Đã hủy đơn hàng #{order.id}',
+                    'order': OrderSerializer(order).data
+                })
+                
+        except Exception as e:
+            transaction.set_rollback(True)
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+    @action(detail=True, methods=['post'])
+    def confirm_order(self, request, pk=None):
+        """Xác nhận đơn hàng đã hoàn thành"""
+        order = self.get_object()
+        
+        if order.status == 'delivered':
+            return Response(
+                {'error': 'Đơn hàng đã được xác nhận hoàn thành trước đó'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if order.status == 'cancelled':
+            return Response(
+                {'error': 'Không thể xác nhận đơn hàng đã hủy'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Kiểm tra xem đơn hàng có thể được xác nhận không
+        valid_statuses_for_confirmation = ['pending', 'processing', 'shipped']
+        if order.status not in valid_statuses_for_confirmation:
+            return Response(
+                {'error': f'Không thể xác nhận đơn hàng với trạng thái hiện tại: {order.status}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Cập nhật trạng thái thành delivered
+        order.status = 'delivered'
         order.updated_by = request.user
         order.save()
         
         return Response({
-            'message': f'Đã hủy đơn hàng #{order.id}',
+            'message': f'Đã xác nhận đơn hàng #{order.id} hoàn thành',
             'order': OrderSerializer(order).data
         })
+
+    @action(detail=True, methods=['post'])
+    def ship_order(self, request, pk=None):
+        """Chuyển trạng thái đơn hàng thành đang giao"""
+        order = self.get_object()
+        
+        if order.status == 'shipped':
+            return Response(
+                {'error': 'Đơn hàng đã được chuyển sang trạng thái đang giao'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if order.status == 'delivered':
+            return Response(
+                {'error': 'Không thể thay đổi trạng thái đơn hàng đã hoàn thành'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if order.status == 'cancelled':
+            return Response(
+                {'error': 'Không thể thay đổi trạng thái đơn hàng đã hủy'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Kiểm tra xem đơn hàng có thể được chuyển sang shipped không
+        valid_statuses_for_shipping = ['pending', 'processing']
+        if order.status not in valid_statuses_for_shipping:
+            return Response(
+                {'error': f'Không thể chuyển đơn hàng sang trạng thái đang giao với trạng thái hiện tại: {order.status}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Cập nhật trạng thái thành shipped
+        order.status = 'shipped'
+        order.updated_by = request.user
+        order.save()
+        
+        return Response({
+            'message': f'Đã chuyển đơn hàng #{order.id} sang trạng thái đang giao',
+            'order': OrderSerializer(order).data
+        })
+
+    @action(detail=True, methods=['post'])
+    def process_order(self, request, pk=None):
+        """Chuyển trạng thái đơn hàng thành đang xử lý"""
+        order = self.get_object()
+        
+        if order.status == 'processing':
+            return Response(
+                {'error': 'Đơn hàng đã được chuyển sang trạng thái đang xử lý'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if order.status in ['shipped', 'delivered']:
+            return Response(
+                {'error': 'Không thể thay đổi trạng thái đơn hàng đã giao hoặc hoàn thành'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if order.status == 'cancelled':
+            return Response(
+                {'error': 'Không thể thay đổi trạng thái đơn hàng đã hủy'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Kiểm tra xem đơn hàng có thể được chuyển sang processing không
+        if order.status != 'pending':
+            return Response(
+                {'error': f'Không thể chuyển đơn hàng sang trạng thái đang xử lý với trạng thái hiện tại: {order.status}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            with transaction.atomic():
+                # Lưu trạng thái cũ
+                old_status = order.status
+                
+                # Cập nhật trạng thái thành processing
+                order.status = 'processing'
+                order.updated_by = request.user
+                order.save()
+                
+                # Xử lý inventory: chuyển từ returned sang deducted
+                order_details = OrderDetail.objects.filter(order=order, is_deleted=False)
+                store_id = order.store.id
+                
+                # Gọi logic trừ inventory
+                self._deduct_inventory_from_stock(order_details, store_id, request.user, order.id)
+                
+                return Response({
+                    'message': f'Đã chuyển đơn hàng #{order.id} sang trạng thái đang xử lý và trừ tồn kho',
+                    'order': OrderSerializer(order).data
+                })
+                
+        except Exception as e:
+            transaction.set_rollback(True)
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
     @action(detail=False, methods=['get'])
     def statistics(self, request):

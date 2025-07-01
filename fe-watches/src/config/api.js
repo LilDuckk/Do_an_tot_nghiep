@@ -95,6 +95,10 @@ export const ORDER_ENDPOINTS = {
   ORDER_DETAIL_ITEM: (id) => `${API_BASE_URL}/orders/order-details/${id}/`,
   COUPONS: `${API_BASE_URL}/orders/coupons/`,
   COUPON_DETAIL: (id) => `${API_BASE_URL}/orders/coupons/${id}/`,
+  ORDER_PROCESS: (id) => `${API_BASE_URL}/orders/orders/${id}/process_order/`,
+  ORDER_SHIP: (id) => `${API_BASE_URL}/orders/orders/${id}/ship_order/`,
+  ORDER_CONFIRM: (id) => `${API_BASE_URL}/orders/orders/${id}/confirm_order/`,
+  ORDER_CANCEL: (id) => `${API_BASE_URL}/orders/orders/${id}/cancel_order/`,
 };
 
 // Customer endpoints
@@ -197,6 +201,19 @@ export const PURCHASE_ENDPOINTS = {
   // Goods Receipt Details
   GOODS_RECEIPT_DETAILS: `${API_BASE_URL}/purchases/goods-receipt-details/`,
   GOODS_RECEIPT_DETAIL_ITEM: (id) => `${API_BASE_URL}/purchases/goods-receipt-details/${id}/`,
+};
+
+// Report endpoints
+export const REPORT_ENDPOINTS = {
+  DASHBOARD_OVERVIEW: `${API_BASE_URL}/reports/dashboard/overview/`,
+  DASHBOARD_RECENT_ACTIVITY: `${API_BASE_URL}/reports/dashboard/recent_activity/`,
+  DASHBOARD_ALERTS: `${API_BASE_URL}/reports/dashboard/alerts/`,
+  REVENUE_DAILY: `${API_BASE_URL}/reports/revenue/daily_revenue/`,
+  REVENUE_MONTHLY: `${API_BASE_URL}/reports/revenue/monthly_revenue/`,
+  PROFIT_ANALYSIS: `${API_BASE_URL}/reports/revenue/profit_analysis/`,
+  SALES_BEST_SELLERS: `${API_BASE_URL}/reports/sales/best_sellers/`,
+  SALES_PRODUCT_PERFORMANCE: `${API_BASE_URL}/reports/sales/product_performance/`,
+  SALES_INVENTORY_TURNOVER: `${API_BASE_URL}/reports/sales/inventory_turnover/`,
 };
 
 // Export base URL nếu cần sử dụng riêng lẻ

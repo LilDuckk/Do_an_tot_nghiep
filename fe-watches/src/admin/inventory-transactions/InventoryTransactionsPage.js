@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Table,
   Button,
@@ -23,14 +23,9 @@ import {
   ClearOutlined
 } from '@ant-design/icons';
 import { useDebounce } from '../hooks/useDebounce';
-import { getInventoryTransactions } from '../../config/api';
 import '../static/AdminCommon.css';
 import '../static/AdminLayout.css';
 import { INVENTORY_ENDPOINTS } from '../../config/api';
-
-const { Search } = Input;
-const { Option } = Select;
-const { RangePicker } = DatePicker;
 
 const InventoryTransactionsPage = () => {
   const [transactions, setTransactions] = useState([]);
@@ -51,14 +46,14 @@ const InventoryTransactionsPage = () => {
   const debouncedSearch = useDebounce(searchTerm, 500);
 
   // Fetch transactions
-  const fetchTransactions = async () => {
+  const fetchTransactions = useCallback(async () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('accessToken');
       const params = new URLSearchParams();
       
       if (debouncedSearch) params.append('search', debouncedSearch);
-      if (transactionType) params.append('transaction_type', transactionType);
+      if (transactionType) params.append('transaction_type', transactionType.toUpperCase());
       if (referenceType) params.append('reference_type', referenceType);
       if (dateRange && dateRange.length === 2) {
         params.append('transaction_date_from', dateRange[0].format('YYYY-MM-DD'));
@@ -87,7 +82,7 @@ const InventoryTransactionsPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [debouncedSearch, transactionType, referenceType, dateRange, currentPage, pageSize]);
 
   // Fetch transaction summary
   const fetchTransactionSummary = async (transactionId) => {
@@ -96,7 +91,7 @@ const InventoryTransactionsPage = () => {
       const response = await fetch(INVENTORY_ENDPOINTS.INVENTORY_TRANSACTION_SUMMARY(transactionId), {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      const data = await response.json();
+      await response.json();
     } catch (error) {
       console.error('Error fetching transaction summary:', error);
     }
@@ -104,7 +99,7 @@ const InventoryTransactionsPage = () => {
 
   useEffect(() => {
     fetchTransactions();
-  }, [debouncedSearch, transactionType, referenceType, dateRange, currentPage, pageSize]);
+  }, [fetchTransactions]);
 
   // Handle table change
   const handleTableChange = (paginationInfo) => {
@@ -112,11 +107,7 @@ const InventoryTransactionsPage = () => {
     setPageSize(paginationInfo.pageSize);
   };
 
-  // Handle search
-  const handleSearch = (value) => {
-    setSearchTerm(value);
-    setCurrentPage(1);
-  };
+  // Handle search - removed unused function
 
   // Handle filter change
   const handleFilterChange = (key, value) => {
@@ -153,10 +144,10 @@ const InventoryTransactionsPage = () => {
 
   // Get transaction type color
   const getTransactionTypeColor = (type) => {
-    switch (type) {
-      case 'in':
+    switch ((type || '').toUpperCase()) {
+      case 'IN':
         return 'green';
-      case 'out':
+      case 'OUT':
         return 'red';
       default:
         return 'default';
@@ -174,6 +165,10 @@ const InventoryTransactionsPage = () => {
         return 'purple';
       case 'stock_take':
         return 'cyan';
+      case 'order':
+        return 'gold';
+      case 'order_cancel':
+        return 'red';
       default:
         return 'default';
     }
@@ -225,7 +220,7 @@ const InventoryTransactionsPage = () => {
       width: 120,
       render: (type) => (
         <Tag color={getTransactionTypeColor(type)}>
-          {type === 'in' ? 'Nhập kho' : 'Xuất kho'}
+          {(type || '').toUpperCase() === 'IN' ? 'Nhập kho' : 'Xuất kho'}
         </Tag>
       ),
     },
@@ -237,10 +232,10 @@ const InventoryTransactionsPage = () => {
       align: 'right',
       render: (quantity, record) => (
         <span style={{ 
-          color: record.transaction_type === 'in' ? '#52c41a' : '#ff4d4f',
+          color: (record.transaction_type || '').toUpperCase() === 'IN' ? '#52c41a' : '#ff4d4f',
           fontWeight: 500 
         }}>
-          {record.transaction_type === 'in' ? '+' : '-'}{quantity}
+          {(record.transaction_type || '').toUpperCase() === 'IN' ? '+' : '-'}{quantity}
         </span>
       ),
     },
@@ -288,9 +283,12 @@ const InventoryTransactionsPage = () => {
       render: (type, record) => (
         <Tag color={getReferenceTypeColor(type)}>
           {type === 'goods_receipt' ? 'Phiếu nhập' :
-           type === 'order_detail' ? 'Đơn hàng' :
+           type === 'order_detail' ? 'Đơn hàng chi tiết' :
            type === 'stock_transfer' ? 'Chuyển kho' :
-           type === 'stock_take' ? 'Kiểm kê' : type}
+           type === 'stock_take' ? 'Kiểm kê' :
+           type === 'order' ? 'Đơn hàng xuất kho' :
+           type === 'order_cancel' ? 'Đơn hàng hủy' :
+           type}
         </Tag>
       ),
     },
@@ -373,7 +371,7 @@ const InventoryTransactionsPage = () => {
                   <span className="label" style={{ fontWeight: 500, color: '#666' }}>Loại giao dịch:</span>
                   <span className="value">
                     <Tag color={getTransactionTypeColor(transaction.transaction_type)}>
-                      {transaction.transaction_type === 'in' ? 'Nhập kho' : 'Xuất kho'}
+                      {(transaction.transaction_type || '').toUpperCase() === 'IN' ? 'Nhập kho' : 'Xuất kho'}
                     </Tag>
                   </span>
                 </div>
@@ -384,10 +382,10 @@ const InventoryTransactionsPage = () => {
                 }}>
                   <span className="label" style={{ fontWeight: 500, color: '#666' }}>Số lượng:</span>
                   <span className="value" style={{ 
-                    color: transaction.transaction_type === 'in' ? '#52c41a' : '#ff4d4f',
+                    color: (transaction.transaction_type || '').toUpperCase() === 'IN' ? '#52c41a' : '#ff4d4f',
                     fontWeight: 500 
                   }}>
-                    {transaction.transaction_type === 'in' ? '+' : '-'}{transaction.quantity}
+                    {(transaction.transaction_type || '').toUpperCase() === 'IN' ? '+' : '-'}{transaction.quantity}
                   </span>
                 </div>
                 <div className="detail-item" style={{ 
@@ -434,9 +432,12 @@ const InventoryTransactionsPage = () => {
                   <span className="value">
                     <Tag color={getReferenceTypeColor(transaction.reference_type)}>
                       {transaction.reference_type === 'goods_receipt' ? 'Phiếu nhập' :
-                       transaction.reference_type === 'order_detail' ? 'Đơn hàng' :
+                       transaction.reference_type === 'order_detail' ? 'Đơn hàng chi tiết' :
                        transaction.reference_type === 'stock_transfer' ? 'Chuyển kho' :
-                       transaction.reference_type === 'stock_take' ? 'Kiểm kê' : transaction.reference_type}
+                       transaction.reference_type === 'stock_take' ? 'Kiểm kê' :
+                       transaction.reference_type === 'order' ? 'Đơn hàng xuất kho' :
+                       transaction.reference_type === 'order_cancel' ? 'Đơn hàng hủy' :
+                       transaction.reference_type}
                     </Tag>
                   </span>
                 </div>
@@ -627,11 +628,11 @@ const InventoryTransactionsPage = () => {
 
     const stats = transactions.reduce((acc, transaction) => {
       const subtotal = transaction.subtotal || (transaction.quantity * transaction.unit_price);
-      
-      if (transaction.transaction_type === 'in') {
+      const type = (transaction.transaction_type || '').toUpperCase();
+      if (type === 'IN') {
         acc.totalIn += transaction.quantity;
         acc.totalValue += subtotal;
-      } else {
+      } else if (type === 'OUT') {
         acc.totalOut += transaction.quantity;
         acc.totalValue -= subtotal;
       }
@@ -714,8 +715,8 @@ const InventoryTransactionsPage = () => {
                   allowClear
                   style={{ width: '100%' }}
                 >
-                  <Select.Option value="in">Nhập kho</Select.Option>
-                  <Select.Option value="out">Xuất kho</Select.Option>
+                  <Select.Option value="IN">Nhập kho</Select.Option>
+                  <Select.Option value="OUT">Xuất kho</Select.Option>
                 </Select>
               </Col>
               <Col xs={24} sm={12} md={8}>
@@ -727,7 +728,9 @@ const InventoryTransactionsPage = () => {
                   style={{ width: '100%' }}
                 >
                   <Select.Option value="goods_receipt">Phiếu nhập</Select.Option>
-                  <Select.Option value="order_detail">Đơn hàng</Select.Option>
+                  <Select.Option value="order_detail">Đơn hàng chi tiết</Select.Option>
+                  <Select.Option value="order">Đơn hàng xuất kho</Select.Option>
+                  <Select.Option value="order_cancel">Đơn hàng hủy</Select.Option>
                   <Select.Option value="stock_transfer">Chuyển kho</Select.Option>
                   <Select.Option value="stock_take">Kiểm kê</Select.Option>
                 </Select>
@@ -865,7 +868,7 @@ const InventoryTransactionsPage = () => {
                   key: 'type',
                   render: (type) => (
                     <Tag color={getTransactionTypeColor(type)}>
-                      {type === 'in' ? 'Nhập kho' : 'Xuất kho'}
+                      {(type || '').toUpperCase() === 'IN' ? 'Nhập kho' : 'Xuất kho'}
                     </Tag>
                   ),
                 },
