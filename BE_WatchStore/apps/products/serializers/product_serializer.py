@@ -249,6 +249,7 @@ class ProductSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         from apps.products.models.product import ProductImage
+        from apps.products.services import ProductService
 
         images = self.context['request'].FILES.getlist('images')
         primary_image_index = int(self.context['request'].data.get('primary_image_index', 0))
@@ -267,18 +268,23 @@ class ProductSerializer(serializers.ModelSerializer):
 
         # Tạo product và các đối tượng liên quan trong block atomic
         with transaction.atomic():
-            product = Product.objects.create(**validated_data)
-
-            # Tạo tổ hợp tất cả biến thể
+            # Sử dụng service để tạo product với variants
             if attr_value_objects:
+                # Tạo variants data từ attribute combinations
+                variants_data = []
                 for combo in itertools.product(*attr_value_objects):
-                    # Tạo variant trước
-                    variant = ProductVariant.objects.create(product=product)
-                    # Set attribute values sau
-                    variant.attribute_values.set(combo)
-                    # Generate SKU với attribute values
-                    variant.sku = variant.generate_sku(attribute_values_list=[av.value for av in combo])
-                    variant.save()
+                    variant_data = {
+                        'attribute_values': list(combo),
+                        'is_active': True
+                    }
+                    variants_data.append(variant_data)
+                
+                product, created_variants = ProductService.create_product_with_variants(
+                    validated_data, variants_data
+                )
+            else:
+                # Tạo product không có variants
+                product = Product.objects.create(**validated_data)
 
             # Tạo ảnh sản phẩm
             for idx, image_file in enumerate(images):

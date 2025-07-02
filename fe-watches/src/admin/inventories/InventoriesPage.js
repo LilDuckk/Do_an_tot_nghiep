@@ -37,6 +37,10 @@ const InventoriesPage = () => {
   const [productSearchValue, setProductSearchValue] = useState('');
   const [productOptions, setProductOptions] = useState([]);
   const [selectedStoreFilter, setSelectedStoreFilter] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
 
   const user = JSON.parse(localStorage.getItem('adminUser') || '{}');
   const userPermissions = JSON.parse(localStorage.getItem('user_permission_codenames') || '[]');
@@ -56,30 +60,37 @@ const InventoriesPage = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('accessToken');
-      const queryParams = new URLSearchParams();
-      if (debouncedSearchText) {
-        queryParams.append('search', debouncedSearchText);
-      }
-      if (selectedStoreFilter) {
-        queryParams.append('store', selectedStoreFilter);
-      }
+      const queryParamsObj = {
+        page: currentPage,
+        page_size: pageSize,
+      };
+      if (debouncedSearchText) queryParamsObj.search = debouncedSearchText;
+      if (selectedStoreFilter) queryParamsObj.store = selectedStoreFilter;
+      const queryParams = new URLSearchParams(queryParamsObj);
       const response = await fetch(`${INVENTORY_ENDPOINTS.INVENTORIES}?${queryParams}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.status === 403) {
         message.error('Bạn không có quyền xem danh sách này.');
         setInventories([]);
+        setTotal(0);
+        setTotalPages(1);
         return;
       }
       const data = await response.json();
       setInventories(Array.isArray(data.results) ? data.results : []);
+      setTotal(data.count || 0);
+      setTotalPages(Math.max(1, Math.ceil((data.count || 0) / pageSize)));
+      if ((data.count || 0) === 0 && currentPage !== 1) setCurrentPage(1);
     } catch (error) {
       message.error('Lỗi khi tải danh sách tồn kho');
       setInventories([]);
+      setTotal(0);
+      setTotalPages(1);
     } finally {
       setLoading(false);
     }
-  }, [debouncedSearchText, selectedStoreFilter]);
+  }, [debouncedSearchText, selectedStoreFilter, currentPage, pageSize]);
 
   const fetchStores = async () => {
     try {
@@ -373,6 +384,26 @@ const InventoriesPage = () => {
         dataSource={inventories}
         loading={loading}
         rowKey="id"
+        pagination={{
+          current: currentPage,
+          pageSize: pageSize,
+          total: total,
+          showSizeChanger: true,
+          showQuickJumper: true,
+          showTotal: (total, range) => `Hiển thị ${range[0]}-${range[1]} của ${total} tồn kho`,
+          pageSizeOptions: ['10', '20', '50', '100'],
+          position: ['bottomCenter'],
+          size: 'default',
+          responsive: true,
+        }}
+        onChange={(pagination) => {
+          if (pagination.pageSize !== pageSize) {
+            setPageSize(pagination.pageSize);
+            setCurrentPage(1);
+          } else {
+            setCurrentPage(pagination.current);
+          }
+        }}
       />
 
       <Modal

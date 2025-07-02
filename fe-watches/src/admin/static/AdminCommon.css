@@ -1610,3 +1610,67 @@ body[data-admin-theme="dark"] .filter-container .ant-input-number-focused {
   color: var(--input-text) !important;
   opacity: 0.6;
 }
+
+/* Cải thiện phân trang */
+.ant-pagination {
+  margin-top: 16px;
+  text-align: center;
+}
+
+.ant-pagination .ant-pagination-total-text {
+  color: #666;
+  font-size: 14px;
+}
+
+.ant-pagination .ant-pagination-item {
+  border-radius: 6px;
+  margin: 0 4px;
+}
+
+.ant-pagination .ant-pagination-item-active {
+  background: #1890ff;
+  border-color: #1890ff;
+}
+
+.ant-pagination .ant-pagination-item:hover {
+  border-color: #1890ff;
+}
+
+.ant-pagination .ant-pagination-prev,
+.ant-pagination .ant-pagination-next {
+  border-radius: 6px;
+  margin: 0 4px;
+}
+
+.ant-pagination .ant-pagination-options {
+  margin-left: 16px;
+}
+
+.ant-pagination .ant-pagination-options-quick-jumper {
+  margin-left: 8px;
+}
+
+.ant-pagination .ant-pagination-options-quick-jumper input {
+  border-radius: 4px;
+  width: 60px;
+}
+
+/* Responsive cho phân trang */
+@media (max-width: 768px) {
+  .ant-pagination {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+  
+  .ant-pagination .ant-pagination-options {
+    margin-left: 0;
+    margin-top: 8px;
+  }
+  
+  .ant-pagination .ant-pagination-total-text {
+    order: -1;
+    margin-bottom: 8px;
+  }
+}

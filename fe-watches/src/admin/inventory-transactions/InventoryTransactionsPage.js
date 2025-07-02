@@ -41,6 +41,8 @@ const InventoryTransactionsPage = () => {
   const [total, setTotal] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
+  const [summary, setSummary] = useState(null);
 
   // Debounced search
   const debouncedSearch = useDebounce(searchTerm, 500);
@@ -50,19 +52,34 @@ const InventoryTransactionsPage = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('accessToken');
-      const params = new URLSearchParams();
-      
-      if (debouncedSearch) params.append('search', debouncedSearch);
-      if (transactionType) params.append('transaction_type', transactionType.toUpperCase());
-      if (referenceType) params.append('reference_type', referenceType);
-      if (dateRange && dateRange.length === 2) {
-        params.append('transaction_date_from', dateRange[0].format('YYYY-MM-DD'));
-        params.append('transaction_date_to', dateRange[1].format('YYYY-MM-DD'));
+      // Build params như variant
+      const paramsObj = {
+        page: currentPage,
+        page_size: pageSize,
+      };
+      if (debouncedSearch && debouncedSearch.trim()) paramsObj.search = debouncedSearch.trim();
+      if (transactionType && transactionType.trim()) paramsObj.transaction_type = transactionType.toUpperCase();
+      if (referenceType && referenceType.trim()) paramsObj.reference_type = referenceType;
+      if (dateRange && dateRange.length === 2 && dateRange[0] && dateRange[1]) {
+        paramsObj.transaction_date_from = dateRange[0].format('YYYY-MM-DD');
+        paramsObj.transaction_date_to = dateRange[1].format('YYYY-MM-DD');
       }
-      if (currentPage > 1) params.append('page', currentPage);
-      if (pageSize !== 10) params.append('page_size', pageSize);
+      const params = new URLSearchParams(paramsObj);
+      const finalUrl = `${INVENTORY_ENDPOINTS.INVENTORY_TRANSACTIONS}?${params}`;
+      console.log('API URL:', finalUrl);
+      console.log('Params:', Object.fromEntries(params.entries()));
+      console.log('Current state:', { currentPage, pageSize, debouncedSearch, transactionType, referenceType, dateRange });
+      
+      // Kiểm tra xem có tham số không mong muốn không
+      const paramsObjFromUrl = Object.fromEntries(params.entries());
+      const unexpectedParams = Object.keys(paramsObjFromUrl).filter(key => 
+        !['search', 'transaction_type', 'reference_type', 'transaction_date_from', 'transaction_date_to', 'page', 'page_size'].includes(key)
+      );
+      if (unexpectedParams.length > 0) {
+        console.warn('Unexpected params found:', unexpectedParams);
+      }
 
-      const response = await fetch(`${INVENTORY_ENDPOINTS.INVENTORY_TRANSACTIONS}?${params}`, {
+      const response = await fetch(finalUrl, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -76,6 +93,10 @@ const InventoryTransactionsPage = () => {
       const data = await response.json();
       setTransactions(data.results || []);
       setTotal(data.count || 0);
+      const count = data.count || 0;
+      setTotalPages(Math.max(1, Math.ceil(count / pageSize)));
+      if (count === 0 && currentPage !== 1) setCurrentPage(1);
+      setSummary(data.summary || null);
     } catch (error) {
       console.error('Error fetching transactions:', error);
       message.error('Lỗi khi tải dữ liệu giao dịch kho');
@@ -103,8 +124,12 @@ const InventoryTransactionsPage = () => {
 
   // Handle table change
   const handleTableChange = (paginationInfo) => {
-    setCurrentPage(paginationInfo.current);
-    setPageSize(paginationInfo.pageSize);
+    if (paginationInfo.pageSize !== pageSize) {
+      setPageSize(paginationInfo.pageSize);
+      setCurrentPage(1);
+    } else {
+      setCurrentPage(paginationInfo.current);
+    }
   };
 
   // Handle search - removed unused function
@@ -119,6 +144,12 @@ const InventoryTransactionsPage = () => {
       setDateRange(value);
     }
     setCurrentPage(1);
+  };
+
+  // Handle search term change
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value);
+    setCurrentPage(1); // Reset về trang 1 khi thay đổi search
   };
 
   // Handle clear filters
@@ -669,7 +700,7 @@ const InventoryTransactionsPage = () => {
               placeholder="Tìm kiếm theo sản phẩm, SKU, ghi chú..."
               prefix={<SearchOutlined />}
               value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
+              onChange={handleSearchChange}
               style={{ width: '100%' }}
               allowClear
             />
@@ -750,31 +781,44 @@ const InventoryTransactionsPage = () => {
 
       {/* Statistics Cards */}
       <Row gutter={[16, 16]} style={{ marginBottom: '16px' }}>
-        <Col xs={24} sm={8}>
+        <Col xs={24} sm={6}>
           <Card style={{ textAlign: 'center' }}>
             <Statistic
               title="Tổng giao dịch"
-              value={total}
+              value={summary?.total_transactions ?? total}
               suffix="giao dịch"
             />
+            <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
+              Trang {currentPage} / {totalPages}
+            </div>
           </Card>
         </Col>
-        <Col xs={24} sm={8}>
+        <Col xs={24} sm={6}>
           <Card style={{ textAlign: 'center' }}>
             <Statistic
               title="Tổng nhập kho"
-              value={stats.totalIn}
+              value={summary?.total_in ?? 0}
               valueStyle={{ color: '#52c41a' }}
               suffix="sản phẩm"
             />
           </Card>
         </Col>
-        <Col xs={24} sm={8}>
+        <Col xs={24} sm={6}>
           <Card style={{ textAlign: 'center' }}>
             <Statistic
               title="Tổng xuất kho"
-              value={stats.totalOut}
+              value={summary?.total_out ?? 0}
               valueStyle={{ color: '#ff4d4f' }}
+              suffix="sản phẩm"
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={6}>
+          <Card style={{ textAlign: 'center' }}>
+            <Statistic
+              title="Chênh lệch"
+              value={summary?.net_change ?? 0}
+              valueStyle={{ color: '#1890ff' }}
               suffix="sản phẩm"
             />
           </Card>
@@ -794,8 +838,11 @@ const InventoryTransactionsPage = () => {
             total: total,
             showSizeChanger: true,
             showQuickJumper: true,
-            showTotal: (total, range) => `${range[0]}-${range[1]} của ${total} giao dịch`,
+            showTotal: (total, range) => `Hiển thị ${range[0]}-${range[1]} của ${total} giao dịch`,
             pageSizeOptions: ['10', '20', '50', '100'],
+            position: ['bottomCenter'],
+            size: 'default',
+            responsive: true,
           }}
           onChange={handleTableChange}
           scroll={{ x: 1200 }}

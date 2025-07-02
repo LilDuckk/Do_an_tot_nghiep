@@ -121,4 +121,25 @@ class InventoryTransactionCreateSerializer(serializers.ModelSerializer):
         if data.get('unit_price', 0) < 0:
             raise serializers.ValidationError("Đơn giá không được âm")
         
-        return data 
+        return data
+
+
+class InventoryTransactionSummarySerializer(serializers.Serializer):
+    """
+    Serializer cho API transaction_summary
+    """
+    id = serializers.IntegerField()
+    inventory = serializers.IntegerField()
+    
+    product_variant = serializers.DictField()
+    store = serializers.DictField()
+    
+    total_in = serializers.IntegerField()
+    total_out = serializers.IntegerField()
+    current_stock = serializers.IntegerField()
+    
+    last_transaction = serializers.DictField(allow_null=True)
+    history = serializers.ListField()
+
+
+ 
