@@ -22,11 +22,12 @@ const menuConfig = [
     { label: 'Biến thể', to: '/admin/variants', requiredPermissions: ['view_productvariant'] },
     { label: 'Thuộc tính', to: '/admin/attributes', requiredPermissions: ['view_attributetype', 'view_attributevalue'] },
   ]},
-  { label: 'Đơn hàng', icon: '🧾', requiredPermissions: ['view_orders', 'view_returnorder', 'view_coupon', 'view_customer'], children: [
+  { label: 'Đơn hàng', icon: '🧾', requiredPermissions: ['view_orders', 'view_returnorder', 'view_coupon', 'view_customer', 'view_warranty'], children: [
     { label: 'Quản lý đơn hàng', to: '/admin/orders', requiredPermissions: ['view_orders'] },
     { label: 'Trả hàng', to: '/admin/return-orders', requiredPermissions: ['view_returnorder'] },
     { label: 'Quản lý khuyến mãi', to: '/admin/coupons', requiredPermissions: ['view_coupon'] },
     { label: 'Quản lý khách hàng', to: '/admin/customers', requiredPermissions: ['view_customer'] },
+    { label: 'Quản lý bảo hành', to: '/admin/warranties', requiredPermissions: ['view_warranty'] },
   ]},
   { label: 'Cửa hàng', icon: '🏬', requiredPermissions: ['view_store', 'view_employee', 'view_inventory', 'view_stocktake', 'view_stocktransfer', 'view_supplier'], children: [
     { label: 'Quản lý cửa hàng', to: '/admin/stores', requiredPermissions: ['view_store'] },
@@ -45,7 +46,7 @@ const menuConfig = [
     { label: 'Thông tin chân trang', to: '/admin/system/footer', requiredPermissions: ['view_footercategory', 'view_footerlink'] },
     { label: 'Quản lý tin tức', to: '/admin/system/news', requiredPermissions: ['view_news'] },
   ]},
-  { label: 'Bảo hành', icon: '🛡️', to: '/admin/warranties', requiredPermissions: ['view_warranty'] },
+
   { label: 'Lịch sử thao tác', icon: '📜', to: '/admin/audit-logs', requiredPermissions: ['view_auditlog'] },
   { label: 'Đăng xuất', icon: '🚪', to: '/admin/logout' },
 ];

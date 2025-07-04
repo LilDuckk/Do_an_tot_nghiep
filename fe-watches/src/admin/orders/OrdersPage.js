@@ -17,7 +17,7 @@ import {
   Card,
   Tooltip,
 } from 'antd';
-import { EditOutlined, DeleteOutlined, PlusOutlined, SearchOutlined, ShoppingCartOutlined, FilterOutlined, SettingOutlined, CarOutlined, CheckCircleOutlined, StopOutlined } from '@ant-design/icons';
+import { EditOutlined, DeleteOutlined, PlusOutlined, SearchOutlined, ShoppingCartOutlined, FilterOutlined, SettingOutlined, CarOutlined, CheckCircleOutlined, StopOutlined, CopyOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { ORDER_ENDPOINTS, STORE_ENDPOINTS, PRODUCT_ENDPOINTS, CUSTOMER_ENDPOINTS } from '../../config/api';
 import '../static/AdminCommon.css';
@@ -66,6 +66,12 @@ const OrdersPage = () => {
   const [storeFilter, setStoreFilter] = useState(undefined);
   const [employeeFilter, setEmployeeFilter] = useState(undefined);
   const [showFilters, setShowFilters] = useState(false);
+  
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
 
   const user = JSON.parse(localStorage.getItem('adminUser') || '{}');
   const isSuperUser = localStorage.getItem('is_superuser') === 'true';
@@ -87,69 +93,80 @@ const OrdersPage = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('accessToken');
-      const queryParams = new URLSearchParams();
+      const paramsObj = {
+        page: currentPage,
+        page_size: pageSize,
+      };
       
       // Thêm bộ lọc theo loại đã chọn
       if (debouncedFilterValue) {
-        queryParams.append(filterType, debouncedFilterValue);
+        paramsObj[filterType] = debouncedFilterValue;
       }
       
       // Thêm bộ lọc theo ngày
       if (dateRange && dateRange.length === 2) {
         const startDate = dateRange[0].format('YYYY-MM-DDTHH:mm:ss[Z]');
         const endDate = dateRange[1].format('YYYY-MM-DDTHH:mm:ss[Z]');
-        queryParams.append('order_date_from', startDate);
-        queryParams.append('order_date_to', endDate);
+        paramsObj.order_date_from = startDate;
+        paramsObj.order_date_to = endDate;
       }
       
       // Thêm các bộ lọc khác
       if (statusFilter) {
-        queryParams.append('status', statusFilter);
+        paramsObj.status = statusFilter;
       }
       if (paymentMethodFilter) {
-        queryParams.append('payment_method', paymentMethodFilter);
+        paramsObj.payment_method = paymentMethodFilter;
       }
       if (paymentStatusFilter) {
-        queryParams.append('payment_status', paymentStatusFilter);
+        paramsObj.payment_status = paymentStatusFilter;
       }
       if (shippingMethodFilter) {
-        queryParams.append('shipping_method', shippingMethodFilter);
+        paramsObj.shipping_method = shippingMethodFilter;
       }
       if (isOnlineOrderFilter !== undefined && isOnlineOrderFilter !== '') {
-        queryParams.append('is_online_order', isOnlineOrderFilter);
+        paramsObj.is_online_order = isOnlineOrderFilter;
       }
       if (totalAmountMin) {
-        queryParams.append('total_amount_min', totalAmountMin);
+        paramsObj.total_amount_min = totalAmountMin;
       }
       if (totalAmountMax) {
-        queryParams.append('total_amount_max', totalAmountMax);
+        paramsObj.total_amount_max = totalAmountMax;
       }
       if (storeFilter) {
-        queryParams.append('store', storeFilter);
+        paramsObj.store = storeFilter;
       }
       if (employeeFilter) {
-        queryParams.append('employee', employeeFilter);
+        paramsObj.employee = employeeFilter;
       }
       
-      const response = await fetch(`${ORDER_ENDPOINTS.ORDERS}?${queryParams}`, {
+      const params = new URLSearchParams(paramsObj);
+      const response = await fetch(`${ORDER_ENDPOINTS.ORDERS}?${params}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
       if (response.status === 403) {
         message.error('Bạn không có quyền xem danh sách này.');
         setOrders([]);
+        setTotal(0);
+        setTotalPages(1);
         return;
       }
 
       const data = await response.json();
-      setOrders(Array.isArray(data.results) ? data.results : []);
+      setOrders(data.results || []);
+      setTotal(data.count || 0);
+      setTotalPages(Math.max(1, Math.ceil((data.count || 0) / pageSize)));
+      if ((data.count || 0) === 0 && currentPage !== 1) setCurrentPage(1);
     } catch (error) {
       message.error('Lỗi khi tải danh sách đơn hàng');
       setOrders([]);
+      setTotal(0);
+      setTotalPages(1);
     } finally {
       setLoading(false);
     }
-  }, [debouncedFilterValue, filterType, dateRange, statusFilter, paymentMethodFilter, paymentStatusFilter, shippingMethodFilter, isOnlineOrderFilter, totalAmountMin, totalAmountMax, storeFilter, employeeFilter]);
+  }, [debouncedFilterValue, filterType, dateRange, statusFilter, paymentMethodFilter, paymentStatusFilter, shippingMethodFilter, isOnlineOrderFilter, totalAmountMin, totalAmountMax, storeFilter, employeeFilter, currentPage, pageSize]);
 
   const searchCustomers = async (searchText) => {
     try {
@@ -281,6 +298,11 @@ const OrdersPage = () => {
     fetchProducts();
     fetchCoupons();
   }, [fetchOrders]);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedFilterValue, filterType, dateRange, statusFilter, paymentMethodFilter, paymentStatusFilter, shippingMethodFilter, isOnlineOrderFilter, totalAmountMin, totalAmountMax, storeFilter, employeeFilter]);
 
   // Thêm useEffect để xử lý thay đổi storeFilter
   useEffect(() => {
@@ -454,45 +476,118 @@ const OrdersPage = () => {
     })}đ`;
   };
 
+  // Hàm copy to clipboard
+  const copyToClipboard = async (text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      message.success(`Đã copy mã bảo hành: ${text}`);
+    } catch (err) {
+      // Fallback cho các trình duyệt cũ
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      message.success(`Đã copy mã bảo hành: ${text}`);
+    }
+  };
+
   const orderDetailColumns = [
     {
       title: 'Sản phẩm',
       dataIndex: 'variant',
       key: 'product_name',
-      render: (variant) => variant?.product_name || '-',
+      width: 200,
+      render: (variant) => (
+        <div>
+          <div style={{ fontWeight: 500, color: '#1890ff' }}>
+            {variant?.product_name || '-'}
+          </div>
+          <div style={{ fontSize: '12px', color: '#666', marginTop: '2px' }}>
+            {variant?.sku || '-'}
+          </div>
+          {variant?.attribute_values_detail && variant.attribute_values_detail.length > 0 && (
+            <div style={{ fontSize: '11px', color: '#999', marginTop: '2px' }}>
+              {variant.attribute_values_detail.map(attr => 
+                `${attr.attribute_type.name}: ${attr.value}`
+              ).join(', ')}
+            </div>
+          )}
+        </div>
+      ),
     },
     {
-      title: 'SKU',
-      dataIndex: 'variant',
-      key: 'sku',
-      render: (variant) => variant?.sku || '-',
+      title: 'Bảo hành',
+      dataIndex: 'warranty_info',
+      key: 'warranty',
+      width: 150,
+      render: (warrantyInfo, record) => {
+        if (!warrantyInfo || !warrantyInfo.has_warranty) {
+          return <span style={{ color: '#999' }}>Không có bảo hành</span>;
+        }
+        
+        return (
+          <div>
+            <div style={{ fontWeight: 500, color: '#52c41a' }}>
+              {warrantyInfo.warranty_period} {warrantyInfo.warranty_period_unit}
+            </div>
+            <div style={{ fontSize: '11px', color: '#666', marginBottom: '4px' }}>
+              {warrantyInfo.message}
+            </div>
+            <Button
+              type="link"
+              size="small"
+              icon={<CopyOutlined />}
+              onClick={() => copyToClipboard(warrantyInfo.warranty_number)}
+              className="warranty-copy-btn"
+              style={{ 
+                padding: 0, 
+                height: 'auto', 
+                fontSize: '11px',
+                color: '#1890ff'
+              }}
+            >
+              Copy mã bảo hành
+            </Button>
+          </div>
+        );
+      },
     },
     {
       title: 'Số lượng',
       dataIndex: 'quantity',
       key: 'quantity',
+      width: 80,
+      align: 'center',
     },
     {
       title: 'Đơn giá',
       dataIndex: 'unit_price',
       key: 'unit_price',
+      width: 120,
+      align: 'right',
       render: (price) => formatCurrency(price),
     },
     {
       title: 'Thành tiền',
       dataIndex: 'final_price',
       key: 'final_price',
+      width: 130,
+      align: 'right',
       render: (total) => formatCurrency(total),
     },
     {
       title: 'Thao tác',
       key: 'action',
+      width: 120,
+      fixed: 'right',
       render: (_, record) => (
         <Space>
-          <Tooltip title="Chi tiết đơn hàng">
+          <Tooltip title="Chỉnh sửa sản phẩm">
             <Button
               type="primary"
-              icon={<ShoppingCartOutlined />}
+              icon={<EditOutlined />}
               onClick={() => {
                 setShowAddProductForm(true);
                 setEditingOrderDetail(record);
@@ -508,14 +603,14 @@ const OrdersPage = () => {
                   setSelectedVariant(record.variant || null);
                 });
               }}
-              size="middle"
+              size="small"
             />
           </Tooltip>
           <Popconfirm
             title="Bạn có chắc chắn muốn xóa?"
             onConfirm={() => handleDeleteOrderDetail(record.id)}
           >
-            <Button danger icon={<DeleteOutlined />} />
+            <Button danger icon={<DeleteOutlined />} size="small" />
           </Popconfirm>
         </Space>
       ),
@@ -610,21 +705,25 @@ const OrdersPage = () => {
       title: 'Mã đơn',
       dataIndex: 'id',
       key: 'id',
+      width: 80,
     },
     {
       title: 'Khách hàng',
       dataIndex: 'customer_first_name',
       key: 'customer_first_name',
+      width: 150,
     },
     {
       title: 'Cửa hàng',
       dataIndex: 'store_name',
       key: 'store_name',
+      width: 120,
     },
     {
       title: 'Trạng thái',
       dataIndex: 'status',
       key: 'status',
+      width: 120,
       render: (status) => {
         const statusMap = {
           'pending': 'Chờ xử lý',
@@ -640,6 +739,7 @@ const OrdersPage = () => {
       title: 'Phương thức thanh toán',
       dataIndex: 'payment_method',
       key: 'payment_method',
+      width: 140,
       render: (method) => {
         const methodMap = {
           'cash': 'Tiền mặt',
@@ -653,23 +753,29 @@ const OrdersPage = () => {
       title: 'Tổng tiền',
       dataIndex: 'total_amount',
       key: 'total_amount',
+      width: 120,
+      align: 'right',
       render: (amount) => formatCurrency(amount),
     },
     {
       title: 'Ngày tạo',
       dataIndex: 'created_at',
       key: 'created_at',
+      width: 140,
       render: (date) => dayjs(date).format('DD/MM/YYYY HH:mm'),
     },
     {
       title: 'Nhân viên',
       dataIndex: 'employee',
       key: 'employee',
+      width: 120,
       render: (employee) => employee || '-'
     },
     {
       title: 'Thao tác',
       key: 'action',
+      width: 200,
+      fixed: 'right',
       render: (_, record) => (
         <Space>
           <Tooltip title="Chi tiết đơn hàng">
@@ -996,27 +1102,28 @@ const OrdersPage = () => {
               </Col>
               <Col xs={24}>
                 <Space>
-                  <Button
-                    className="filter-clear-btn"
-                    type="primary"
-                    icon={<FilterOutlined />}
-                    onClick={() => {
-                      setFilterValue('');
-                      setDateRange(null);
-                      setStatusFilter(undefined);
-                      setPaymentMethodFilter(undefined);
-                      setPaymentStatusFilter(undefined);
-                      setShippingMethodFilter(undefined);
-                      setIsOnlineOrderFilter(undefined);
-                      setTotalAmountMin('');
-                      setTotalAmountMax('');
-                      setStoreFilter(undefined);
-                      setEmployeeFilter(undefined);
-                      setFilterType('customer_first_name');
-                    }}
-                  >
-                    Xóa bộ lọc
-                  </Button>
+                                      <Button
+                      className="filter-clear-btn"
+                      type="primary"
+                      icon={<FilterOutlined />}
+                      onClick={() => {
+                        setFilterValue('');
+                        setDateRange(null);
+                        setStatusFilter(undefined);
+                        setPaymentMethodFilter(undefined);
+                        setPaymentStatusFilter(undefined);
+                        setShippingMethodFilter(undefined);
+                        setIsOnlineOrderFilter(undefined);
+                        setTotalAmountMin('');
+                        setTotalAmountMax('');
+                        setStoreFilter(undefined);
+                        setEmployeeFilter(undefined);
+                        setFilterType('customer_first_name');
+                        setCurrentPage(1);
+                      }}
+                    >
+                      Xóa bộ lọc
+                    </Button>
                 </Space>
               </Col>
             </Row>
@@ -1030,6 +1137,27 @@ const OrdersPage = () => {
         loading={loading}
         rowKey="id"
         className="orders-table"
+        scroll={{ x: 1200 }}
+        pagination={{
+          current: currentPage,
+          pageSize: pageSize,
+          total: total,
+          showSizeChanger: true,
+          showQuickJumper: true,
+          showTotal: (total, range) => `Hiển thị ${range[0]}-${range[1]} của ${total} đơn hàng`,
+          pageSizeOptions: ['10', '20', '50', '100'],
+          position: ['bottomCenter'],
+          size: 'default',
+          responsive: true,
+        }}
+        onChange={(pagination) => {
+          if (pagination.pageSize !== pageSize) {
+            setPageSize(pagination.pageSize);
+            setCurrentPage(1);
+          } else {
+            setCurrentPage(pagination.current);
+          }
+        }}
       />
 
       <Modal
@@ -1274,6 +1402,8 @@ const OrdersPage = () => {
           dataSource={orderDetails}
           loading={orderDetailLoading}
           rowKey="id"
+          scroll={{ x: 800 }}
+          className="admin-table"
         />
 
         {showAddProductForm && (
@@ -1369,6 +1499,26 @@ const OrdersPage = () => {
                 <div><b>SKU:</b> {selectedVariant.sku}</div>
                 <div><b>Giá:</b> {selectedVariant.price_adjustment ? formatCurrency(selectedVariant.price_adjustment) : 'Không có'}</div>
                 <div><b>Thuộc tính:</b> {selectedVariant.attribute_values_detail?.map(attr => `${attr.attribute_type.name}: ${attr.value}`).join(', ')}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <b>Bảo hành:</b> 
+                  <span>{selectedVariant.effective_warranty_period ? `${selectedVariant.effective_warranty_period} tháng` : 'Không có bảo hành'}</span>
+                  {selectedVariant.effective_warranty_period && (
+                    <Button
+                      type="link"
+                      size="small"
+                      icon={<CopyOutlined />}
+                      onClick={() => {
+                        // Tạo mã bảo hành tạm thời cho form (vì chưa có warranty_number thực tế)
+                        const tempWarrantyCode = `W-${selectedVariant.sku}-${selectedProductId}`;
+                        copyToClipboard(tempWarrantyCode);
+                      }}
+                      className="warranty-copy-btn"
+                      style={{ padding: 0, height: 'auto', fontSize: '11px' }}
+                    >
+                      Copy
+                    </Button>
+                  )}
+                </div>
                 {selectedVariant.images && selectedVariant.images.length > 0 && (
                   <img src={selectedVariant.images[0].image} alt="" style={{ maxWidth: 120, marginTop: 8 }} />
                 )}

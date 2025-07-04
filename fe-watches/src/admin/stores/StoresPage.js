@@ -35,6 +35,9 @@ const StoresPage = () => {
   const [employeeCounts, setEmployeeCounts] = useState({});
   const [hasAccess, setHasAccess] = useState(true);
   const accessErrorShown = useRef(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const ITEMS_PER_PAGE = 20;
 
   // Debounce search text
   useEffect(() => {
@@ -44,6 +47,11 @@ const StoresPage = () => {
 
     return () => clearTimeout(timer);
   }, [searchText]);
+
+  // Reset page when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchText]);
 
   const showAccessError = useCallback((msg) => {
     if (!accessErrorShown.current) {
@@ -57,10 +65,11 @@ const StoresPage = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('accessToken');
-      const queryParams = new URLSearchParams();
-      if (debouncedSearchText) {
-        queryParams.append('search', debouncedSearchText);
-      }
+      const queryParams = new URLSearchParams({
+        page: currentPage,
+        page_size: ITEMS_PER_PAGE,
+        search: debouncedSearchText
+      });
       const response = await fetch(`${STORE_ENDPOINTS.STORES}/?${queryParams}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -68,11 +77,22 @@ const StoresPage = () => {
         setHasAccess(false);
         showAccessError('Bạn không có quyền xem danh sách cửa hàng.');
         setStores([]);
+        setTotalPages(1);
         return false;
       }
       const data = await response.json();
       const storesData = Array.isArray(data.results) ? data.results : [];
+      const count = data.count || 0;
       setStores(storesData);
+      
+      // Tính toán tổng số trang
+      if (count === 0) {
+        setTotalPages(1);
+        if (currentPage !== 1) setCurrentPage(1);
+      } else {
+        setTotalPages(Math.ceil(count / ITEMS_PER_PAGE));
+      }
+      
       // Gọi API lấy số lượng nhân viên cho từng cửa hàng
       storesData.forEach(store => {
         fetchEmployeeCount(store.id);
@@ -81,11 +101,12 @@ const StoresPage = () => {
     } catch (error) {
       message.error('Lỗi khi tải danh sách cửa hàng');
       setStores([]);
+      setTotalPages(1);
       return false;
     } finally {
       setLoading(false);
     }
-  }, [debouncedSearchText, hasAccess, showAccessError]);
+  }, [debouncedSearchText, hasAccess, showAccessError, currentPage]);
   
   const fetchEmployeeCount = async (storeId) => {
     if (!hasAccess || accessErrorShown.current) return;
@@ -141,7 +162,13 @@ const StoresPage = () => {
       }
     };
     fetchAll();
-  }, [debouncedSearchText, hasAccess, showAccessError]);
+  }, [debouncedSearchText, hasAccess, showAccessError, currentPage]);
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    setCurrentPage(1);
+    fetchStores();
+  };
 
   const handleSubmit = async (values) => {
     try {
@@ -234,83 +261,44 @@ const StoresPage = () => {
       }));
   };
 
-  const columns = [
-    {
-      title: 'Tên cửa hàng',
-      dataIndex: 'name',
-      key: 'name',
-    },
-    {
-      title: 'Địa chỉ',
-      dataIndex: 'address',
-      key: 'address',
-    },
-    {
-      title: 'Số điện thoại',
-      dataIndex: 'phone',
-      key: 'phone',
-    },
-    {
-      title: 'Quản lý',
-      dataIndex: 'managers',
-      key: 'managers',
-      render: (managers) => {
-        if (!managers || managers.length === 0) return '-';
-        return managers.map(manager => 
-          `${manager.name} - ${manager.employee_code}`
-        ).join(', ');
-      }
-    },
-    {
-      title: 'Số nhân viên',
-      key: 'employee_count',
-      render: (_, record) => (
-        <Badge 
-          count={employeeCounts[record.id] || 0} 
-          showZero
-          style={{ backgroundColor: 'rgb(96 131 207)' }}
+  const renderPagination = () => {
+    if (!stores.length) {
+      return (
+        <div className="admin-pagination">
+          <button disabled>Trước</button>
+          <div className="page-numbers"><button className="active" disabled>1</button></div>
+          <button disabled>Sau</button>
+          <span className="page-info">Trang 1 / 1</span>
+        </div>
+      );
+    }
+    const pages = [];
+    for (let i = 1; i <= totalPages; i++) {
+      pages.push(
+        <button
+          key={i}
+          onClick={() => setCurrentPage(i)}
+          className={currentPage === i ? 'active' : ''}
+          disabled={currentPage === i || !hasAccess}
         >
-          <TeamOutlined style={{ fontSize: '20px' }} />
-        </Badge>
-      ),
-    },
-    {
-      title: 'Trạng thái',
-      dataIndex: 'is_active',
-      key: 'is_active',
-      render: (active) => (active ? 'Hoạt động' : 'Không hoạt động'),
-    },
-    {
-      title: 'Thao tác',
-      key: 'action',
-      render: (_, record) => (
-        <Space>
-          <Button
-            type="primary"
-            icon={<EditOutlined />}
-            onClick={() => {
-              setEditingId(record.id);
-              form.setFieldsValue({
-                ...record,
-                manager: record.manager ? `${record.manager.name} - ${record.manager.employee_code}` : undefined
-              });
-              setSelectedManager(record.manager);
-              setModalVisible(true);
-            }}
-          />
-          <Popconfirm
-            title="Bạn có chắc chắn muốn xóa?"
-            onConfirm={() => handleDelete(record.id)}
-          >
-            <Button danger icon={<DeleteOutlined />} />
-          </Popconfirm>
-        </Space>
-      ),
-    },
-  ];
+          {i}
+        </button>
+      );
+    }
+    return (
+      <div className="admin-pagination">
+        <button onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1 || !hasAccess}>Trước</button>
+        <div className="page-numbers">{pages}</div>
+        <button onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages || !hasAccess}>Sau</button>
+        <span className="page-info">Trang {currentPage} / {totalPages}</span>
+      </div>
+    );
+  };
+
+
 
   return (
-    <div className="coupon-page">
+    <div className="admin-stores-list">
       {!hasAccess && (
         <Alert
           message="Không có quyền truy cập"
@@ -320,9 +308,9 @@ const StoresPage = () => {
           style={{ marginBottom: 16 }}
         />
       )}
-      <div className="coupon-header">
+      <div className="admin-list-header">
         <h2>Quản lý cửa hàng</h2>
-        <Space>
+        <div className="search-bar">
           <Input
             placeholder="Tìm kiếm cửa hàng..."
             prefix={<SearchOutlined />}
@@ -345,15 +333,84 @@ const StoresPage = () => {
           >
             Thêm cửa hàng
           </Button>
-        </Space>
+        </div>
       </div>
 
-      <Table
-        columns={columns}
-        dataSource={stores}
-        rowKey="id"
-        loading={loading}
-      />
+      <div className="table-responsive">
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>Tên cửa hàng</th>
+              <th>Địa chỉ</th>
+              <th>Số điện thoại</th>
+              <th>Quản lý</th>
+              <th>Số nhân viên</th>
+              <th>Trạng thái</th>
+              <th>Thao tác</th>
+            </tr>
+          </thead>
+          <tbody>
+            {stores.length === 0 ? (
+              <tr>
+                <td colSpan="7" style={{ textAlign: 'center', padding: '40px 0' }}>
+                  {loading ? 'Đang tải...' : 'Không có dữ liệu'}
+                </td>
+              </tr>
+            ) : (
+              stores.map(store => (
+                <tr key={store.id}>
+                  <td>{store.name}</td>
+                  <td>{store.address}</td>
+                  <td>{store.phone}</td>
+                  <td>
+                    {store.managers && store.managers.length > 0 
+                      ? store.managers.map(manager => 
+                          `${manager.name} - ${manager.employee_code}`
+                        ).join(', ')
+                      : '-'
+                    }
+                  </td>
+                  <td>
+                    <Badge 
+                      count={employeeCounts[store.id] || 0} 
+                      showZero
+                      style={{ backgroundColor: 'rgb(96 131 207)' }}
+                    >
+                      <TeamOutlined style={{ fontSize: '20px' }} />
+                    </Badge>
+                  </td>
+                  <td>{store.is_active ? 'Hoạt động' : 'Không hoạt động'}</td>
+                  <td className="admin-table-actions">
+                    <button
+                      className="admin-btn"
+                      onClick={() => {
+                        setEditingId(store.id);
+                        form.setFieldsValue({
+                          ...store,
+                          manager: store.manager ? `${store.manager.name} - ${store.manager.employee_code}` : undefined
+                        });
+                        setSelectedManager(store.manager);
+                        setModalVisible(true);
+                      }}
+                      disabled={!hasAccess}
+                    >
+                      Sửa
+                    </button>
+                    <button
+                      className="admin-btn danger"
+                      onClick={() => handleDelete(store.id)}
+                      disabled={!hasAccess}
+                    >
+                      Xóa
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+      {renderPagination()}
 
       <Modal
         title={editingId ? "Sửa cửa hàng" : "Thêm cửa hàng mới"}

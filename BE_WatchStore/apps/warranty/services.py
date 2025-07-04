@@ -12,8 +12,9 @@ class WarrantyService:
     def create_warranty_from_order(order_detail, user=None):
         """Tự động tạo warranty khi order hoàn thành"""
         try:
-            product = order_detail.product_variant.product
-            if not product.warranty_period:
+            product_variant = order_detail.product_variant
+            warranty_period = product_variant.get_warranty_period()
+            if not warranty_period:
                 return None
             
             warranty = Warranty.create_from_order_detail(order_detail, user)
@@ -177,37 +178,92 @@ class WarrantyService:
                 
         except Exception as e:
             print(f"Error handling warranty completion: {str(e)}")
-    
+
     @staticmethod
-    def get_warranty_statistics():
+    def get_warranty_statistics(store_id=None, start_date=None, end_date=None):
         """Lấy thống kê warranty"""
-        from django.db.models import Count, Q
-        
-        total_warranties = Warranty.objects.filter(is_deleted=False).count()
-        active_warranties = Warranty.objects.filter(
-            is_deleted=False,
-            status='ACTIVE'
-        ).count()
-        expired_warranties = Warranty.objects.filter(
-            is_deleted=False,
-            status='EXPIRED'
-        ).count()
-        
-        total_claims = WarrantyClaim.objects.filter(is_deleted=False).count()
-        pending_claims = WarrantyClaim.objects.filter(
-            is_deleted=False,
-            status='PENDING'
-        ).count()
-        completed_claims = WarrantyClaim.objects.filter(
-            is_deleted=False,
-            status='COMPLETED'
-        ).count()
-        
-        return {
-            'total_warranties': total_warranties,
-            'active_warranties': active_warranties,
-            'expired_warranties': expired_warranties,
-            'total_claims': total_claims,
-            'pending_claims': pending_claims,
-            'completed_claims': completed_claims,
-        } 
+        try:
+            from django.db.models import Count, Q
+            from django.utils import timezone
+            
+            # Base queryset
+            queryset = Warranty.objects.filter(is_deleted=False)
+            
+            # Filter theo store nếu có
+            if store_id:
+                queryset = queryset.filter(
+                    order_detail__order__store_id=store_id
+                )
+            
+            # Filter theo date range nếu có
+            if start_date:
+                queryset = queryset.filter(warranty_start_date__gte=start_date)
+            if end_date:
+                queryset = queryset.filter(warranty_start_date__lte=end_date)
+            
+            # Thống kê theo status
+            status_stats = queryset.values('status').annotate(
+                count=Count('id')
+            )
+            
+            # Thống kê tổng quan
+            total_warranties = queryset.count()
+            active_warranties = queryset.filter(status='ACTIVE').count()
+            expired_warranties = queryset.filter(status='EXPIRED').count()
+            claimed_warranties = queryset.filter(status='CLAIMED').count()
+            cancelled_warranties = queryset.filter(status='CANCELLED').count()
+            
+            # Thống kê theo tháng (6 tháng gần nhất)
+            from datetime import datetime, timedelta
+            today = timezone.now().date()
+            warranty_by_month = {}
+            
+            for i in range(6):
+                month_date = today - timedelta(days=30*i)
+                month_key = month_date.strftime('%Y-%m')
+                month_count = queryset.filter(
+                    warranty_start_date__year=month_date.year,
+                    warranty_start_date__month=month_date.month
+                ).count()
+                warranty_by_month[month_key] = month_count
+            
+            # Top products với warranty
+            top_products = queryset.values(
+                'order_detail__product_variant__product__id',
+                'order_detail__product_variant__product__name'
+            ).annotate(
+                warranty_count=Count('id')
+            ).order_by('-warranty_count')[:10]
+            
+            return {
+                'total_warranties': total_warranties,
+                'active_warranties': active_warranties,
+                'expired_warranties': expired_warranties,
+                'claimed_warranties': claimed_warranties,
+                'cancelled_warranties': cancelled_warranties,
+                'warranty_by_status': {
+                    item['status']: item['count'] for item in status_stats
+                },
+                'warranty_by_month': warranty_by_month,
+                'top_products_with_warranty': [
+                    {
+                        'product_id': item['order_detail__product_variant__product__id'],
+                        'product_name': item['order_detail__product_variant__product__name'],
+                        'warranty_count': item['warranty_count']
+                    }
+                    for item in top_products
+                ]
+            }
+            
+        except Exception as e:
+            print(f"Error getting warranty statistics: {str(e)}")
+            return {
+                'total_warranties': 0,
+                'active_warranties': 0,
+                'expired_warranties': 0,
+                'claimed_warranties': 0,
+                'cancelled_warranties': 0,
+                'warranty_by_status': {},
+                'warranty_by_month': {},
+                'top_products_with_warranty': []
+            } 

@@ -17,4 +17,6 @@ router.register(r'customers', CustomerViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),
+    # Thêm URL pattern thủ công cho statistics
+    path('return-orders/statistics/', ReturnOrderViewSet.as_view({'get': 'statistics'}), name='return-order-statistics'),
 ]

@@ -11,6 +11,10 @@ from rest_framework.permissions import OR
 
 from apps.orders.models.order import Orders
 from apps.orders.models.order_detail import OrderDetail
+from apps.orders.models.return_order import ReturnOrder
+from apps.orders.models.return_order_detail import ReturnOrderDetail
+from apps.warranty.models.warranty import Warranty
+from apps.warranty.models.warranty_claim import WarrantyClaim
 from apps.inventory.models.inventory import Inventory
 from apps.inventory.models.inventory_transaction import InventoryTransaction
 from apps.purchases.models.goods_receipt import GoodsReceipt
@@ -469,8 +473,278 @@ class DashboardViewSet(viewsets.ViewSet):
             
             return Response({
                 'alerts': alerts,
-                'summary': alert_summary
+                'alert_count': len(alerts)
             }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            return Response(
+                {"detail": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+    @action(detail=False, methods=['get'])
+    def comprehensive_analysis(self, request):
+        """Phân tích tổng hợp bao gồm return orders, warranty và chỉ số tài chính"""
+        try:
+            # Lấy tham số
+            start_date = request.query_params.get('start_date')
+            end_date = request.query_params.get('end_date')
+            store_id = request.query_params.get('store_id')
+            
+            # Xử lý ngày
+            if not start_date:
+                start_date = (timezone.now() - timedelta(days=30)).strftime('%Y-%m-%d')
+            if not end_date:
+                end_date = timezone.now().strftime('%Y-%m-%d')
+            
+            # Điều kiện lọc theo cửa hàng
+            store_filter = ""
+            if store_id:
+                store_filter = f"AND o.store_id = {store_id}"
+            else:
+                store_filter = self.get_user_store_filter()
+            
+            with connection.cursor() as cursor:
+                # 1. Thống kê Return Orders
+                cursor.execute(f"""
+                    SELECT 
+                        COUNT(DISTINCT ro.id) as total_return_orders,
+                        COUNT(rod.id) as total_returned_items,
+                        SUM(COALESCE(rod.quantity, 0)) as total_returned_quantity,
+                        SUM(COALESCE(ro.refund_amount, 0)) as total_refund_amount,
+                        COUNT(CASE WHEN ro.status = 'PENDING' THEN 1 END) as pending_returns,
+                        COUNT(CASE WHEN ro.status = 'APPROVED' THEN 1 END) as approved_returns,
+                        COUNT(CASE WHEN ro.status = 'COMPLETED' THEN 1 END) as completed_returns,
+                        COUNT(CASE WHEN ro.status = 'REJECTED' THEN 1 END) as rejected_returns,
+                        AVG(ro.refund_amount) as average_refund_amount
+                    FROM returnorder ro
+                    LEFT JOIN returnorderdetail rod ON ro.id = rod.return_order_id AND rod.is_deleted = FALSE
+                    LEFT JOIN orders o ON ro.order_id = o.id
+                    WHERE ro.return_date >= %s 
+                        AND ro.return_date <= %s 
+                        AND ro.is_deleted = FALSE
+                        {store_filter}
+                """, [start_date, end_date])
+                
+                return_stats = cursor.fetchone()
+                
+                # 2. Thống kê Warranty
+                cursor.execute(f"""
+                    SELECT 
+                        COUNT(DISTINCT w.id) as total_warranties,
+                        COUNT(DISTINCT wc.id) as total_warranty_claims,
+                        COUNT(CASE WHEN w.status = 'ACTIVE' THEN 1 END) as active_warranties,
+                        COUNT(CASE WHEN w.status = 'EXPIRED' THEN 1 END) as expired_warranties,
+                        COUNT(CASE WHEN w.status = 'CLAIMED' THEN 1 END) as claimed_warranties,
+                        COUNT(CASE WHEN wc.status = 'PENDING' THEN 1 END) as pending_claims,
+                        COUNT(CASE WHEN wc.status = 'COMPLETED' THEN 1 END) as completed_claims,
+                        SUM(COALESCE(wc.repair_cost, 0)) as total_repair_cost,
+                        AVG(wc.repair_cost) as average_repair_cost
+                    FROM warranty w
+                    LEFT JOIN warrantyclaim wc ON w.id = wc.warranty_id AND wc.is_deleted = FALSE
+                    LEFT JOIN orderdetail od ON w.order_detail_id = od.id
+                    LEFT JOIN orders o ON od.order_id = o.id
+                    WHERE w.warranty_start_date >= %s 
+                        AND w.warranty_start_date <= %s 
+                        AND w.is_deleted = FALSE
+                        {store_filter}
+                """, [start_date, end_date])
+                
+                warranty_stats = cursor.fetchone()
+                
+                # 3. Thống kê doanh thu và chi phí
+                cursor.execute(f"""
+                    SELECT 
+                        SUM(o.total_amount) as total_revenue,
+                        COUNT(DISTINCT o.id) as total_orders,
+                        SUM(od.quantity) as total_items_sold,
+                        SUM(COALESCE(od.unit_price * od.quantity - od.final_price, 0)) as total_discounts
+                    FROM orders o
+                    LEFT JOIN orderdetail od ON o.id = od.order_id AND od.is_deleted = FALSE
+                    WHERE o.order_date >= %s 
+                        AND o.order_date <= %s 
+                        AND o.status IN ('delivered', 'completed')
+                        AND o.is_deleted = FALSE
+                        {store_filter}
+                """, [start_date, end_date])
+                
+                revenue_stats = cursor.fetchone()
+                if revenue_stats:
+                    total_revenue, total_orders, total_items_sold, total_discounts = revenue_stats
+                else:
+                    total_revenue, total_orders, total_items_sold, total_discounts = 0, 0, 0, 0
+
+                # 4. Thống kê chi phí nhập hàng
+                cursor.execute(f"""
+                    SELECT 
+                        SUM(gr.total_amount) as total_purchase_cost,
+                        COUNT(DISTINCT gr.id) as total_purchase_orders,
+                        SUM(grd.accepted_quantity) as total_items_purchased
+                    FROM goods_receipts gr
+                    LEFT JOIN goods_receipt_details grd ON gr.id = grd.goods_receipt_id AND grd.is_deleted = FALSE
+                    LEFT JOIN store s ON gr.store_id = s.id
+                    WHERE gr.receipt_date >= %s 
+                        AND gr.receipt_date <= %s 
+                        AND gr.is_deleted = FALSE
+                        {store_filter.replace('o.store_id', 'gr.store_id')}
+                """, [start_date, end_date])
+                
+                purchase_stats = cursor.fetchone()
+                if purchase_stats:
+                    total_purchase_cost, total_purchase_orders, total_items_purchased = purchase_stats
+                else:
+                    total_purchase_cost, total_purchase_orders, total_items_purchased = 0, 0, 0
+
+                # 5. Thống kê lợi nhuận theo sản phẩm
+                cursor.execute(f"""
+                    SELECT 
+                        od.product_variant_id,
+                        pv.sku,
+                        p.name as product_name,
+                        SUM(od.quantity) as sold_quantity,
+                        SUM(od.final_price) as sold_revenue,
+                        SUM(COALESCE(rod.quantity, 0)) as returned_quantity,
+                        SUM(COALESCE(ro.refund_amount, 0)) as refund_amount,
+                        COUNT(DISTINCT wc.id) as warranty_claims,
+                        SUM(COALESCE(wc.repair_cost, 0)) as repair_cost
+                    FROM orderdetail od
+                    JOIN orders o ON od.order_id = o.id
+                    JOIN productvariant pv ON od.product_variant_id = pv.id
+                    JOIN product p ON pv.product_id = p.id
+                    LEFT JOIN returnorderdetail rod ON od.id = rod.order_detail_id AND rod.is_deleted = FALSE
+                    LEFT JOIN returnorder ro ON rod.return_order_id = ro.id AND ro.is_deleted = FALSE
+                    LEFT JOIN warranty w ON od.id = w.order_detail_id AND w.is_deleted = FALSE
+                    LEFT JOIN warrantyclaim wc ON w.id = wc.warranty_id AND wc.is_deleted = FALSE
+                    WHERE o.order_date >= %s 
+                        AND o.order_date <= %s 
+                        AND o.status IN ('delivered', 'completed')
+                        AND o.is_deleted = FALSE
+                        AND od.is_deleted = FALSE
+                        {store_filter}
+                    GROUP BY od.product_variant_id, pv.sku, p.name
+                    ORDER BY sold_revenue DESC
+                    LIMIT 20
+                """, [start_date, end_date])
+                
+                product_profit_results = cursor.fetchall()
+            
+            # Xử lý kết quả Return Orders
+            (total_return_orders, total_returned_items, total_returned_quantity, total_refund_amount, 
+             pending_returns, approved_returns, completed_returns, rejected_returns, average_refund_amount) = return_stats
+            
+            return_analysis = {
+                'total_return_orders': total_return_orders or 0,
+                'total_returned_items': total_returned_items or 0,
+                'total_returned_quantity': total_returned_quantity or 0,
+                'total_refund_amount': float(total_refund_amount or 0),
+                'average_refund_amount': float(average_refund_amount or 0),
+                'status_breakdown': {
+                    'pending': pending_returns or 0,
+                    'approved': approved_returns or 0,
+                    'completed': completed_returns or 0,
+                    'rejected': rejected_returns or 0
+                },
+                'return_rate': 0  # Sẽ tính bên dưới
+            }
+            
+            # Xử lý kết quả Warranty
+            (total_warranties, total_warranty_claims, active_warranties, expired_warranties, 
+             claimed_warranties, pending_claims, completed_claims, total_repair_cost, average_repair_cost) = warranty_stats
+            
+            warranty_analysis = {
+                'total_warranties': total_warranties or 0,
+                'total_warranty_claims': total_warranty_claims or 0,
+                'total_repair_cost': float(total_repair_cost or 0),
+                'average_repair_cost': float(average_repair_cost or 0),
+                'warranty_status': {
+                    'active': active_warranties or 0,
+                    'expired': expired_warranties or 0,
+                    'claimed': claimed_warranties or 0
+                },
+                'claim_status': {
+                    'pending': pending_claims or 0,
+                    'completed': completed_claims or 0
+                },
+                'claim_rate': (total_warranty_claims / total_warranties * 100) if total_warranties else 0
+            }
+            
+            # Xử lý kết quả doanh thu
+            total_revenue, total_orders, total_items_sold, total_discounts = revenue_stats
+            total_revenue = total_revenue or Decimal('0')
+            total_discounts = total_discounts or Decimal('0')
+            net_revenue = total_revenue - total_discounts
+            
+            # Xử lý kết quả chi phí nhập hàng
+            total_purchase_cost, total_purchase_orders, total_items_purchased = purchase_stats
+            total_purchase_cost = total_purchase_cost or Decimal('0')
+            
+            # Tính toán các chỉ số tài chính
+            gross_profit = net_revenue - total_purchase_cost
+            gross_profit_margin = (gross_profit / net_revenue * 100) if net_revenue else 0
+            
+            # Tính return rate
+            return_rate = (total_returned_quantity / total_items_sold * 100) if total_items_sold else 0
+            return_analysis['return_rate'] = return_rate
+            
+            # Xử lý kết quả lợi nhuận theo sản phẩm
+            product_profit_analysis = []
+            for row in product_profit_results:
+                (product_variant_id, sku, product_name, sold_quantity, sold_revenue, 
+                 returned_quantity, refund_amount, warranty_claims, repair_cost) = row
+                
+                sold_revenue = sold_revenue or Decimal('0')
+                refund_amount = refund_amount or Decimal('0')
+                repair_cost = repair_cost or Decimal('0')
+                
+                # Ước tính chi phí nhập hàng (cần cải thiện bằng cách join với purchase data)
+                estimated_cost = sold_revenue * Decimal('0.6')  # Giả sử 60% là chi phí
+                net_profit = sold_revenue - refund_amount - repair_cost - estimated_cost
+                
+                product_profit_analysis.append({
+                    'product_variant_id': product_variant_id,
+                    'sku': sku,
+                    'product_name': product_name,
+                    'sold_quantity': sold_quantity or 0,
+                    'sold_revenue': float(sold_revenue),
+                    'returned_quantity': returned_quantity or 0,
+                    'refund_amount': float(refund_amount),
+                    'warranty_claims': warranty_claims or 0,
+                    'repair_cost': float(repair_cost),
+                    'estimated_cost': float(estimated_cost),
+                    'net_profit': float(net_profit),
+                    'profit_margin': float((net_profit / sold_revenue * 100) if sold_revenue else 0)
+                })
+            
+            comprehensive_data = {
+                'period': {
+                    'start_date': start_date,
+                    'end_date': end_date
+                },
+                'financial_summary': {
+                    'total_revenue': float(total_revenue),
+                    'net_revenue': float(net_revenue),
+                    'total_discounts': float(total_discounts),
+                    'total_purchase_cost': float(total_purchase_cost),
+                    'gross_profit': float(gross_profit),
+                    'gross_profit_margin': float(gross_profit_margin),
+                    'total_refund_amount': float(total_refund_amount or 0),
+                    'total_repair_cost': float(total_repair_cost or 0),
+                    'net_profit': float(gross_profit - total_refund_amount - total_repair_cost)
+                },
+                'return_analysis': return_analysis,
+                'warranty_analysis': warranty_analysis,
+                'operational_metrics': {
+                    'total_orders': total_orders or 0,
+                    'total_items_sold': total_items_sold or 0,
+                    'total_items_purchased': total_items_purchased or 0,
+                    'total_purchase_orders': total_purchase_orders or 0,
+                    'return_rate': return_rate,
+                    'average_order_value': float(total_revenue / total_orders) if total_orders else 0
+                },
+                'product_profit_analysis': product_profit_analysis
+            }
+            
+            return Response(comprehensive_data, status=status.HTTP_200_OK)
             
         except Exception as e:
             return Response(

@@ -9,6 +9,7 @@ class OrderDetailSerializer(serializers.ModelSerializer):
     product = ProductSerializer(source='product_variant.product', read_only=True)
     variant = ProductVariantSerializer(source='product_variant', read_only=True)
     coupon = CouponSerializer(read_only=True)
+    warranty_info = serializers.SerializerMethodField()
     coupon_id = serializers.PrimaryKeyRelatedField(
         queryset=Coupon.objects.filter(is_active=True),
         source='coupon',
@@ -25,8 +26,41 @@ class OrderDetailSerializer(serializers.ModelSerializer):
         model = OrderDetail
         fields = ['id', 'order', 'product_variant', 'product', 'variant', 'quantity',
                  'unit_price', 'discount', 'final_price', 'coupon', 'coupon_id',
-                 'created_at', 'updated_at']
+                 'warranty_info', 'created_at', 'updated_at']
         read_only_fields = ('created_at', 'updated_at', 'unit_price', 'discount', 'final_price')
+
+    def get_warranty_info(self, obj):
+        """Lấy thông tin bảo hành của sản phẩm"""
+        if not obj.product_variant:
+            return None
+            
+        variant = obj.product_variant
+        warranty_period = variant.get_warranty_period()
+        
+        # Kiểm tra xem đã có warranty được tạo cho order detail này chưa
+        from apps.warranty.models.warranty import Warranty
+        existing_warranty = Warranty.objects.filter(
+            order_detail=obj,
+            is_deleted=False
+        ).first()
+        
+        warranty_info = {
+            'has_warranty': warranty_period is not None and warranty_period > 0,
+            'warranty_period': warranty_period,
+            'warranty_period_unit': 'months',
+            'warranty_number': existing_warranty.warranty_number if existing_warranty else None,
+            'warranty_status': existing_warranty.status if existing_warranty else None,
+            'warranty_created': existing_warranty is not None
+        }
+        
+        if not warranty_period:
+            warranty_info['message'] = 'Sản phẩm không có bảo hành'
+        elif existing_warranty:
+            warranty_info['message'] = f'Bảo hành {warranty_period} tháng - Mã: {existing_warranty.warranty_number}'
+        else:
+            warranty_info['message'] = f'Bảo hành {warranty_period} tháng (chưa tạo warranty)'
+        
+        return warranty_info
 
     def validate(self, data):
         # Kiểm tra coupon có hợp lệ không

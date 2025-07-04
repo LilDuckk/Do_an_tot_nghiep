@@ -203,17 +203,87 @@ export const PURCHASE_ENDPOINTS = {
   GOODS_RECEIPT_DETAIL_ITEM: (id) => `${API_BASE_URL}/purchases/goods-receipt-details/${id}/`,
 };
 
-// Report endpoints
+// Report endpoints - Cập nhật theo exp2.txt
 export const REPORT_ENDPOINTS = {
+  // Dashboard APIs
   DASHBOARD_OVERVIEW: `${API_BASE_URL}/reports/dashboard/overview/`,
   DASHBOARD_RECENT_ACTIVITY: `${API_BASE_URL}/reports/dashboard/recent_activity/`,
   DASHBOARD_ALERTS: `${API_BASE_URL}/reports/dashboard/alerts/`,
+  
+  // Sales Analysis APIs
+  SALES_BEST_SELLERS: `${API_BASE_URL}/reports/sales/best_sellers/`,
+  SALES_PERFORMANCE_BY_TIME: `${API_BASE_URL}/reports/sales/sales_performance_by_time/`,
+  SALES_INVENTORY_TURNOVER: `${API_BASE_URL}/reports/sales/inventory_turnover/`,
+  
+  // Revenue Report APIs
   REVENUE_DAILY: `${API_BASE_URL}/reports/revenue/daily_revenue/`,
   REVENUE_MONTHLY: `${API_BASE_URL}/reports/revenue/monthly_revenue/`,
-  PROFIT_ANALYSIS: `${API_BASE_URL}/reports/revenue/profit_analysis/`,
-  SALES_BEST_SELLERS: `${API_BASE_URL}/reports/sales/best_sellers/`,
-  SALES_PRODUCT_PERFORMANCE: `${API_BASE_URL}/reports/sales/product_performance/`,
-  SALES_INVENTORY_TURNOVER: `${API_BASE_URL}/reports/sales/inventory_turnover/`,
+  REVENUE_PROFIT_ANALYSIS: `${API_BASE_URL}/reports/revenue/profit_analysis/`,
+  
+  // Return & Warranty Report APIs
+  RETURN_SUMMARY: `${API_BASE_URL}/reports/return-warranty-report/return_summary/`,
+  WARRANTY_SUMMARY: `${API_BASE_URL}/reports/return-warranty-report/warranty_summary/`,
+  FINANCIAL_IMPACT: `${API_BASE_URL}/reports/return-warranty-report/financial_impact/`,
+  
+  // Daily Revenue APIs
+  DAILY_REVENUE_CALCULATE: `${API_BASE_URL}/reports/daily-revenue/calculate_daily_revenue/`,
+  DAILY_REVENUE_INVENTORY_ANALYSIS: `${API_BASE_URL}/reports/daily-revenue/inventory_analysis/`,
+  DAILY_REVENUE_FORECAST: `${API_BASE_URL}/reports/daily-revenue/revenue_forecast/`,
+  
+  // Top Performance APIs
+  TOP_PRODUCTS: `${API_BASE_URL}/reports/top-products/`,
+  TOP_CUSTOMERS: `${API_BASE_URL}/reports/top-customers/`,
+  BEST_SELLING: `${API_BASE_URL}/reports/best-selling/`,
+};
+
+// Warranty endpoints
+export const WARRANTY_ENDPOINTS = {
+  // Warranty CRUD
+  WARRANTIES: `${API_BASE_URL}/warranties/`,
+  WARRANTY_DETAIL: (id) => `${API_BASE_URL}/warranties/${id}/`,
+  
+  // Warranty Statistics
+  WARRANTY_STATISTICS: `${API_BASE_URL}/warranties/statistics/`,
+  WARRANTY_EXPIRING_SOON: `${API_BASE_URL}/warranties/expiring-soon/`,
+  
+  // Warranty Custom Actions
+  WARRANTY_EXTEND: (id) => `${API_BASE_URL}/warranties/${id}/extend/`,
+  WARRANTY_CREATE_CLAIM: (id) => `${API_BASE_URL}/warranties/${id}/create-claim/`,
+  WARRANTY_REMAINING_DAYS: (id) => `${API_BASE_URL}/warranties/${id}/remaining-days/`,
+  
+  // Warranty Bulk Operations
+  WARRANTY_BULK_UPDATE: `${API_BASE_URL}/warranties/bulk-update/`,
+  WARRANTY_BULK_DELETE: `${API_BASE_URL}/warranties/bulk-delete/`,
+  
+  // Warranty Export/Import
+  WARRANTY_EXPORT: `${API_BASE_URL}/warranties/export/`,
+  WARRANTY_IMPORT: `${API_BASE_URL}/warranties/import/`,
+  
+  // Order Warranty
+  ORDER_WARRANTIES: (orderId) => `${API_BASE_URL}/orders/${orderId}/warranties/`,
+  ORDER_DETAIL_WARRANTY: (orderId, orderDetailId) => `${API_BASE_URL}/orders/${orderId}/order-details/${orderDetailId}/warranty/`,
+};
+
+// Return Order endpoints
+export const RETURN_ORDER_ENDPOINTS = {
+  // Return Order CRUD
+  RETURN_ORDERS: `${API_BASE_URL}/orders/return-orders/`,
+  RETURN_ORDER_DETAIL: (id) => `${API_BASE_URL}/orders/return-orders/${id}/`,
+  
+  // Return Order Actions
+  RETURN_ORDER_APPROVE: (id) => `${API_BASE_URL}/orders/return-orders/${id}/approve/`,
+  RETURN_ORDER_REJECT: (id) => `${API_BASE_URL}/orders/return-orders/${id}/reject/`,
+  RETURN_ORDER_COMPLETE: (id) => `${API_BASE_URL}/orders/return-orders/${id}/complete/`,
+  
+  // Return Order Details
+  RETURN_ORDER_DETAILS: `${API_BASE_URL}/orders/return-order-details/`,
+  RETURN_ORDER_DETAIL_ITEM: (id) => `${API_BASE_URL}/orders/return-order-details/${id}/`,
+  
+  // Return Order Statistics
+  RETURN_ORDER_STATISTICS: `${API_BASE_URL}/orders/return-orders/statistics/`,
+  
+  // Return Order Utilities
+  RETURN_ORDER_ORDER_DETAILS: (id) => `${API_BASE_URL}/orders/return-orders/${id}/order_details/`,
 };
 
 // Export base URL nếu cần sử dụng riêng lẻ

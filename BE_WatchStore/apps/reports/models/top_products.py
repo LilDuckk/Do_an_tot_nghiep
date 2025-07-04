@@ -9,8 +9,8 @@ class TopProduct(models.Model):
     date = models.DateField()
 
     class Meta:
-        managed = False
-        db_table = 'top_products_view'
+        managed = True
+        db_table = 'orderdetail'  # Chuyển sang bảng thực tế, hoặc xóa model này nếu không dùng nữa
 
     def __str__(self):
         return f"{self.product_name} - Store {self.store_id}" 

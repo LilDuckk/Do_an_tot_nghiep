@@ -8,7 +8,7 @@ from apps.core.mixins import SoftDeleteMixin
 class ReturnOrderDetailViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
     queryset = ReturnOrderDetail.objects.all()
     serializer_class = ReturnOrderDetailSerializer
-    filterset_fields = ['return_order', 'product', 'variant']
+    filterset_fields = ['return_order', 'order_detail', 'product_variant']
     ordering_fields = ['created_at']
     ordering = ['-created_at']
 

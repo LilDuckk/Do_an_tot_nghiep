@@ -8,7 +8,7 @@ import AdminLayout from './admin/AdminLayout';
 import OrdersPage from './admin/orders/OrdersPage';
 import ProductsPage from './admin/products/ProductsPage';
 import StoresPage from './admin/stores/StoresPage';
-import WarrantiesPage from './admin/warranties/WarrantiesPage';
+import WarrantyPage from './admin/warranties/WarrantyPage';
 import AuditLogsPage from './admin/audit/AuditLogsPage';
 import LogoutPage from './admin/logout/LogoutPage';
 import ProfilePage from './admin/profile/ProfilePage';
@@ -82,7 +82,7 @@ function App() {
           <Route path="orders" element={<OrdersPage />} />
           <Route path="stores" element={<StoresPage />} />
           <Route path="employees" element={<EmployeesPage />} />
-          <Route path="warranties" element={<WarrantiesPage />} />
+          <Route path="warranties" element={<WarrantyPage />} />
           <Route path="audit-logs" element={<AuditLogsPage />} />
           <Route path="logout" element={<LogoutPage />} />
           <Route path="profile" element={<ProfilePage />} />

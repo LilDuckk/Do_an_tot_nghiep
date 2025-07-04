@@ -1,9 +1,10 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from django.db.models import Sum, Count, Q
-from django.utils import timezone
-from datetime import datetime, timedelta
+from django.db.models import Sum, Count, Q, F
+from datetime import datetime, timedelta, timezone as dt_timezone
+from django.utils import timezone as django_timezone
+from django.utils.timezone import make_aware
 from django_filters.rest_framework import DjangoFilterBackend
 from django_filters import rest_framework as filters
 from rest_framework.filters import SearchFilter, OrderingFilter
@@ -21,17 +22,17 @@ from rest_framework.permissions import IsAuthenticated, OR
 class DailyRevenueFilter(filters.FilterSet):
     start_date = filters.DateFilter(field_name='date', lookup_expr='gte')
     end_date = filters.DateFilter(field_name='date', lookup_expr='lte')
-    store_id = filters.NumberFilter(field_name='store_id')
+    store = filters.NumberFilter(field_name='store_id')
 
     class Meta:
         model = DailyRevenue
-        fields = ['start_date', 'end_date', 'store_id']
+        fields = ['start_date', 'end_date', 'store']
 
 class DailyRevenueViewSet(viewsets.ModelViewSet):
     queryset = DailyRevenue.objects.all()
     serializer_class = DailyRevenueSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['store', 'date']
+    filterset_class = DailyRevenueFilter
     search_fields = ['store__name']
     ordering_fields = ['date', 'revenue', 'created_at']
     ordering = ['-date']
@@ -55,13 +56,13 @@ class DailyRevenueViewSet(viewsets.ModelViewSet):
         
         # Mặc định là 30 ngày gần nhất
         if not start_date:
-            start_date = (timezone.now() - timedelta(days=30)).strftime('%Y-%m-%d')
+            start_date = (django_timezone.now() - timedelta(days=30)).strftime('%Y-%m-%d')
         if not end_date:
-            end_date = timezone.now().strftime('%Y-%m-%d')
+            end_date = django_timezone.now().strftime('%Y-%m-%d')
         
-        # Chuyển đổi string thành datetime
-        start_datetime = datetime.strptime(start_date, '%Y-%m-%d').replace(tzinfo=timezone.utc)
-        end_datetime = datetime.strptime(end_date, '%Y-%m-%d').replace(tzinfo=timezone.utc) + timedelta(days=1)
+        # Chuyển đổi string thành datetime với timezone
+        start_datetime = make_aware(datetime.strptime(start_date, '%Y-%m-%d'))
+        end_datetime = make_aware(datetime.strptime(end_date, '%Y-%m-%d')) + timedelta(days=1)
         
         # Query orders trong khoảng thời gian
         orders_query = Orders.objects.filter(
@@ -105,7 +106,7 @@ class DailyRevenueViewSet(viewsets.ModelViewSet):
                 reference_type='order'
             ).aggregate(
                 total_quantity=Sum('quantity'),
-                total_value=Sum('quantity' * 'unit_price')
+                total_value=Sum(F('quantity') * F('unit_price'))
             )
             
             daily_revenues.append({
@@ -138,7 +139,7 @@ class DailyRevenueViewSet(viewsets.ModelViewSet):
         store_id = request.query_params.get('store')
         days = int(request.query_params.get('days', 30))
         
-        end_date = timezone.now()
+        end_date = django_timezone.now()
         start_date = end_date - timedelta(days=days)
         
         # Query inventory transactions
@@ -153,26 +154,26 @@ class DailyRevenueViewSet(viewsets.ModelViewSet):
         transaction_stats = transactions_query.values('transaction_type').annotate(
             count=Count('id'),
             total_quantity=Sum('quantity'),
-            total_value=Sum('quantity' * 'unit_price')
+            total_value=Sum(F('quantity') * F('unit_price'))
         )
         
         # Thống kê theo sản phẩm
         product_stats = transactions_query.values(
-            'inventory__product_variant__name',
-            'inventory__product_variant__sku'
+            'inventory__product_variant__sku',
+            'inventory__product_variant__product__name'
         ).annotate(
             in_quantity=Sum('quantity', filter=Q(transaction_type='IN')),
             out_quantity=Sum('quantity', filter=Q(transaction_type='OUT')),
-            in_value=Sum('quantity' * 'unit_price', filter=Q(transaction_type='IN')),
-            out_value=Sum('quantity' * 'unit_price', filter=Q(transaction_type='OUT'))
+            in_value=Sum(F('quantity') * F('unit_price'), filter=Q(transaction_type='IN')),
+            out_value=Sum(F('quantity') * F('unit_price'), filter=Q(transaction_type='OUT'))
         )
         
         # Thống kê theo cửa hàng
         store_stats = transactions_query.values('inventory__store__name').annotate(
             in_quantity=Sum('quantity', filter=Q(transaction_type='IN')),
             out_quantity=Sum('quantity', filter=Q(transaction_type='OUT')),
-            in_value=Sum('quantity' * 'unit_price', filter=Q(transaction_type='IN')),
-            out_value=Sum('quantity' * 'unit_price', filter=Q(transaction_type='OUT'))
+            in_value=Sum(F('quantity') * F('unit_price'), filter=Q(transaction_type='IN')),
+            out_value=Sum(F('quantity') * F('unit_price'), filter=Q(transaction_type='OUT'))
         )
         
         return Response({
@@ -193,7 +194,7 @@ class DailyRevenueViewSet(viewsets.ModelViewSet):
         store_id = request.query_params.get('store')
         
         # Lấy dữ liệu 30 ngày gần nhất để dự báo
-        end_date = timezone.now()
+        end_date = django_timezone.now()
         start_date = end_date - timedelta(days=30)
         
         # Query doanh thu theo ngày
@@ -218,7 +219,7 @@ class DailyRevenueViewSet(viewsets.ModelViewSet):
         
         # Dự báo doanh thu cho n ngày tới
         forecast = []
-        current_date = timezone.now().date()
+        current_date = django_timezone.now().date()
         
         for i in range(1, days + 1):
             forecast_date = current_date + timedelta(days=i)
@@ -249,7 +250,7 @@ class DailyRevenueViewSet(viewsets.ModelViewSet):
         limit = int(request.query_params.get('limit', 10))
         store_id = request.query_params.get('store')
         
-        end_date = timezone.now()
+        end_date = django_timezone.now()
         start_date = end_date - timedelta(days=days)
         
         # Query từ order details
@@ -264,7 +265,6 @@ class DailyRevenueViewSet(viewsets.ModelViewSet):
             order_details_query = order_details_query.filter(order__store_id=store_id)
         
         top_products = order_details_query.values(
-            'product_variant__name',
             'product_variant__sku',
             'product_variant__product__name'
         ).annotate(
@@ -284,11 +284,11 @@ class DailyRevenueViewSet(viewsets.ModelViewSet):
             inventory_query = inventory_query.filter(inventory__store_id=store_id)
         
         top_products_inventory = inventory_query.values(
-            'inventory__product_variant__name',
-            'inventory__product_variant__sku'
+            'inventory__product_variant__sku',
+            'inventory__product_variant__product__name'
         ).annotate(
             total_quantity=Sum('quantity'),
-            total_value=Sum('quantity' * 'unit_price')
+            total_value=Sum(F('quantity') * F('unit_price'))
         ).order_by('-total_value')[:limit]
         
         return Response({
@@ -306,7 +306,7 @@ class DailyRevenueViewSet(viewsets.ModelViewSet):
         """Hiệu suất cửa hàng"""
         days = int(request.query_params.get('days', 30))
         
-        end_date = timezone.now()
+        end_date = django_timezone.now()
         start_date = end_date - timedelta(days=days)
         
         # Thống kê theo cửa hàng
@@ -351,7 +351,7 @@ class DailyRevenueViewSet(viewsets.ModelViewSet):
                 )
             )
         ).values(
-            'id', 'name', 'address', 'phone', 'email'
+            'id', 'name', 'address', 'phone', 'store_code'
         )
         
         return Response({
@@ -361,4 +361,161 @@ class DailyRevenueViewSet(viewsets.ModelViewSet):
                 'days': days
             },
             'store_performance': list(store_performance)
+        })
+
+    @action(detail=False, methods=['get'])
+    def daily_summary(self, request):
+        """Tóm tắt doanh thu theo ngày"""
+        start_date = request.query_params.get('start_date')
+        end_date = request.query_params.get('end_date')
+        store_id = request.query_params.get('store')
+        
+        # Mặc định là 30 ngày gần nhất
+        if not start_date:
+            start_date = (django_timezone.now() - timedelta(days=30)).strftime('%Y-%m-%d')
+        if not end_date:
+            end_date = django_timezone.now().strftime('%Y-%m-%d')
+        
+        # Chuyển đổi string thành datetime với timezone
+        start_datetime = make_aware(datetime.strptime(start_date, '%Y-%m-%d'))
+        end_datetime = make_aware(datetime.strptime(end_date, '%Y-%m-%d')) + timedelta(days=1)
+        
+        # Query orders trong khoảng thời gian
+        orders_query = Orders.objects.filter(
+            order_date__range=(start_datetime, end_datetime),
+            status__in=['delivered', 'completed'],
+            is_deleted=False
+        )
+        
+        if store_id:
+            orders_query = orders_query.filter(store_id=store_id)
+        
+        # Tính tổng doanh thu
+        total_revenue = orders_query.aggregate(
+            total=Sum('total_amount')
+        )['total'] or 0
+        
+        # Số lượng đơn hàng
+        total_orders = orders_query.count()
+        
+        # Số lượng sản phẩm bán ra
+        total_products_sold = OrderDetail.objects.filter(
+            order__in=orders_query,
+            is_deleted=False
+        ).aggregate(
+            total_quantity=Sum('quantity')
+        )['total_quantity'] or 0
+        
+        # Doanh thu trung bình mỗi đơn hàng
+        avg_order_value = total_revenue / total_orders if total_orders > 0 else 0
+        
+        # Thống kê theo ngày
+        daily_stats = orders_query.values('order_date__date').annotate(
+            revenue=Sum('total_amount'),
+            order_count=Count('id'),
+            product_count=Sum('orderdetail__quantity')
+        ).order_by('order_date__date')
+        
+        return Response({
+            'period': {
+                'start_date': start_date,
+                'end_date': end_date
+            },
+            'summary': {
+                'total_revenue': float(total_revenue),
+                'total_orders': total_orders,
+                'total_products_sold': total_products_sold,
+                'average_order_value': float(avg_order_value)
+            },
+            'daily_stats': list(daily_stats)
+        })
+
+    @action(detail=False, methods=['get'])
+    def daily_breakdown(self, request):
+        """Phân tích chi tiết doanh thu theo ngày"""
+        start_date = request.query_params.get('start_date')
+        end_date = request.query_params.get('end_date')
+        store_id = request.query_params.get('store')
+        
+        # Mặc định là 30 ngày gần nhất
+        if not start_date:
+            start_date = (django_timezone.now() - timedelta(days=30)).strftime('%Y-%m-%d')
+        if not end_date:
+            end_date = django_timezone.now().strftime('%Y-%m-%d')
+        
+        # Chuyển đổi string thành datetime với timezone
+        start_datetime = make_aware(datetime.strptime(start_date, '%Y-%m-%d'))
+        end_datetime = make_aware(datetime.strptime(end_date, '%Y-%m-%d')) + timedelta(days=1)
+        
+        # Query orders trong khoảng thời gian
+        orders_query = Orders.objects.filter(
+            order_date__range=(start_datetime, end_datetime),
+            status__in=['delivered', 'completed'],
+            is_deleted=False
+        )
+        
+        if store_id:
+            orders_query = orders_query.filter(store_id=store_id)
+        
+        # Phân tích theo ngày
+        daily_breakdown = []
+        current_date = start_datetime.date()
+        end_date_obj = end_datetime.date()
+        
+        while current_date <= end_date_obj:
+            # Doanh thu từ orders
+            day_orders = orders_query.filter(
+                order_date__date=current_date
+            )
+            order_revenue = day_orders.aggregate(
+                total=Sum('total_amount')
+            )['total'] or 0
+            
+            # Số lượng đơn hàng
+            order_count = day_orders.count()
+            
+            # Số lượng sản phẩm bán ra
+            sold_products = OrderDetail.objects.filter(
+                order__in=day_orders,
+                is_deleted=False
+            ).aggregate(
+                total_quantity=Sum('quantity')
+            )['total_quantity'] or 0
+            
+            # Phân tích theo loại sản phẩm
+            product_breakdown = OrderDetail.objects.filter(
+                order__in=day_orders,
+                is_deleted=False
+            ).values(
+                'product_variant__product__category__name'
+            ).annotate(
+                quantity=Sum('quantity'),
+                revenue=Sum('final_price')
+            )
+            
+            # Phân tích theo cửa hàng
+            store_breakdown = day_orders.values(
+                'store__name'
+            ).annotate(
+                revenue=Sum('total_amount'),
+                order_count=Count('id')
+            )
+            
+            daily_breakdown.append({
+                'date': current_date.strftime('%Y-%m-%d'),
+                'order_revenue': float(order_revenue),
+                'order_count': order_count,
+                'sold_products': sold_products,
+                'product_breakdown': list(product_breakdown),
+                'store_breakdown': list(store_breakdown)
+            })
+            
+            current_date += timedelta(days=1)
+        
+        return Response({
+            'period': {
+                'start_date': start_date,
+                'end_date': end_date
+            },
+            'daily_breakdown': daily_breakdown
         }) 

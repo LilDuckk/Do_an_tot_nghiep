@@ -8,8 +8,8 @@ class DailyRevenue(models.Model):
     average_order_value = models.DecimalField(max_digits=25, decimal_places=2)
 
     class Meta:
-        managed = False
-        db_table = 'daily_revenue_view'
+        managed = True
+        db_table = 'orders'  # Chuyển sang bảng thực tế, hoặc xóa model này nếu không dùng nữa
 
     def __str__(self):
         return f"Revenue for {self.date} - Store {self.store_id}" 

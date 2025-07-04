@@ -78,6 +78,7 @@ export default function VariantsPage() {
       product_id: variant.product_id || variant.product || (variant.product_detail && variant.product_detail.id),
       price_adjustment: variant.price_adjustment ?? '',
       stock_alert_threshold: variant.stock_alert_threshold ?? '',
+      warranty_period: variant.warranty_period ?? '',
       is_active: variant.is_active,
     });
   };
@@ -89,6 +90,7 @@ export default function VariantsPage() {
         product_id: editingVariant.product_id,
         price_adjustment: editingVariant.price_adjustment === '' ? null : Number(editingVariant.price_adjustment),
         stock_alert_threshold: editingVariant.stock_alert_threshold === '' ? null : Number(editingVariant.stock_alert_threshold),
+        warranty_period: editingVariant.warranty_period === '' ? null : Number(editingVariant.warranty_period),
         is_active: editingVariant.is_active,
       };
       const res = await fetch(`${PRODUCT_ENDPOINTS.VARIANT_DETAIL(v.id)}`, {
@@ -265,6 +267,7 @@ export default function VariantsPage() {
               <th>SKU</th>
               <th>Giá điều chỉnh</th>
               <th>Số tồn kho</th>
+              <th>Thời hạn bảo hành</th>
               <th>Trạng thái</th>
               <th>Ảnh</th>
               <th>Hành động</th>
@@ -273,7 +276,7 @@ export default function VariantsPage() {
           <tbody>
             {variants.length === 0 ? (
               <tr>
-                <td colSpan="8" style={{ textAlign: 'center', padding: '40px 0' }}>
+                <td colSpan="9" style={{ textAlign: 'center', padding: '40px 0' }}>
                   <Empty description="No data" imageStyle={{ height: 60 }} />
                 </td>
               </tr>
@@ -308,6 +311,20 @@ export default function VariantsPage() {
                     ) : (
                       v.stock_alert_threshold !== null && v.stock_alert_threshold !== undefined
                         ? v.stock_alert_threshold
+                        : ''
+                    )}
+                  </td>
+                  <td>
+                    {editingId === v.id ? (
+                      <input
+                        type="number"
+                        value={editingVariant.warranty_period}
+                        onChange={e => setEditingVariant({ ...editingVariant, warranty_period: e.target.value })}
+                        placeholder="Tháng bảo hành"
+                      />
+                    ) : (
+                      v.warranty_period !== null && v.warranty_period !== undefined
+                        ? `${v.warranty_period} tháng`
                         : ''
                     )}
                   </td>

@@ -200,6 +200,8 @@ const InventoryTransactionsPage = () => {
         return 'gold';
       case 'order_cancel':
         return 'red';
+      case 'return_order':
+        return 'volcano';
       default:
         return 'default';
     }
@@ -319,6 +321,7 @@ const InventoryTransactionsPage = () => {
            type === 'stock_take' ? 'Kiểm kê' :
            type === 'order' ? 'Đơn hàng xuất kho' :
            type === 'order_cancel' ? 'Đơn hàng hủy' :
+           type === 'return_order' ? 'Đơn trả hàng' :
            type}
         </Tag>
       ),
@@ -468,6 +471,7 @@ const InventoryTransactionsPage = () => {
                        transaction.reference_type === 'stock_take' ? 'Kiểm kê' :
                        transaction.reference_type === 'order' ? 'Đơn hàng xuất kho' :
                        transaction.reference_type === 'order_cancel' ? 'Đơn hàng hủy' :
+                       transaction.reference_type === 'return_order' ? 'Đơn trả hàng' :
                        transaction.reference_type}
                     </Tag>
                   </span>
@@ -762,6 +766,7 @@ const InventoryTransactionsPage = () => {
                   <Select.Option value="order_detail">Đơn hàng chi tiết</Select.Option>
                   <Select.Option value="order">Đơn hàng xuất kho</Select.Option>
                   <Select.Option value="order_cancel">Đơn hàng hủy</Select.Option>
+                  <Select.Option value="return_order">Đơn trả hàng</Select.Option>
                   <Select.Option value="stock_transfer">Chuyển kho</Select.Option>
                   <Select.Option value="stock_take">Kiểm kê</Select.Option>
                 </Select>

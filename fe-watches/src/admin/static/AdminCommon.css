@@ -1674,3 +1674,122 @@ body[data-admin-theme="dark"] .filter-container .ant-input-number-focused {
     margin-bottom: 8px;
   }
 }
+
+.warranty-product-name {
+  font-weight: 500;
+}
+.warranty-product-sku,
+.warranty-customer-phone {
+  font-size: 12px;
+  color: #666;
+}
+.warranty-customer-name {
+  font-weight: 500;
+}
+.warranty-detail-modal {
+  padding: 16px 0;
+}
+.warranty-detail-section {
+  background: #f8f9fa;
+  padding: 16px;
+  border-radius: 8px;
+}
+.warranty-detail-section h4 {
+  margin: 0 0 16px 0;
+  color: #1890ff;
+}
+.warranty-detail-item {
+  margin-bottom: 8px;
+  padding: 4px 0;
+}
+
+.warranty-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.warranty-info .warranty-period {
+  font-weight: 500;
+  color: #52c41a;
+}
+
+.warranty-info .warranty-message {
+  font-size: 11px;
+  color: #666;
+}
+
+.warranty-no-warranty {
+  color: #999;
+  font-style: italic;
+}
+
+.warranty-copy-btn {
+  transition: all 0.3s ease;
+}
+
+.warranty-copy-btn:hover {
+  color: #40a9ff !important;
+  transform: scale(1.05);
+}
+
+.warranty-copy-btn:active {
+  transform: scale(0.95);
+}
+
+.warranty-form-disabled {
+  background-color: #f5f5f5 !important;
+  color: #666 !important;
+  cursor: not-allowed;
+}
+
+.warranty-form-disabled .ant-input {
+  background-color: #f5f5f5 !important;
+  color: #666 !important;
+}
+
+.warranty-edit-modal .ant-form-item-label > label {
+  font-weight: 500;
+  color: #333;
+}
+
+.warranty-edit-modal .ant-form-item-label > label.ant-form-item-required::before {
+  color: #ff4d4f;
+}
+
+.warranty-detail-modal {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.warranty-detail-section {
+  background: #fafafa;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid #e8e8e8;
+}
+
+.warranty-detail-section h4 {
+  margin: 0 0 12px 0;
+  color: #1890ff;
+  font-weight: 600;
+  border-bottom: 2px solid #1890ff;
+  padding-bottom: 4px;
+}
+
+.warranty-detail-item {
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+}
+
+.warranty-detail-item strong {
+  min-width: 120px;
+  color: #333;
+  font-weight: 500;
+}
+
+.warranty-detail-item .ant-tag {
+  margin-left: 8px;
+}
+

@@ -5,6 +5,7 @@ from apps.core.models.base import BaseModel
 from apps.users.models import UserAccount
 from apps.orders.models.customer import Customer
 from apps.orders.models.order import Orders
+from apps.stores.models.store import Store
 
 class ReturnOrder(BaseModel):
     RETURN_STATUS_CHOICES = [
@@ -24,6 +25,7 @@ class ReturnOrder(BaseModel):
     
     order = models.ForeignKey(Orders, models.DO_NOTHING, blank=True, null=True)
     customer = models.ForeignKey(Customer, models.DO_NOTHING, blank=True, null=True)
+    return_store = models.ForeignKey(Store, models.DO_NOTHING, blank=True, null=True, related_name='return_orders')
     return_date = models.DateTimeField(blank=True, null=True)
     reason = models.TextField(blank=True, null=True)
     status = models.CharField(max_length=50, choices=RETURN_STATUS_CHOICES, default='PENDING')
@@ -46,6 +48,7 @@ class ReturnOrder(BaseModel):
             models.Index(fields=['return_date']),
             models.Index(fields=['order']),
             models.Index(fields=['customer']),
+            models.Index(fields=['return_store']),
         ]
 
     def clean(self):
@@ -76,7 +79,14 @@ class ReturnOrder(BaseModel):
         
         order_number = f"O{self.order.id:06d}"
         return_date = self.return_date.strftime('%Y%m%d') if self.return_date else timezone.now().strftime('%Y%m%d')
-        return f"R{order_number}-{return_date}-{self.id:04d}"
+        
+        # Nếu đã có id thì dùng id, nếu chưa có thì dùng timestamp
+        if self.id:
+            return f"R{order_number}-{return_date}-{self.id:04d}"
+        else:
+            # Dùng timestamp nếu chưa có id
+            timestamp = str(int(timezone.now().timestamp()))[-4:]
+            return f"R{order_number}-{return_date}-{timestamp}"
 
     def can_be_approved(self):
         """Kiểm tra có thể duyệt đơn trả hàng không"""
@@ -95,7 +105,8 @@ class ReturnOrder(BaseModel):
         if not self.order:
             return 0
         
-        total_return_amount = 0
+        from decimal import Decimal
+        total_return_amount = Decimal('0')
         for return_detail in self.returnorderdetail_set.all():
             if return_detail.order_detail:
                 # Tính theo tỷ lệ số lượng trả
@@ -104,7 +115,7 @@ class ReturnOrder(BaseModel):
                 original_price = return_detail.order_detail.final_price
                 
                 if original_quantity > 0:
-                    return_ratio = return_quantity / original_quantity
+                    return_ratio = Decimal(str(return_quantity)) / Decimal(str(original_quantity))
                     total_return_amount += original_price * return_ratio
         
         return total_return_amount
@@ -147,22 +158,32 @@ class ReturnOrder(BaseModel):
         self.save()
 
     def save(self, *args, **kwargs):
-        # Tự động tạo return_number
-        if not self.return_number:
-            self.return_number = self.generate_return_number()
-        
         # Tự động cập nhật return_date nếu chưa có
         if not self.return_date:
             self.return_date = timezone.now()
         
-        # Tự động tính refund_amount nếu chưa có
-        if not self.refund_amount and self.status == 'APPROVED':
-            self.refund_amount = self.calculate_refund_amount()
+        # Tự động set return_store nếu chưa có (mặc định là store của order)
+        if not self.return_store and self.order:
+            self.return_store = self.order.store
         
-        super().save(*args, **kwargs)
+        # Lưu lần đầu để có id
+        if not self.pk:
+            super().save(*args, **kwargs)
+            # Sau khi có id, cập nhật return_number
+            if not self.return_number:
+                self.return_number = self.generate_return_number()
+                super().save(update_fields=['return_number'])
+        else:
+            # Nếu đã có id, chỉ cập nhật return_number nếu chưa có
+            if not self.return_number:
+                self.return_number = self.generate_return_number()
+            # Tự động tính refund_amount nếu chưa có
+            if not self.refund_amount and self.status == 'APPROVED':
+                self.refund_amount = self.calculate_refund_amount()
+            super().save(*args, **kwargs)
 
     @classmethod
-    def create_from_order(cls, order, customer, reason, user=None, **kwargs):
+    def create_from_order(cls, order, customer, reason, user=None, return_store=None, **kwargs):
         """Tạo return order từ order"""
         if not order or order.status not in ['completed', 'delivered']:
             raise ValidationError('Order must be completed or delivered to be returned')
@@ -170,6 +191,7 @@ class ReturnOrder(BaseModel):
         return_order = cls.objects.create(
             order=order,
             customer=customer,
+            return_store=return_store or order.store,  # Mặc định là store của order
             reason=reason,
             status='PENDING',
             created_by=user,

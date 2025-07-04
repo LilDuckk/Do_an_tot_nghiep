@@ -93,19 +93,23 @@ class WarrantyClaim(BaseModel):
         return False
 
     def save(self, *args, **kwargs):
-        # Tự động tạo claim_number
-        if not self.claim_number:
+        is_new = self.pk is None
+        super().save(*args, **kwargs)
+        
+        # Tự động tạo claim_number sau khi đã có self.id
+        if is_new and not self.claim_number:
             self.claim_number = self.generate_claim_number()
+            super().save(update_fields=['claim_number'])
         
         # Tự động cập nhật completed_date khi status = COMPLETED
         if self.status == 'COMPLETED' and not self.completed_date:
             self.completed_date = timezone.now().date()
+            super().save(update_fields=['completed_date'])
         
         # Tự động cập nhật estimated_completion_date nếu chưa có
         if not self.estimated_completion_date and self.status == 'PENDING':
             self.estimated_completion_date = self.claim_date + timezone.timedelta(days=7)  # Mặc định 7 ngày
-        
-        super().save(*args, **kwargs)
+            super().save(update_fields=['estimated_completion_date'])
 
     @classmethod
     def create_from_warranty(cls, warranty, description, user=None, **kwargs):

@@ -25,6 +25,12 @@ class ProductService:
                 for variant_data in variants_data:
                     ProductService.validate_variant_data(variant_data)
                     attribute_values = variant_data.pop('attribute_values', [])
+                    
+                    # Copy warranty_period từ product nếu variant không có
+                    if 'warranty_period' not in variant_data or variant_data['warranty_period'] is None:
+                        if product.warranty_period:
+                            variant_data['warranty_period'] = product.warranty_period
+                    
                     variant = ProductVariant.create_variant_with_attributes(
                         product=product,
                         attribute_values=attribute_values,
@@ -60,6 +66,11 @@ class ProductService:
                 for variant_data in variants_data:
                     ProductService.validate_variant_data(variant_data)
                     attribute_values = variant_data.pop('attribute_values', [])
+                    
+                    # Copy warranty_period từ product nếu variant không có
+                    if 'warranty_period' not in variant_data or variant_data['warranty_period'] is None:
+                        if product.warranty_period:
+                            variant_data['warranty_period'] = product.warranty_period
                     
                     # Validate variant combination
                     is_valid, message = ProductService.validate_variant_combination(
@@ -399,10 +410,28 @@ class ProductService:
     def get_warranty_products():
         """Lấy danh sách sản phẩm có bảo hành"""
         try:
-            return Product.objects.filter(
+            # Lấy sản phẩm có warranty_period > 0
+            products_with_warranty = Product.objects.filter(
                 is_deleted=False,
                 is_active=True,
                 warranty_period__gt=0
+            )
+            
+            # Lấy variants có warranty_period > 0 (ngay cả khi product không có)
+            variants_with_warranty = ProductVariant.objects.filter(
+                is_deleted=False,
+                is_active=True,
+                warranty_period__gt=0
+            ).values_list('product_id', flat=True)
+            
+            # Kết hợp cả hai
+            all_warranty_product_ids = set(products_with_warranty.values_list('id', flat=True))
+            all_warranty_product_ids.update(variants_with_warranty)
+            
+            return Product.objects.filter(
+                id__in=all_warranty_product_ids,
+                is_deleted=False,
+                is_active=True
             ).order_by('name')
             
         except Exception as e:
@@ -451,6 +480,10 @@ class ProductService:
         # Kiểm tra stock alert threshold
         if variant_data.get('stock_alert_threshold') and variant_data['stock_alert_threshold'] < 0:
             errors['stock_alert_threshold'] = 'Stock alert threshold cannot be negative'
+        
+        # Kiểm tra warranty period
+        if variant_data.get('warranty_period') and variant_data['warranty_period'] < 0:
+            errors['warranty_period'] = 'Warranty period cannot be negative'
         
         if errors:
             raise ValidationError(errors)

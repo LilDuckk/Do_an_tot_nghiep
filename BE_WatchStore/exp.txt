@@ -4504,3 +4504,809 @@ POST /api/orders/orders/123/confirm_order/
 - Mỗi thay đổi status sẽ tự động cập nhật `updated_at`
 - Hệ thống sẽ ghi log người thực hiện thay đổi
 - Inventory sẽ được cập nhật tương ứng với status
+```
+
+# API Quản lý Warranty
+
+## 1. Warranty CRUD API
+
+### 1.1 Tạo Warranty mới
+```http
+POST /api/warranties/
+Content-Type: application/json
+Authorization: Bearer <token>
+
+{
+    "order_detail": 123,
+    "warranty_start_date": "2025-07-04",
+    "warranty_end_date": "2026-07-04",
+    "serial_number": "SN123456789",
+    "notes": "Ghi chú bảo hành"
+}
+```
+
+**Response:**
+```json
+{
+    "id": 1,
+    "warranty_number": "W000001-0100-0001",
+    "order_detail": 123,
+    "warranty_start_date": "2025-07-04",
+    "warranty_end_date": "2026-07-04",
+    "serial_number": "SN123456789",
+    "status": "ACTIVE",
+    "notes": "Ghi chú bảo hành",
+    "warranty_period": 12,
+    "created_at": "2025-07-04T10:00:00Z",
+    "updated_at": "2025-07-04T10:00:00Z"
+}
+```
+
+### 1.2 Lấy danh sách Warranty
+```http
+GET /api/warranties/
+Authorization: Bearer <token>
+
+# Query Parameters:
+# - search: Tìm kiếm theo warranty_number
+# - status: Lọc theo status (ACTIVE, EXPIRED, CLAIMED, CANCELLED)
+# - order_detail: Lọc theo order_detail_id
+# - product: Lọc theo product_id
+# - variant: Lọc theo variant_id
+# - start_date: Lọc từ ngày bắt đầu
+# - end_date: Lọc đến ngày kết thúc
+# - ordering: Sắp xếp (-created_at, warranty_number, etc.)
+# - page: Số trang
+# - page_size: Số lượng mỗi trang
+```
+
+**Response:**
+```json
+{
+    "count": 100,
+    "next": "http://localhost:8000/api/warranties/?page=2",
+    "previous": null,
+    "results": [
+        {
+            "id": 1,
+            "warranty_number": "W000001-0100-0001",
+            "product": {
+                "id": 1,
+                "name": "Đồng hồ Casio",
+                "sku": "CASIO-001"
+            },
+            "variant": {
+                "id": 1,
+                "sku": "CASIO-001-BLACK",
+                "price_adjustment": "0.00"
+            },
+            "warranty_start_date": "2025-07-04",
+            "warranty_end_date": "2026-07-04",
+            "serial_number": "SN123456789",
+            "status": "ACTIVE",
+            "notes": "Ghi chú bảo hành",
+            "warranty_period": 12,
+            "created_at": "2025-07-04T10:00:00Z",
+            "updated_at": "2025-07-04T10:00:00Z"
+        }
+    ]
+}
+```
+
+### 1.3 Lấy chi tiết Warranty
+```http
+GET /api/warranties/{id}/
+Authorization: Bearer <token>
+```
+
+**Response:**
+```json
+{
+    "id": 1,
+    "warranty_number": "W000001-0100-0001",
+    "product": {
+        "id": 1,
+        "name": "Đồng hồ Casio",
+        "description": "Đồng hồ nam chính hãng",
+        "category": {
+            "id": 1,
+            "name": "Đồng hồ nam"
+        },
+        "brand": {
+            "id": 1,
+            "name": "Casio"
+        }
+    },
+    "variant": {
+        "id": 1,
+        "sku": "CASIO-001-BLACK",
+        "price_adjustment": "0.00",
+        "warranty_period": 12
+    },
+    "order_detail": {
+        "id": 123,
+        "order": {
+            "id": 1,
+            "order_number": "ORD-2025-001",
+            "customer": {
+                "id": 1,
+                "first_name": "Nguyễn",
+                "last_name": "Văn A",
+                "phone": "0123456789"
+            }
+        },
+        "quantity": 1,
+        "unit_price": "1000000.00",
+        "final_price": "1000000.00"
+    },
+    "warranty_start_date": "2025-07-04",
+    "warranty_end_date": "2026-07-04",
+    "serial_number": "SN123456789",
+    "status": "ACTIVE",
+    "notes": "Ghi chú bảo hành",
+    "warranty_period": 12,
+    "remaining_days": 365,
+    "is_active": true,
+    "created_at": "2025-07-04T10:00:00Z",
+    "updated_at": "2025-07-04T10:00:00Z"
+}
+```
+
+### 1.4 Cập nhật Warranty
+```http
+PUT /api/warranties/{id}/
+Content-Type: application/json
+Authorization: Bearer <token>
+
+{
+    "warranty_start_date": "2025-07-05",
+    "warranty_end_date": "2026-07-05",
+    "serial_number": "SN123456789-UPDATED",
+    "notes": "Ghi chú bảo hành đã cập nhật"
+}
+```
+
+### 1.5 Xóa Warranty
+```http
+DELETE /api/warranties/{id}/
+Authorization: Bearer <token>
+```
+
+**Response:**
+```json
+{
+    "message": "Warranty đã được xóa thành công"
+}
+```
+
+## 2. API Quản lý Warranty theo Đơn hàng
+
+### 2.1 Lấy danh sách Warranty theo Order
+```http
+GET /api/orders/{order_id}/warranties/
+Authorization: Bearer <token>
+
+# Query Parameters:
+# - status: Lọc theo status
+# - search: Tìm kiếm theo warranty_number
+# - ordering: Sắp xếp
+```
+
+**Response:**
+```json
+{
+    "order": {
+        "id": 1,
+        "order_number": "ORD-2025-001",
+        "status": "delivered",
+        "customer": {
+            "id": 1,
+            "first_name": "Nguyễn",
+            "last_name": "Văn A",
+            "phone": "0123456789"
+        }
+    },
+    "warranties": [
+        {
+            "id": 1,
+            "warranty_number": "W000001-0100-0001",
+            "product": {
+                "id": 1,
+                "name": "Đồng hồ Casio"
+            },
+            "variant": {
+                "id": 1,
+                "sku": "CASIO-001-BLACK"
+            },
+            "warranty_start_date": "2025-07-04",
+            "warranty_end_date": "2026-07-04",
+            "status": "ACTIVE",
+            "warranty_period": 12,
+            "remaining_days": 365,
+            "is_active": true
+        },
+        {
+            "id": 2,
+            "warranty_number": "W000001-0101-0002",
+            "product": {
+                "id": 2,
+                "name": "Đồng hồ Seiko"
+            },
+            "variant": {
+                "id": 2,
+                "sku": "SEIKO-001-SILVER"
+            },
+            "warranty_start_date": "2025-07-04",
+            "warranty_end_date": "2026-01-04",
+            "status": "ACTIVE",
+            "warranty_period": 6,
+            "remaining_days": 180,
+            "is_active": true
+        }
+    ],
+    "summary": {
+        "total_warranties": 2,
+        "active_warranties": 2,
+        "expired_warranties": 0,
+        "claimed_warranties": 0
+    }
+}
+```
+
+### 2.2 Lấy thông tin Warranty của OrderDetail
+```http
+GET /api/orders/{order_id}/order-details/{order_detail_id}/warranty/
+Authorization: Bearer <token>
+```
+
+**Response:**
+```json
+{
+    "order_detail": {
+        "id": 123,
+        "product_variant": {
+            "id": 1,
+            "sku": "CASIO-001-BLACK",
+            "product": {
+                "id": 1,
+                "name": "Đồng hồ Casio"
+            }
+        },
+        "quantity": 1,
+        "unit_price": "1000000.00",
+        "final_price": "1000000.00"
+    },
+    "warranty": {
+        "id": 1,
+        "warranty_number": "W000001-0100-0001",
+        "warranty_start_date": "2025-07-04",
+        "warranty_end_date": "2026-07-04",
+        "serial_number": "SN123456789",
+        "status": "ACTIVE",
+        "notes": "Ghi chú bảo hành",
+        "warranty_period": 12,
+        "remaining_days": 365,
+        "is_active": true,
+        "created_at": "2025-07-04T10:00:00Z"
+    },
+    "warranty_claims": [
+        {
+            "id": 1,
+            "claim_number": "W000001-0100-0001-C20250704-0001",
+            "claim_date": "2025-07-10",
+            "description": "Đồng hồ không chạy",
+            "status": "COMPLETED",
+            "completed_date": "2025-07-12",
+            "resolution": "Đã thay pin mới"
+        }
+    ]
+}
+```
+
+### 2.3 Tạo Warranty cho OrderDetail
+```http
+POST /api/orders/{order_id}/order-details/{order_detail_id}/warranty/
+Content-Type: application/json
+Authorization: Bearer <token>
+
+{
+    "warranty_start_date": "2025-07-04",
+    "serial_number": "SN123456789",
+    "notes": "Tạo bảo hành thủ công"
+}
+```
+
+## 3. API Thống kê Warranty
+
+### 3.1 Thống kê tổng quan
+```http
+GET /api/warranties/statistics/
+Authorization: Bearer <token>
+
+# Query Parameters:
+# - store_id: Lọc theo cửa hàng
+# - start_date: Từ ngày
+# - end_date: Đến ngày
+```
+
+**Response:**
+```json
+{
+    "total_warranties": 1000,
+    "active_warranties": 800,
+    "expired_warranties": 150,
+    "claimed_warranties": 50,
+    "cancelled_warranties": 0,
+    "warranty_by_status": {
+        "ACTIVE": 800,
+        "EXPIRED": 150,
+        "CLAIMED": 50,
+        "CANCELLED": 0
+    },
+    "warranty_by_month": {
+        "2025-01": 50,
+        "2025-02": 60,
+        "2025-03": 70
+    },
+    "top_products_with_warranty": [
+        {
+            "product_id": 1,
+            "product_name": "Đồng hồ Casio",
+            "warranty_count": 100
+        }
+    ]
+}
+```
+
+### 3.2 Warranty sắp hết hạn
+```http
+GET /api/warranties/expiring-soon/
+Authorization: Bearer <token>
+
+# Query Parameters:
+# - days: Số ngày trước khi hết hạn (mặc định: 30)
+# - store_id: Lọc theo cửa hàng
+```
+
+**Response:**
+```json
+{
+    "expiring_warranties": [
+        {
+            "id": 1,
+            "warranty_number": "W000001-0100-0001",
+            "product": {
+                "id": 1,
+                "name": "Đồng hồ Casio"
+            },
+            "customer": {
+                "id": 1,
+                "first_name": "Nguyễn",
+                "last_name": "Văn A",
+                "phone": "0123456789"
+            },
+            "warranty_end_date": "2025-08-04",
+            "remaining_days": 25,
+            "status": "ACTIVE"
+        }
+    ],
+    "total_expiring": 10
+}
+```
+
+## 4. API Custom Actions
+
+### 4.1 Gia hạn Warranty
+```http
+POST /api/warranties/{id}/extend/
+Content-Type: application/json
+Authorization: Bearer <token>
+
+{
+    "extension_days": 30,
+    "reason": "Gia hạn theo yêu cầu khách hàng"
+}
+```
+
+**Response:**
+```json
+{
+    "message": "Warranty đã được gia hạn thành công",
+    "warranty": {
+        "id": 1,
+        "warranty_number": "W000001-0100-0001",
+        "warranty_end_date": "2026-08-03",
+        "remaining_days": 395
+    }
+}
+```
+
+### 4.2 Tạo Warranty Claim
+```http
+POST /api/warranties/{id}/create-claim/
+Content-Type: application/json
+Authorization: Bearer <token>
+
+{
+    "description": "Đồng hồ không chạy",
+    "customer_contact": "0123456789"
+}
+```
+
+### 4.3 Lấy số ngày còn lại
+```http
+GET /api/warranties/{id}/remaining-days/
+Authorization: Bearer <token>
+```
+
+**Response:**
+```json
+{
+    "warranty_number": "W000001-0100-0001",
+    "remaining_days": 365,
+    "is_active": true,
+    "warranty_end_date": "2026-07-04"
+}
+```
+
+## 5. API Bulk Operations
+
+### 5.1 Cập nhật hàng loạt Warranty
+```http
+PUT /api/warranties/bulk-update/
+Content-Type: application/json
+Authorization: Bearer <token>
+
+{
+    "warranty_ids": [1, 2, 3],
+    "updates": {
+        "notes": "Cập nhật ghi chú hàng loạt"
+    }
+}
+```
+
+### 5.2 Xóa hàng loạt Warranty
+```http
+DELETE /api/warranties/bulk-delete/
+Content-Type: application/json
+Authorization: Bearer <token>
+
+{
+    "warranty_ids": [1, 2, 3]
+}
+```
+
+## 6. API Export/Import
+
+### 6.1 Export Warranty
+```http
+GET /api/warranties/export/
+Authorization: Bearer <token>
+
+# Query Parameters:
+# - format: csv, excel, pdf
+# - status: Lọc theo status
+# - start_date: Từ ngày
+# - end_date: Đến ngày
+```
+
+### 6.2 Import Warranty
+```http
+POST /api/warranties/import/
+Content-Type: multipart/form-data
+Authorization: Bearer <token>
+
+{
+    "file": <file>,
+    "format": "csv"
+}
+```
+
+## 7. Permissions
+
+### 7.1 Quyền truy cập
+- **GET /api/warranties/**: Tất cả người dùng đã đăng nhập
+- **POST /api/warranties/**: StoreEmployee, SuperUser
+- **PUT /api/warranties/{id}/**: StoreEmployee, SuperUser
+- **DELETE /api/warranties/{id}/**: SuperUser
+- **Custom Actions**: StoreEmployee, SuperUser
+
+### 7.2 Filter theo Store
+- Nhân viên cửa hàng chỉ thấy warranty của cửa hàng mình
+- SuperUser thấy tất cả warranty
+
+## 8. Error Responses
+
+### 8.1 Validation Error
+```json
+{
+    "error": "Validation failed",
+    "details": {
+        "warranty_end_date": ["Warranty end date must be after start date"],
+        "order_detail": ["Order detail is required"]
+    }
+}
+```
+
+### 8.2 Permission Error
+```json
+{
+    "error": "Permission denied",
+    "message": "You don't have permission to perform this action"
+}
+```
+
+### 8.3 Not Found Error
+```json
+{
+    "error": "Warranty not found",
+    "message": "Warranty with id 999 does not exist"
+}
+```
+
+## 9. Implementation Notes
+
+### 9.1 Serializers cần tạo:
+- `WarrantySerializer`: Serializer chính cho Warranty
+- `WarrantyListSerializer`: Serializer cho danh sách
+- `WarrantyDetailSerializer`: Serializer chi tiết
+- `WarrantyCreateSerializer`: Serializer tạo mới
+- `WarrantyUpdateSerializer`: Serializer cập nhật
+
+### 9.2 Views cần tạo:
+- `WarrantyViewSet`: CRUD cơ bản
+- `OrderWarrantyViewSet`: Warranty theo order
+- `OrderDetailWarrantyViewSet`: Warranty theo order detail
+- `WarrantyStatisticsViewSet`: Thống kê
+
+### 9.3 URLs cần thêm:
+```python
+# apps/warranty/urls.py
+router.register(r'warranties', WarrantyViewSet, basename='warranty')
+router.register(r'orders/(?P<order_id>\d+)/warranties', OrderWarrantyViewSet, basename='order-warranty')
+router.register(r'orders/(?P<order_id>\d+)/order-details/(?P<order_detail_id>\d+)/warranty', OrderDetailWarrantyViewSet, basename='order-detail-warranty')
+```
+
+### 9.4 Filters cần tạo:
+- `WarrantyFilter`: Filter theo status, date range, product, etc.
+- `OrderWarrantyFilter`: Filter warranty theo order
+```
+
+### 2. Đơn trả hàng (Return Order)
+
+#### 2.1 Luồng hoạt động
+- Khách hàng/trung tâm bảo hành tạo yêu cầu trả hàng cho một đơn hàng đã mua (Order).
+- Tạo ReturnOrder gắn với Order gốc.
+- Thêm các ReturnOrderDetail cho từng sản phẩm/biến thể muốn trả.
+- Cập nhật/hủy đơn trả hàng hoặc chi tiết trả hàng.
+- Có thể lấy danh sách, chi tiết, filter theo order, status, search theo return_number.
+
+#### 2.2 API ReturnOrder
+
+##### Tạo đơn trả hàng
+```http
+POST /api/return-orders/
+Content-Type: application/json
+Authorization: Bearer <token>
+
+{
+  "order": 1,
+  "return_date": "2025-07-05",
+  "status": "pending",
+  "reason": "Khách trả hàng do lỗi kỹ thuật"
+}
+```
+
+##### Duyệt đơn trả hàng
+```http
+POST /api/return-orders/{id}/approve/
+Authorization: Bearer <token>
+```
+
+##### Từ chối đơn trả hàng
+```http
+POST /api/return-orders/{id}/reject/
+Content-Type: application/json
+Authorization: Bearer <token>
+
+{
+  "rejection_reason": "Sản phẩm không đủ điều kiện trả hàng"
+}
+```
+
+##### Hoàn thành đơn trả hàng
+```http
+POST /api/return-orders/{id}/complete/
+Authorization: Bearer <token>
+```
+
+##### Lấy danh sách order details có thể trả hàng
+```http
+GET /api/return-orders/{id}/order_details/
+Authorization: Bearer <token>
+```
+
+##### Lấy thống kê return orders
+```http
+GET /api/return-orders/statistics/
+Authorization: Bearer <token>
+```
+
+##### Lấy danh sách đơn trả hàng
+```http
+GET /api/return-orders/?order=1&status=pending
+Authorization: Bearer <token>
+```
+
+##### Lấy chi tiết đơn trả hàng
+```http
+GET /api/return-orders/{id}/
+Authorization: Bearer <token>
+```
+
+**Response mẫu:**
+```json
+{
+  "id": 10,
+  "order": 1,
+  "return_number": "R00010-2025-07-05",
+  "return_date": "2025-07-05",
+  "status": "pending",
+  "note": "Khách trả hàng do lỗi kỹ thuật",
+  "created_at": "2025-07-05T10:00:00Z",
+  "updated_at": "2025-07-05T10:00:00Z"
+}
+```
+
+##### Cập nhật đơn trả hàng
+```http
+PUT /api/return-orders/{id}/
+Content-Type: application/json
+Authorization: Bearer <token>
+
+{
+  "status": "approved",
+  "note": "Đã kiểm tra và chấp nhận trả hàng"
+}
+```
+
+##### Xóa mềm đơn trả hàng
+```http
+DELETE /api/return-orders/{id}/
+Authorization: Bearer <token>
+```
+
+---
+
+#### 2.3 API ReturnOrderDetail
+
+##### Thêm chi tiết trả hàng
+```http
+POST /api/return-order-details/
+Content-Type: application/json
+Authorization: Bearer <token>
+
+{
+  "return_order": 10,
+  "product": 1,
+  "variant": 223,
+  "quantity": 1,
+  "unit_price": "1000.00",
+  "note": "Sản phẩm bị lỗi"
+}
+```
+
+##### Lấy danh sách chi tiết trả hàng
+```http
+GET /api/return-order-details/?return_order=10
+Authorization: Bearer <token>
+```
+
+##### Lấy chi tiết trả hàng cụ thể
+```http
+GET /api/return-order-details/{id}/
+Authorization: Bearer <token>
+```
+
+**Response mẫu:**
+```json
+{
+  "id": 5,
+  "return_order": 10,
+  "order_detail": 18,
+  "product": {
+    "id": 1,
+    "name": "Đồng hồ Casio",
+    "description": "Đồng hồ nam chính hãng"
+  },
+  "variant": {
+    "id": 223,
+    "sku": "CASIO-001-BLACK",
+    "price_adjustment": "0.00"
+  },
+  "order_detail_info": {
+    "id": 18,
+    "quantity": 2,
+    "unit_price": "1000.00",
+    "final_price": "2000.00",
+    "discount": "0.00"
+  },
+  "quantity": 1,
+  "original_quantity": 2,
+  "returned_quantity": 1,
+  "available_for_return": 1,
+  "unit_price": "1000.00",
+  "total_price": "1000.00",
+  "reason": "Sản phẩm bị lỗi",
+  "condition": "USED",
+  "created_at": "2025-07-05T10:10:00Z",
+  "updated_at": "2025-07-05T10:10:00Z"
+}
+```
+
+##### Cập nhật chi tiết trả hàng
+```http
+PUT /api/return-order-details/{id}/
+Content-Type: application/json
+Authorization: Bearer <token>
+
+{
+  "quantity": 2,
+  "note": "Khách trả thêm 1 sản phẩm cùng loại"
+}
+```
+
+##### Xóa mềm chi tiết trả hàng
+```http
+DELETE /api/return-order-details/{id}/
+Authorization: Bearer <token>
+```
+
+---
+
+#### 2.4 Liên kết với Order và xử lý Inventory
+- Trường `order` trong ReturnOrder liên kết đến đơn hàng gốc.
+- Trường `order_detail` trong ReturnOrderDetail liên kết trực tiếp đến OrderDetail gốc.
+- **Logic xử lý inventory**: Khi duyệt đơn trả hàng (approve), hệ thống tự động cộng lại số lượng sản phẩm vào inventory.
+- **Validation**: Kiểm tra điều kiện trả hàng (thời gian, trạng thái order, số lượng).
+- **Hoàn tiền**: Tự động tính toán và xử lý hoàn tiền khi hoàn thành đơn trả hàng.
+- **Thông tin chi tiết**: ReturnOrderDetail hiển thị đầy đủ thông tin order detail gốc, số lượng gốc, số lượng đã trả, số lượng còn có thể trả.
+
+---
+
+#### 2.5 Dữ liệu mẫu
+
+**Đơn trả hàng mẫu:**
+```json
+{
+  "id": 10,
+  "order": 1,
+  "return_number": "R00010-2025-07-05",
+  "return_date": "2025-07-05",
+  "status": "pending",
+  "note": "Khách trả hàng do lỗi kỹ thuật",
+  "created_at": "2025-07-05T10:00:00Z",
+  "updated_at": "2025-07-05T10:00:00Z"
+}
+```
+
+**Chi tiết trả hàng mẫu:**
+```json
+{
+  "id": 5,
+  "return_order": 10,
+  "product": {
+    "id": 1,
+    "name": "Đồng hồ Casio"
+  },
+  "variant": {
+    "id": 223,
+    "sku": "CASIO-001-BLACK"
+  },
+  "quantity": 1,
+  "unit_price": "1000.00",
+  "note": "Sản phẩm bị lỗi",
+  "created_at": "2025-07-05T10:10:00Z",
+  "updated_at": "2025-07-05T10:10:00Z"
+}
+```

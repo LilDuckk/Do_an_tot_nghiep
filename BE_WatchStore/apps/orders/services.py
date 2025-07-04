@@ -5,6 +5,7 @@ from apps.orders.models.return_order import ReturnOrder
 from apps.orders.models.return_order_detail import ReturnOrderDetail
 from apps.inventory.models.inventory import Inventory
 from apps.inventory.models.inventory_transaction import InventoryTransaction
+from decimal import Decimal
 
 class ReturnOrderService:
     @staticmethod
@@ -65,37 +66,50 @@ class ReturnOrderService:
     def handle_return_approval(return_order):
         """Xử lý inventory khi duyệt trả hàng"""
         try:
+            # Xác định store để cập nhật inventory
+            # Nếu trả hàng ở cửa hàng khác, chỉ cập nhật inventory của cửa hàng gốc (nơi mua)
+            # Nếu trả hàng ở cửa hàng gốc, cập nhật inventory của cửa hàng đó
+            target_store = return_order.order.store  # Luôn cập nhật inventory của cửa hàng gốc
+            
             for return_detail in return_order.returnorderdetail_set.all():
                 if not return_detail.order_detail:
                     continue
                 
                 inventory = Inventory.objects.filter(
-                    store=return_order.order.store,
+                    store=target_store,
                     product_variant=return_detail.product_variant,
                     is_deleted=False
                 ).first()
                 
+                # Lấy unit_price từ order_detail
+                unit_price = return_detail.order_detail.unit_price
+                
                 if inventory:
-                    # Cộng lại kho
+                    # Cộng lại kho của cửa hàng gốc
                     inventory.quantity += return_detail.quantity
                     inventory.updated_by = return_order.updated_by
                     inventory.save()
                     
                     # Tạo transaction
+                    transaction_note = f"Return approved: {return_detail.reason or 'Customer return'}"
+                    if return_order.return_store != return_order.order.store:
+                        transaction_note += f" (Returned at {return_order.return_store.name})"
+                    
                     InventoryTransaction.objects.create(
                         inventory=inventory,
                         transaction_type='IN',
                         quantity=return_detail.quantity,
+                        unit_price=unit_price,
                         reference_type='return_order',
                         reference_id=return_order.id,
-                        note=f"Return approved: {return_detail.reason or 'Customer return'}",
+                        note=transaction_note,
                         created_by=return_order.created_by,
                         updated_by=return_order.updated_by
                     )
                 else:
                     # Tạo inventory record mới nếu chưa có
                     inventory = Inventory.objects.create(
-                        store=return_order.order.store,
+                        store=target_store,
                         product_variant=return_detail.product_variant,
                         quantity=return_detail.quantity,
                         created_by=return_order.created_by,
@@ -103,13 +117,18 @@ class ReturnOrderService:
                     )
                     
                     # Tạo transaction
+                    transaction_note = f"Return approved - new inventory: {return_detail.reason or 'Customer return'}"
+                    if return_order.return_store != return_order.order.store:
+                        transaction_note += f" (Returned at {return_order.return_store.name})"
+                    
                     InventoryTransaction.objects.create(
                         inventory=inventory,
                         transaction_type='IN',
                         quantity=return_detail.quantity,
+                        unit_price=unit_price,
                         reference_type='return_order_new',
                         reference_id=return_order.id,
-                        note=f"Return approved - new inventory: {return_detail.reason or 'Customer return'}",
+                        note=transaction_note,
                         created_by=return_order.created_by,
                         updated_by=return_order.updated_by
                     )
@@ -142,7 +161,7 @@ class ReturnOrderService:
             return False
     
     @staticmethod
-    def create_return_order_from_order(order, customer, return_items, reason, user=None):
+    def create_return_order_from_order(order, customer, return_items, reason, user=None, return_store=None):
         """Tạo return order từ order"""
         try:
             with transaction.atomic():
@@ -152,7 +171,9 @@ class ReturnOrderService:
                     raise ValidationError(message)
                 
                 # Tạo return order
-                return_order = ReturnOrder.create_from_order(order, customer, reason, user)
+                return_order = ReturnOrder.create_from_order(
+                    order, customer, reason, user, return_store=return_store
+                )
                 
                 # Tạo return order details
                 for item in return_items:

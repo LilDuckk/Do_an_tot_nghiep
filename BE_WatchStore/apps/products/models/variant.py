@@ -18,6 +18,7 @@ class ProductVariant(BaseModel):
     is_active = models.BooleanField(default=True)
     weight = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     dimensions = models.CharField(max_length=100, blank=True, null=True)  # Format: "LxWxH"
+    warranty_period = models.IntegerField(blank=True, null=True, help_text="Thời gian bảo hành theo tháng. Nếu để trống sẽ lấy từ product")
     created_by = models.ForeignKey(UserAccount, models.DO_NOTHING, db_column='created_by', blank=True, null=True)
     updated_by = models.ForeignKey(UserAccount, models.DO_NOTHING, db_column='updated_by', related_name='productvariant_updated_by_set', blank=True, null=True)
 
@@ -29,6 +30,7 @@ class ProductVariant(BaseModel):
             models.Index(fields=['barcode']),
             models.Index(fields=['is_active']),
             models.Index(fields=['product']),
+            models.Index(fields=['warranty_period']),
         ]
         unique_together = [
             ('product', 'sku'),
@@ -41,6 +43,8 @@ class ProductVariant(BaseModel):
             raise ValidationError({'stock_alert_threshold': 'Stock alert threshold cannot be negative'})
         if self.weight and self.weight < 0:
             raise ValidationError({'weight': 'Weight cannot be negative'})
+        if self.warranty_period and self.warranty_period < 0:
+            raise ValidationError({'warranty_period': 'Warranty period cannot be negative'})
 
     def generate_sku(self, attribute_values_list=None):
         """Tạo SKU: TEN-SAN-PHAM-GIA-TRI-1-GIA-TRI-2-...-MA8SO (tất cả viết hoa)"""
@@ -146,6 +150,24 @@ class ProductVariant(BaseModel):
         return ProductVariantService.create_variant_with_validation(
             product, kwargs, attribute_values
         )
+
+    def get_warranty_period(self):
+        """
+        Lấy thời gian bảo hành với logic fallback:
+        1. Nếu variant có warranty_period → dùng variant
+        2. Nếu variant không có → fallback về product.warranty_period
+        """
+        if self.warranty_period is not None:
+            return self.warranty_period
+        
+        if self.product and self.product.warranty_period:
+            return self.product.warranty_period
+        
+        return None
+
+    def has_warranty(self):
+        """Kiểm tra variant có bảo hành không"""
+        return self.get_warranty_period() is not None and self.get_warranty_period() > 0
 
 class ProductVariantAttribute(BaseModel):
     product_variant = models.ForeignKey(ProductVariant, models.DO_NOTHING, blank=True, null=True, related_name='attributes')

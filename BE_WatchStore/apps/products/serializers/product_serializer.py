@@ -36,13 +36,15 @@ class ProductVariantSerializer(BaseSerializer):
     attribute_values_detail = serializers.SerializerMethodField()
     sku = serializers.CharField(read_only=True)
     images = VariantImageSerializer(many=True, read_only=True)
+    warranty_period = serializers.IntegerField(required=False, allow_null=True, help_text="Thời gian bảo hành theo tháng. Nếu để trống sẽ lấy từ product")
+    effective_warranty_period = serializers.SerializerMethodField(help_text="Thời gian bảo hành hiệu lực (từ variant hoặc fallback về product)")
     
     class Meta(BaseSerializer.Meta):
         model = ProductVariant
         fields = BaseSerializer.Meta.fields + [
             'product', 'product_id', 'product_name', 'sku', 'price_adjustment',
             'stock_alert_threshold', 'barcode', 'is_active', 'attribute_values',
-            'attribute_values_detail', 'images'
+            'attribute_values_detail', 'images', 'warranty_period', 'effective_warranty_period'
         ]
 
     def get_attribute_values_detail(self, obj):
@@ -58,6 +60,10 @@ class ProductVariantSerializer(BaseSerializer):
             }
             for value in values
         ]
+
+    def get_effective_warranty_period(self, obj):
+        """Lấy thời gian bảo hành hiệu lực"""
+        return obj.get_warranty_period()
 
     def create(self, validated_data):
         # Extract attribute values if present

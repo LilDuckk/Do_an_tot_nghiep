@@ -4,6 +4,7 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated, OR
 from apps.core.utils.permissions import IsSuperUser, IsStoreEmployee
 from django.db import connection
+from django.utils import timezone
 from apps.reports.serializers.best_selling_serializer import BestSellingSerializer
 
 class BestSellingView(APIView):
@@ -20,16 +21,18 @@ class BestSellingView(APIView):
 
     def get(self, request):
         try:
+            limit = int(request.query_params.get('limit', 10))
+            
             with connection.cursor() as cursor:
                 cursor.execute("""
                     SELECT 
                         p.id as product_id,
                         p.name as product_name,
-                        b.name as brand_name,
-                        c.name as category_name,
+                        COALESCE(b.name, '') as brand_name,
+                        COALESCE(c.name, '') as category_name,
                         COUNT(od.id) as total_orders,
-                        SUM(od.quantity) as total_quantity,
-                        SUM(od.quantity * od.unit_price) as total_revenue
+                        COALESCE(SUM(od.quantity), 0) as total_quantity,
+                        COALESCE(SUM(od.quantity * od.unit_price), 0) as total_revenue
                     FROM orderdetail od
                     JOIN productvariant pv ON od.product_variant_id = pv.id
                     JOIN product p ON pv.product_id = p.id
@@ -38,8 +41,8 @@ class BestSellingView(APIView):
                     WHERE od.is_deleted = false
                     GROUP BY p.id, p.name, b.name, c.name
                     ORDER BY total_quantity DESC
-                    LIMIT 10
-                """)
+                    LIMIT %s
+                """, [limit])
                 columns = [col[0] for col in cursor.description]
                 results = [dict(zip(columns, row)) for row in cursor.fetchall()]
                 

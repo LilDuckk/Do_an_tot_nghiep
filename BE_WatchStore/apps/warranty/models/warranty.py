@@ -7,11 +7,18 @@ from apps.users.models import UserAccount
 from apps.orders.models.order_detail import OrderDetail
 
 class Warranty(BaseModel):
+    WARRANTY_STATUS_CHOICES = [
+        ('ACTIVE', 'Đang hiệu lực'),
+        ('EXPIRED', 'Hết hạn'),
+        ('CLAIMED', 'Đang bảo hành'),
+        ('CANCELLED', 'Đã hủy'),
+    ]
+    
     order_detail = models.ForeignKey(OrderDetail, models.DO_NOTHING, blank=True, null=True)
     warranty_start_date = models.DateField()
     warranty_end_date = models.DateField()
     serial_number = models.CharField(max_length=100, blank=True, null=True)
-    status = models.CharField(max_length=50, blank=True, null=True, default='ACTIVE')
+    status = models.CharField(max_length=50, choices=WARRANTY_STATUS_CHOICES, default='ACTIVE')
     warranty_number = models.CharField(max_length=50, unique=True, blank=True, null=True)
     notes = models.TextField(blank=True, null=True)
     created_by = models.ForeignKey(UserAccount, models.DO_NOTHING, db_column='created_by', blank=True, null=True)
@@ -33,11 +40,12 @@ class Warranty(BaseModel):
                 raise ValidationError('Warranty end date must be after start date')
         
         if self.order_detail:
-            product = self.order_detail.product_variant.product
-            if product.warranty_period:
-                expected_end_date = self.warranty_start_date + timedelta(days=product.warranty_period * 30)
+            product_variant = self.order_detail.product_variant
+            warranty_period = product_variant.get_warranty_period()
+            if warranty_period:
+                expected_end_date = self.warranty_start_date + timedelta(days=warranty_period * 30)
                 if self.warranty_end_date != expected_end_date:
-                    raise ValidationError(f'Warranty end date should be {expected_end_date} based on product warranty period')
+                    raise ValidationError(f'Warranty end date should be {expected_end_date} based on warranty period')
 
     def generate_warranty_number(self):
         """Tạo số bảo hành tự động"""
@@ -50,6 +58,10 @@ class Warranty(BaseModel):
 
     def is_active(self):
         """Kiểm tra bảo hành còn hiệu lực không"""
+        # Nếu warranty đã bị hủy, không còn hiệu lực
+        if self.status == 'CANCELLED':
+            return False
+            
         today = timezone.now().date()
         return self.warranty_start_date <= today <= self.warranty_end_date
 
@@ -68,21 +80,30 @@ class Warranty(BaseModel):
     def save(self, *args, **kwargs):
         # Tự động tính warranty_end_date nếu chưa có
         if self.order_detail and self.warranty_start_date and not self.warranty_end_date:
-            product = self.order_detail.product_variant.product
-            if product.warranty_period:
-                self.warranty_end_date = self.warranty_start_date + timedelta(days=product.warranty_period * 30)
-        
-        # Tự động tạo warranty_number
-        if not self.warranty_number:
+            product_variant = self.order_detail.product_variant
+            warranty_period = product_variant.get_warranty_period()
+            if warranty_period:
+                self.warranty_end_date = self.warranty_start_date + timedelta(days=warranty_period * 30)
+
+        is_new = self.pk is None
+        super().save(*args, **kwargs)
+
+        # Tự động tạo warranty_number nếu chưa có và đã có self.id
+        if is_new and not self.warranty_number:
             self.warranty_number = self.generate_warranty_number()
-        
+            super().save(update_fields=['warranty_number'])
+
         # Tự động cập nhật status
-        if self.is_expired():
+        if self.status == 'CANCELLED':
+            # Không thay đổi status nếu đã bị hủy
+            pass
+        elif self.is_expired():
             self.status = 'EXPIRED'
         elif self.status == 'ACTIVE' and not self.is_active():
             self.status = 'INACTIVE'
-        
-        super().save(*args, **kwargs)
+        # Nếu status thay đổi, lưu lại
+        if self.pk and self.status != Warranty.objects.get(pk=self.pk).status:
+            super().save(update_fields=['status'])
 
     @classmethod
     def create_from_order_detail(cls, order_detail, user=None):
@@ -90,12 +111,13 @@ class Warranty(BaseModel):
         if not order_detail:
             return None
         
-        product = order_detail.product_variant.product
-        if not product.warranty_period:
+        product_variant = order_detail.product_variant
+        warranty_period = product_variant.get_warranty_period()
+        if not warranty_period:
             return None
         
         warranty_start_date = order_detail.order.order_date.date() if order_detail.order.order_date else timezone.now().date()
-        warranty_end_date = warranty_start_date + timedelta(days=product.warranty_period * 30)
+        warranty_end_date = warranty_start_date + timedelta(days=warranty_period * 30)
         
         warranty = cls.objects.create(
             order_detail=order_detail,

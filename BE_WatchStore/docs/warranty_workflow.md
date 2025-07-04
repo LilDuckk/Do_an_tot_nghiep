@@ -9,7 +9,7 @@ Hệ thống quản lý bảo hành được cải tiến với các tính năng
 ### 1.1 Tự động tạo từ Order
 ```mermaid
 graph TD
-    A[Order Completed] --> B[OrderDetail Created]
+    A[Order Delivered] --> B[OrderDetail Created]
     B --> C[Signal Triggered]
     C --> D[Check Product Warranty]
     D --> E[Create Warranty]
@@ -23,6 +23,16 @@ graph TD
 - **Start Date**: Ngày đặt hàng
 - **End Date**: Start Date + Product.warranty_period (tháng)
 - **Status**: ACTIVE, EXPIRED, CLAIMED
+
+### 1.3 Điều kiện tạo Warranty
+- Order status phải là **'delivered'** (đã giao hàng)
+- Sản phẩm phải có `warranty_period` > 0
+- Warranty chưa tồn tại cho order detail này
+
+### 1.4 Các trường hợp tạo Warranty
+1. **Khi tạo OrderDetail mới** với order status = 'delivered'
+2. **Khi thay đổi Order status** từ 'completed' sang 'delivered'
+3. **Tự động tạo** cho tất cả OrderDetail của order khi status thay đổi
 
 ## 2. Luồng Warranty Claim
 
