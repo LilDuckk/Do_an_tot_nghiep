@@ -3,13 +3,18 @@ import { Link } from 'react-router-dom';
 import { PRODUCT_ENDPOINTS } from '../config/api';
 import './static/Header.css';
 import DropdownMenu from './DropdownMenu';
+import DropdownCart from './DropdownCart';
+import { getCartCount } from './cartUtils';
 
 export default function Header() {
   const [brands, setBrands] = useState([]);
   const [categories, setCategories] = useState([]);
   const [showDropdown, setShowDropdown] = useState(null); // 'brand' | 'category' | null
+  const [showCartDropdown, setShowCartDropdown] = useState(false);
+  const [cartCount, setCartCount] = useState(0);
   const headerRef = useRef();
   const dropdownRef = useRef();
+  const cartIconRef = useRef();
 
   useEffect(() => {
     // Fetch brands
@@ -56,6 +61,26 @@ export default function Header() {
         console.error('Error fetching categories:', err);
         setCategories([]);
       });
+
+    // Update cart count
+    const updateCartCount = () => {
+      setCartCount(getCartCount());
+    };
+    
+    updateCartCount();
+    
+    // Listen for cart changes
+    const handleStorageChange = () => {
+      updateCartCount();
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    document.addEventListener('cartUpdated', updateCartCount);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      document.removeEventListener('cartUpdated', updateCartCount);
+    };
   }, []);
 
   // Đóng dropdown khi click ra ngoài
@@ -77,6 +102,12 @@ export default function Header() {
 
   const handleDropdownToggle = (type) => {
     setShowDropdown(prev => (prev === type ? null : type));
+    setShowCartDropdown(false);
+  };
+
+  const handleCartToggle = () => {
+    setShowCartDropdown(prev => !prev);
+    setShowDropdown(null);
   };
 
   return (
@@ -108,7 +139,18 @@ export default function Header() {
         </nav>
         <div className="header__icons">
           <span className="icon search" />
-          <span className="icon cart" />
+          <div className="cart-icon-container" ref={cartIconRef} onClick={handleCartToggle}>
+            <span className="icon cart" />
+            {cartCount > 0 && (
+              <span className="cart-badge">{cartCount}</span>
+            )}
+            {showCartDropdown && (
+              <DropdownCart
+                onClose={() => setShowCartDropdown(false)}
+                anchorRef={cartIconRef}
+              />
+            )}
+          </div>
         </div>
       </header>
       {showDropdown === 'brand' && brands.length > 0 && (

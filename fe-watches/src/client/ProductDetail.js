@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { PRODUCT_ENDPOINTS } from '../config/api';
 import Header from './Header';
 import Footer from './Footer';
+import { addToCart, formatPrice, getUserInfo, setUserInfo } from './cartUtils';
 import './static/ProductDetail.css';
 
 export default function ProductDetail() {
@@ -18,6 +19,14 @@ export default function ProductDetail() {
   const [allImages, setAllImages] = useState([]);
   const [variantImages, setVariantImages] = useState([]);
   const [currentVariant, setCurrentVariant] = useState(null);
+  const [quantity, setQuantity] = useState(1);
+  const [addToCartMessage, setAddToCartMessage] = useState('');
+  const [contactForm, setContactForm] = useState({
+    fullName: '',
+    phone: '',
+    email: '',
+    note: ''
+  });
   const THUMBNAILS_PER_PAGE = 6;
 
   // Hàm lấy danh sách thuộc tính của sản phẩm
@@ -250,6 +259,17 @@ export default function ProductDetail() {
 
   useEffect(() => {
     fetchProductDetail();
+    
+    // Load saved user info for contact form
+    const savedUserInfo = getUserInfo();
+    if (savedUserInfo) {
+      setContactForm({
+        fullName: savedUserInfo.fullName || '',
+        phone: savedUserInfo.phone || '',
+        email: savedUserInfo.email || '',
+        note: ''
+      });
+    }
   }, [fetchProductDetail]);
 
   // Hàm điều hướng thumbnail
@@ -329,6 +349,61 @@ export default function ProductDetail() {
       setSelectedAttributes({});
     }
   }, [allImages, currentImageIndex, thumbnailStartIndex, THUMBNAILS_PER_PAGE, variants, attributes]);
+
+  const handleAddToCart = () => {
+    if (!product) return;
+    
+    // Kiểm tra xem có thuộc tính bắt buộc nào chưa được chọn không
+    const requiredAttributes = attributes.filter(attr => attr.required);
+    const missingAttributes = requiredAttributes.filter(attr => 
+      !selectedAttributes[attr.id]
+    );
+    
+    if (missingAttributes.length > 0) {
+      setAddToCartMessage(`Vui lòng chọn: ${missingAttributes.map(attr => attr.name).join(', ')}`);
+      setTimeout(() => setAddToCartMessage(''), 3000);
+      return;
+    }
+    
+    // Thêm vào giỏ hàng
+    addToCart(product.id, selectedAttributes, quantity);
+    
+    // Hiển thị thông báo thành công
+    setAddToCartMessage('Đã thêm vào giỏ hàng!');
+    setTimeout(() => setAddToCartMessage(''), 3000);
+    
+    // Trigger event để cập nhật số lượng trong header
+    document.dispatchEvent(new Event('cartUpdated'));
+  };
+
+  const handleQuantityChange = (newQuantity) => {
+    if (newQuantity >= 1) {
+      setQuantity(newQuantity);
+    }
+  };
+
+  const handleContactFormChange = (field, value) => {
+    setContactForm(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleContactSubmit = (e) => {
+    e.preventDefault();
+    
+    // Save user info to cookie
+    setUserInfo({
+      fullName: contactForm.fullName,
+      phone: contactForm.phone,
+      email: contactForm.email,
+      address: ''
+    });
+    
+    // Here you would typically send the contact form to your backend
+    alert('Cảm ơn bạn đã liên hệ! Chúng tôi sẽ liên hệ lại trong thời gian sớm nhất.');
+    setShowForm(false);
+  };
 
   if (loading) {
     return (
@@ -487,17 +562,70 @@ export default function ProductDetail() {
             </li>
           </ul>
 
-          <button className="contact-buy-btn" onClick={() => setShowForm(true)}>
-            Liên hệ mua
-          </button>
+          <div className="product-actions">
+            <div className="quantity-selector">
+              <label>Số lượng:</label>
+              <div className="quantity-controls">
+                <button 
+                  className="quantity-btn"
+                  onClick={() => handleQuantityChange(quantity - 1)}
+                  disabled={quantity <= 1}
+                >
+                  -
+                </button>
+                <span className="quantity-display">{quantity}</span>
+                <button 
+                  className="quantity-btn"
+                  onClick={() => handleQuantityChange(quantity + 1)}
+                >
+                  +
+                </button>
+              </div>
+            </div>
+            
+            <button className="add-to-cart-btn" onClick={handleAddToCart}>
+              Thêm vào giỏ hàng
+            </button>
+            
+            <button className="contact-buy-btn" onClick={() => setShowForm(true)}>
+              Liên hệ mua
+            </button>
+            
+            {addToCartMessage && (
+              <div className={`add-to-cart-message ${addToCartMessage.includes('Vui lòng') ? 'error' : 'success'}`}>
+                {addToCartMessage}
+              </div>
+            )}
+          </div>
 
           {showForm && (
-            <form className="contact-buy-form" onSubmit={e => e.preventDefault()}>
+            <form className="contact-buy-form" onSubmit={handleContactSubmit}>
               <h4>Đăng ký mua hàng</h4>
-              <input type="text" placeholder="Họ tên" required />
-              <input type="tel" placeholder="Số điện thoại" required />
-              <input type="email" placeholder="Email" />
-              <textarea placeholder="Ghi chú" />
+              <input 
+                type="text" 
+                placeholder="Họ tên" 
+                value={contactForm.fullName}
+                onChange={(e) => handleContactFormChange('fullName', e.target.value)}
+                required 
+              />
+              <input 
+                type="tel" 
+                placeholder="Số điện thoại" 
+                value={contactForm.phone}
+                onChange={(e) => handleContactFormChange('phone', e.target.value)}
+                required 
+              />
+              <input 
+                type="email" 
+                placeholder="Email" 
+                value={contactForm.email}
+                onChange={(e) => handleContactFormChange('email', e.target.value)}
+              />
+              <textarea 
+                placeholder="Ghi chú" 
+                value={contactForm.note}
+                onChange={(e) => handleContactFormChange('note', e.target.value)}
+              />
               <button type="submit">Gửi thông tin</button>
               <span className="close-form" onClick={() => setShowForm(false)}>Đóng</span>
             </form>

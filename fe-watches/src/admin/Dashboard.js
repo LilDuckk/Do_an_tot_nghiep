@@ -424,16 +424,16 @@ export default function Dashboard() {
   const performanceNetRevenue = productPerformance?.performance_data?.map(p => p.net_revenue) || [];
 
   // Top Products data - theo API exp2.txt
-  const topProductLabels = topProducts?.map(p => p.product_name) || [];
-  const topProductRevenue = topProducts?.map(p => p.total_revenue) || [];
+  const topProductLabels = Array.isArray(topProducts) ? topProducts.map(p => p.product_name) : [];
+  const topProductRevenue = Array.isArray(topProducts) ? topProducts.map(p => p.total_revenue) : [];
 
   // Top Customers data - theo API exp2.txt
-  const topCustomerLabels = topCustomers?.map(c => `${c.first_name} ${c.last_name}`) || [];
-  const topCustomerSpent = topCustomers?.map(c => c.total_spent) || [];
+  const topCustomerLabels = Array.isArray(topCustomers) ? topCustomers.map(c => `${c.first_name} ${c.last_name}`) : [];
+  const topCustomerSpent = Array.isArray(topCustomers) ? topCustomers.map(c => c.total_spent) : [];
 
   // Best Selling data - theo API exp2.txt
-  const bestSellingLabels = bestSelling?.map(p => p.product_name) || [];
-  const bestSellingRevenue = bestSelling?.map(p => p.total_revenue) || [];
+  const bestSellingLabels = Array.isArray(bestSelling) ? bestSelling.map(p => p.product_name) : [];
+  const bestSellingRevenue = Array.isArray(bestSelling) ? bestSelling.map(p => p.total_revenue) : [];
 
   // Daily Revenue data - theo API exp2.txt
   const dailyRevenueLabels = dailyRevenueData?.daily_revenues?.map(d => d.date) || [];
@@ -532,9 +532,9 @@ export default function Dashboard() {
 
   // Return Summary Chart Data - theo API exp2.txt
   const returnSummaryData = returnSummary?.product_analysis || [];
-  const returnProductLabels = returnSummaryData.map(p => p.product_name) || [];
-  const returnQuantities = returnSummaryData.map(p => p.total_returned_quantity) || [];
-  const returnRates = returnSummaryData.map(p => p.return_rate) || [];
+  const returnProductLabels = Array.isArray(returnSummaryData) ? returnSummaryData.map(p => p.product_name) : [];
+  const returnQuantities = Array.isArray(returnSummaryData) ? returnSummaryData.map(p => p.total_returned_quantity) : [];
+  const returnRates = Array.isArray(returnSummaryData) ? returnSummaryData.map(p => p.return_rate) : [];
 
   const returnProductChartData = {
     labels: returnProductLabels.slice(0, 8),
@@ -558,9 +558,9 @@ export default function Dashboard() {
 
   // Warranty Summary Chart Data - theo API exp2.txt
   const warrantySummaryData = warrantySummary?.warranty_analysis || [];
-  const warrantyProductLabels = warrantySummaryData.map(p => p.product_name) || [];
-  const warrantyClaims = warrantySummaryData.map(p => p.warranty_claim_count) || [];
-  const warrantyRates = warrantySummaryData.map(p => p.claim_rate) || [];
+  const warrantyProductLabels = Array.isArray(warrantySummaryData) ? warrantySummaryData.map(p => p.product_name) : [];
+  const warrantyClaims = Array.isArray(warrantySummaryData) ? warrantySummaryData.map(p => p.warranty_claim_count) : [];
+  const warrantyRates = Array.isArray(warrantySummaryData) ? warrantySummaryData.map(p => p.claim_rate) : [];
 
   const warrantyProductChartData = {
     labels: warrantyProductLabels.slice(0, 8),
@@ -605,9 +605,9 @@ export default function Dashboard() {
 
   // Profit Analysis Chart Data - theo API exp2.txt
   const profitAnalysisData = profitAnalysis?.profit_by_product || [];
-  const profitLabels = profitAnalysisData.map(p => p.product_name) || [];
-  const profitNetProfit = profitAnalysisData.map(p => p.total_profit) || [];
-  const profitMargin = profitAnalysisData.map(p => p.profit_margin) || [];
+  const profitLabels = Array.isArray(profitAnalysisData) ? profitAnalysisData.map(p => p.product_name) : [];
+  const profitNetProfit = Array.isArray(profitAnalysisData) ? profitAnalysisData.map(p => p.total_profit) : [];
+  const profitMargin = Array.isArray(profitAnalysisData) ? profitAnalysisData.map(p => p.profit_margin) : [];
 
   const profitChartData = {
     labels: profitLabels.slice(0, 8),

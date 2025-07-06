@@ -40,6 +40,7 @@ import CategoryEditPage from './admin/categories/CategoryEditPage';
 import CategoryViewPage from './admin/categories/CategoryViewPage';
 import ProductList from './client/ProductList';
 import ProductDetail from './client/ProductDetail';
+import CartDetail from './client/CartDetail';
 import Maintenance from './client/Maintenance';
 import Contact from './client/Contact';
 import BannerManagement from './admin/system/BannerManagement';
@@ -114,6 +115,7 @@ function App() {
         <Route path="/" element={<ClientHome />} />
         <Route path="/products" element={<ProductList />} />
         <Route path="/products/:id" element={<ProductDetail />} />
+        <Route path="/cart" element={<CartDetail />} />
         <Route path="/maintenance" element={<Maintenance />} />
         <Route path="/contact" element={<Contact />} />
       </Routes>
