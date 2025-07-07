@@ -1,0 +1,302 @@
+# API QUẢN LÝ ĐƠN HÀNG CHƯA GÁN CỬA HÀNG
+
+## Mô tả
+Các API này cho phép nhân viên xem danh sách đơn hàng chưa được gán cửa hàng và nhận đơn hàng về cửa hàng của mình.
+
+## 1. API Lấy danh sách đơn hàng chưa gán cửa hàng
+
+### Endpoint
+```
+GET /api/orders/unassigned-orders/
+```
+
+### Headers
+```
+Authorization: Bearer <token>
+```
+
+### Query Parameters
+- `page`: Số trang (mặc định: 1)
+- `page_size`: Số lượng đơn hàng mỗi trang (mặc định: 20, tối đa: 100)
+
+### Response Success (200 OK)
+```json
+{
+  "success": true,
+  "message": "Lấy danh sách đơn hàng chưa gán cửa hàng thành công",
+  "data": [
+    {
+      "id": 1,
+      "customer": 1,
+      "customer_first_name": "Nguyễn Văn A",
+      "store": null,
+      "store_name": null,
+      "employee": null,
+      "employee_id": null,
+      "order_date": "2024-01-15T10:30:00Z",
+      "status": "pending",
+      "payment_method": "cash",
+      "payment_status": "pending",
+      "shipping_address": "123 Đường ABC, Quận 1, TP.HCM",
+      "shipping_method": "delivery",
+      "tracking_number": "",
+      "subtotal": 5000000.00,
+      "tax": 10.00,
+      "shipping_fee": 0.00,
+      "discount": 0.00,
+      "total_amount": 4500000.00,
+      "note": "Giao hàng vào buổi chiều",
+      "is_online_order": true,
+      "order_details": [],
+      "created_at": "2024-01-15T10:30:00Z",
+      "updated_at": "2024-01-15T10:30:00Z"
+    }
+  ],
+  "count": 1,
+  "next": null,
+  "previous": null
+}
+```
+
+**Lưu ý:** API này chỉ hiển thị các đơn hàng có trạng thái: `pending`, `processing`, `shipped`, `delivered`. Các đơn hàng đã bị hủy (`cancelled`) sẽ không xuất hiện trong danh sách.
+
+## 2. API Nhận đơn hàng về cửa hàng
+
+### Endpoint
+```
+POST /api/orders/assign-order/{order_id}/
+```
+
+### Headers
+```
+Authorization: Bearer <token>
+```
+
+### Path Parameters
+- `order_id`: ID của đơn hàng cần nhận
+
+### Response Success (200 OK)
+```json
+{
+  "success": true,
+  "message": "Đã nhận đơn hàng #1 về cửa hàng Cửa hàng chính",
+  "data": {
+    "id": 1,
+    "customer": 1,
+    "customer_first_name": "Nguyễn Văn A",
+    "store": 1,
+    "store_name": "Cửa hàng chính",
+    "employee": "employee1",
+    "employee_id": 1,
+    "order_date": "2024-01-15T10:30:00Z",
+    "status": "pending",
+    "payment_method": "cash",
+    "payment_status": "pending",
+    "shipping_address": "123 Đường ABC, Quận 1, TP.HCM",
+    "shipping_method": "delivery",
+    "tracking_number": "",
+    "subtotal": 5000000.00,
+    "tax": 10.00,
+    "shipping_fee": 0.00,
+    "discount": 0.00,
+    "total_amount": 4500000.00,
+    "note": "Giao hàng vào buổi chiều",
+    "is_online_order": true,
+    "order_details": [],
+    "created_at": "2024-01-15T10:30:00Z",
+    "updated_at": "2024-01-15T10:30:00Z"
+  }
+}
+```
+
+### Response Error (400 Bad Request)
+```json
+{
+  "success": false,
+  "message": "Đơn hàng này đã được gán cho cửa hàng khác"
+}
+```
+
+### Response Error (403 Forbidden)
+```json
+{
+  "success": false,
+  "message": "Tài khoản này không phải là nhân viên"
+}
+```
+
+### Response Error (404 Not Found)
+```json
+{
+  "success": false,
+  "message": "Đơn hàng không tồn tại"
+}
+```
+
+## 3. API Lấy danh sách đơn hàng của cửa hàng
+
+### Endpoint
+```
+GET /api/orders/my-store-orders/
+```
+
+### Headers
+```
+Authorization: Bearer <token>
+```
+
+### Query Parameters
+- `page`: Số trang (mặc định: 1)
+- `page_size`: Số lượng đơn hàng mỗi trang (mặc định: 20, tối đa: 100)
+
+### Response Success (200 OK)
+```json
+{
+  "success": true,
+  "message": "Lấy danh sách đơn hàng của cửa hàng Cửa hàng chính thành công",
+  "data": [
+    {
+      "id": 1,
+      "customer": 1,
+      "customer_first_name": "Nguyễn Văn A",
+      "store": 1,
+      "store_name": "Cửa hàng chính",
+      "employee": "employee1",
+      "employee_id": 1,
+      "order_date": "2024-01-15T10:30:00Z",
+      "status": "pending",
+      "payment_method": "cash",
+      "payment_status": "pending",
+      "shipping_address": "123 Đường ABC, Quận 1, TP.HCM",
+      "shipping_method": "delivery",
+      "tracking_number": "",
+      "subtotal": 5000000.00,
+      "tax": 10.00,
+      "shipping_fee": 0.00,
+      "discount": 0.00,
+      "total_amount": 4500000.00,
+      "note": "Giao hàng vào buổi chiều",
+      "is_online_order": true,
+      "order_details": [],
+      "created_at": "2024-01-15T10:30:00Z",
+      "updated_at": "2024-01-15T10:30:00Z"
+    }
+  ],
+  "count": 1,
+  "next": null,
+  "previous": null,
+  "store_info": {
+    "store_id": 1,
+    "store_name": "Cửa hàng chính",
+    "employee_name": "Nguyễn Văn Employee"
+  }
+}
+```
+
+## Tính năng chính
+
+### 1. Phân quyền
+- Chỉ nhân viên mới có thể truy cập các API này
+- Tự động lấy cửa hàng của nhân viên đăng nhập
+
+### 2. Validation
+- Kiểm tra đơn hàng tồn tại
+- Kiểm tra đơn hàng chưa được gán cửa hàng
+- Kiểm tra nhân viên có cửa hàng không
+
+### 3. Lọc đơn hàng
+- Chỉ hiển thị đơn hàng chưa bị hủy (status: pending, processing, shipped, delivered)
+- Loại bỏ đơn hàng đã hủy (status: cancelled) khỏi danh sách
+
+### 4. Phân trang
+- Hỗ trợ phân trang cho danh sách đơn hàng
+- Có thể tùy chỉnh số lượng đơn hàng mỗi trang
+
+### 5. Tự động cập nhật
+- Tự động gán nhân viên vào đơn hàng khi nhận
+- Cập nhật thời gian chỉnh sửa
+
+## Quy trình sử dụng
+
+1. **Nhân viên đăng nhập** vào hệ thống
+2. **Xem danh sách đơn hàng chưa gán** qua API `GET /api/orders/unassigned-orders/`
+3. **Nhận đơn hàng** về cửa hàng qua API `POST /api/orders/assign-order/{order_id}/`
+4. **Xem đơn hàng của cửa hàng** qua API `GET /api/orders/my-store-orders/`
+
+## Lưu ý
+1. Tất cả API đều yêu cầu authentication (Bearer token)
+2. Chỉ nhân viên mới có thể sử dụng các API này
+3. Nhân viên phải được gán cho một cửa hàng
+4. Mỗi đơn hàng chỉ có thể được gán cho một cửa hàng
+5. Khi nhận đơn hàng, nhân viên sẽ tự động được gán vào đơn hàng đó
+
+## Ví dụ sử dụng
+
+### Bước 1: Lấy danh sách đơn hàng chưa gán
+```bash
+GET /api/orders/unassigned-orders/
+Authorization: Bearer <employee_token>
+```
+
+### Bước 2: Nhận đơn hàng về cửa hàng
+```bash
+POST /api/orders/assign-order/1/
+Authorization: Bearer <employee_token>
+```
+
+### Bước 3: Xem đơn hàng của cửa hàng
+```bash
+GET /api/orders/my-store-orders/
+Authorization: Bearer <employee_token>
+```
+
+## Các trường hợp lỗi thường gặp
+
+### 1. Không phải nhân viên
+- **Lỗi**: 403 Forbidden
+- **Nguyên nhân**: Tài khoản đăng nhập không phải là nhân viên
+- **Giải pháp**: Đăng nhập bằng tài khoản nhân viên
+
+### 2. Nhân viên chưa được gán cửa hàng
+- **Lỗi**: 400 Bad Request
+- **Nguyên nhân**: Nhân viên chưa được gán cho cửa hàng nào
+- **Giải pháp**: Admin cần gán nhân viên cho cửa hàng
+
+### 3. Đơn hàng đã được gán
+- **Lỗi**: 400 Bad Request
+- **Nguyên nhân**: Đơn hàng đã được gán cho cửa hàng khác
+- **Giải pháp**: Chọn đơn hàng khác hoặc liên hệ admin
+
+### 4. Đơn hàng không tồn tại
+- **Lỗi**: 404 Not Found
+- **Nguyên nhân**: ID đơn hàng không đúng
+- **Giải pháp**: Kiểm tra lại ID đơn hàng
+
+### 5. Đơn hàng chưa được gán cửa hàng
+- **Lỗi**: 400 Bad Request - "Đơn hàng chưa được gán cho cửa hàng nào"
+- **Nguyên nhân**: Đơn hàng có store = None khi cố gắng xử lý inventory
+- **Giải pháp**: Nhận đơn hàng về cửa hàng trước khi xử lý
+
+## Lỗi đã sửa
+
+### Lỗi: "Field 'id' expected a number but got ''"
+- **Nguyên nhân**: Sử dụng sai cách filter cho ForeignKey field
+- **Code sai**: `Q(store__isnull=True) | Q(store='')`
+- **Code đúng**: `store__isnull=True`
+- **Lý do**: ForeignKey không thể so sánh với chuỗi rỗng, chỉ có thể kiểm tra `isnull=True`
+
+### Lỗi: "'NoneType' object has no attribute 'id'"
+- **Nguyên nhân**: Cố gắng truy cập `order.store.id` khi `order.store` là None
+- **Vị trí**: Trong `process_order`, `cancel_order`, `perform_destroy`
+- **Giải pháp**: Thêm kiểm tra `if order.store:` trước khi truy cập `order.store.id`
+- **Code đúng**: 
+  ```python
+  if self._get_status_type(old_status) == "deducted" and order.store:
+      store_id = order.store.id
+      # Xử lý inventory
+  ```
+
+### Lỗi: "TransactionManagementError: The rollback flag doesn't work outside of an 'atomic' block"
+- **Nguyên nhân**: Sử dụng `transaction.set_rollback(True)` ngoài atomic block
+- **Giải pháp**: Loại bỏ `transaction.set_rollback(True)` trong exception handler
+- **Lý do**: Django tự động rollback khi có exception trong atomic block 

@@ -89,13 +89,30 @@ export default function ProductEditPage() {
           setCategories(await categoriesRes.json());
         }
 
+        // Fetch attribute types
+        const typesRes = await fetch(PRODUCT_ENDPOINTS.ATTRIBUTE_TYPES_LIST_ALL, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (typesRes.ok) {
+          const data = await typesRes.json();
+          setAttributeTypes(Array.isArray(data) ? data : data.results || []);
+        }
+
+        // Fetch attribute values
+        const valuesRes = await fetch(PRODUCT_ENDPOINTS.ATTRIBUTE_VALUES_LIST_ALL, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (valuesRes.ok) {
+          const data = await valuesRes.json();
+          setAttributeValues(Array.isArray(data) ? data : data.results || []);
+        }
+
         // Fetch current product attributes using new endpoint
         const attributesRes = await fetch(`${PRODUCT_ENDPOINTS.PRODUCT_ATTRIBUTES(id)}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (attributesRes.ok) {
           const attributesData = await attributesRes.json();
-          setAttributeTypes(attributesData);
           
           // Chuyển đổi cấu trúc dữ liệu cho selectedAttributeValues
           const groupedValues = {};
@@ -185,12 +202,8 @@ export default function ProductEditPage() {
   // Hàm xử lý thuộc tính
   const handleAttributeSelect = (typeId, valueId) => {
     if (!valueId) return;
-    const type = attributeTypes.find(t => t.id === Number(typeId));
-    if (!type) return;
-    
-    const value = type.values.find(v => v.id === Number(valueId));
+    const value = attributeValues.find(v => v.id === Number(valueId));
     if (!value) return;
-
     setSelectedAttributeValues(prev => {
       const currentValues = prev[typeId] || [];
       if (currentValues.some(v => v.id === value.id)) return prev;
@@ -246,8 +259,10 @@ export default function ProductEditPage() {
 
       // Prepare payload with attribute_value_groups
       const attributeValueGroups = Object.entries(selectedAttributeValues).map(
-        ([typeId, values]) => values.map(v => Number(v.id))
+        ([typeId, values]) => values.map(v => Number(v.id)) // Đảm bảo là số
       );
+      
+      // Convert to a JSON string that can be parsed by Python
       formData.append('attribute_value_groups', JSON.stringify(attributeValueGroups));
 
       const productRes = await fetch(`${PRODUCT_ENDPOINTS.PRODUCT_DETAIL(id)}`, {
@@ -377,7 +392,8 @@ export default function ProductEditPage() {
                             onChange={(e) => handleAttributeSelect(type.id, e.target.value)}
                           >
                             <option value="">-- Chọn giá trị --</option>
-                            {type.values
+                            {Array.isArray(attributeValues) && attributeValues
+                              .filter(value => value.attribute_type === type.id)
                               .filter(value => !selectedAttributeValues[type.id]?.some(v => v.id === value.id))
                               .map(value => (
                                 <option key={value.id} value={value.id}>
@@ -386,11 +402,14 @@ export default function ProductEditPage() {
                               ))}
                           </select>
                         </td>
-                        <td>
+                                                <td>
                           <button
                             type="button"
                             className="admin-btn"
-                            onClick={() => handleAttributeSelect(type.id, document.querySelector(`select[data-type-id="${type.id}"]`).value)}
+                            onClick={() => {
+                              const select = document.querySelector(`select[onChange*="${type.id}"]`);
+                              if (select) handleAttributeSelect(type.id, select.value);
+                            }}
                           >
                             Thêm
                           </button>

@@ -99,6 +99,11 @@ export const ORDER_ENDPOINTS = {
   ORDER_SHIP: (id) => `${API_BASE_URL}/orders/orders/${id}/ship_order/`,
   ORDER_CONFIRM: (id) => `${API_BASE_URL}/orders/orders/${id}/confirm_order/`,
   ORDER_CANCEL: (id) => `${API_BASE_URL}/orders/orders/${id}/cancel_order/`,
+  CREATE_COMPLETE_ORDER: `${API_BASE_URL}/orders/create-complete-order/`,
+  // API cho đơn hàng chưa gán cửa hàng
+  UNASSIGNED_ORDERS: `${API_BASE_URL}/orders/unassigned-orders/`,
+  ASSIGN_ORDER: (orderId) => `${API_BASE_URL}/orders/assign-order/${orderId}/`,
+  MY_STORE_ORDERS: `${API_BASE_URL}/orders/my-store-orders/`,
 };
 
 // Customer endpoints

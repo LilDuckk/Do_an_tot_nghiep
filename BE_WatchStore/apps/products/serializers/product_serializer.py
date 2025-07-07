@@ -307,6 +307,10 @@ class ProductSerializer(serializers.ModelSerializer):
     @transaction.atomic
     def update(self, instance, validated_data):
         from apps.products.models.product import ProductImage
+        from apps.inventory.models.inventory import Inventory
+        from apps.products.models.variant import ProductVariant
+        from apps.inventory.services import InventoryService
+        import itertools
         attribute_value_groups = validated_data.pop('attribute_value_groups', None)
 
         # Update product fields
@@ -314,20 +318,67 @@ class ProductSerializer(serializers.ModelSerializer):
             setattr(instance, attr, value)
         instance.save()
 
-        # Nếu có attribute_value_groups mới, xóa variants cũ và tạo mới
-        if attribute_value_groups is not None:
-            # Xóa variants cũ
-            instance.variants.all().delete()
-            # Chuyển đổi các ID thành các AttributeValue objects
-            attr_value_objects = [
-                [AttributeValue.objects.get(id=id) for id in group]
-                for group in attribute_value_groups
-            ]
-            # Tạo tổ hợp tất cả biến thể
-            for combo in itertools.product(*attr_value_objects):
-                combo_ids = [av.id for av in combo]
-                variant = ProductVariant.objects.create(product=instance)
-                variant.attribute_values.set(combo_ids)
+        # Nếu có attribute_value_groups mới, xử lý thông minh theo tồn kho
+        if attribute_value_groups is not None and attribute_value_groups != []:
+            # Nếu là list các list (mỗi list là 1 nhóm thuộc tính), sinh tất cả tổ hợp
+            if all(isinstance(group, list) for group in attribute_value_groups):
+                all_combinations = list(itertools.product(*attribute_value_groups))
+                new_groups = [sorted(list(combo)) for combo in all_combinations]
+            else:
+                # Trường hợp cũ: mỗi group là 1 biến thể
+                new_groups = [sorted(group) for group in attribute_value_groups]
+            new_groups = sorted(new_groups)
+
+            # Lấy các nhóm attribute_value hiện tại (dạng list các list id, đã sort)
+            current_variants = list(instance.variants.filter(is_deleted=False))
+            current_groups = [sorted([av.id for av in v.attribute_values.all()]) for v in current_variants]
+            current_groups = sorted(current_groups)
+
+            # 1. Kiểm tra các group cũ không còn trong group mới (cần xóa)
+            to_delete = []
+            cannot_delete = []
+            for idx, group in enumerate(current_groups):
+                if group not in new_groups:
+                    variant = current_variants[idx]
+                    inventory_exists = Inventory.objects.filter(product_variant=variant, is_deleted=False).exists()
+                    if inventory_exists:
+                        cannot_delete.append(variant.sku)
+                    else:
+                        to_delete.append(variant)
+            if cannot_delete:
+                raise serializers.ValidationError([
+                    f"Không thể xóa các biến thể sau vì đang có tồn kho: {', '.join(cannot_delete)}. "
+                    "Vui lòng xóa tồn kho hoặc thêm lại các giá trị thuộc tính này trước khi cập nhật."
+                ])
+            for variant in to_delete:
+                variant.delete()
+
+            # 2. Kiểm tra các group mới chưa từng có (cần tạo mới)
+            for group in new_groups:
+                if group not in current_groups:
+                    attr_value_objects = [AttributeValue.objects.get(id=id) for id in group]
+                    # Chuẩn bị dữ liệu mặc định cho variant mới
+                    variant_data = {
+                        'price_adjustment': None,
+                        'warranty_period': instance.warranty_period,
+                        'stock_alert_threshold': None,
+                        'barcode': None,
+                        'is_active': True,
+                        'weight': None,
+                        'dimensions': None,
+                        'created_by': None,
+                        'updated_by': None,
+                    }
+                    # Tạo variant mới giống logic tạo sản phẩm
+                    variant = ProductVariant.create_variant_with_attributes(
+                        product=instance,
+                        attribute_values=attr_value_objects,
+                        **variant_data
+                    )
+                    # Tạo tồn kho cho tất cả các cửa hàng cho variant mới
+                    InventoryService.create_inventory_for_variant(variant)
+
+            # 3. Các group đã có thì giữ nguyên (không làm gì)
 
         # XỬ LÝ ẢNH MỚI (nếu có)
         images = self.context['request'].FILES.getlist('images')

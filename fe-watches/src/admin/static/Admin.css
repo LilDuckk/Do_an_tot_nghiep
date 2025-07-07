@@ -113,7 +113,8 @@
 
 .admin-login-form button[type="submit"] {
   width: 100%;
-  padding: 1rem;
+  height: 48px;
+  padding: 0 1rem;
   border: none;
   border-radius: 8px;
   background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
@@ -124,16 +125,41 @@
   transition: all 0.3s ease;
   text-transform: uppercase;
   letter-spacing: 1px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  position: relative;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  line-height: 1;
 }
 
-.admin-login-form button[type="submit"]:hover {
+.admin-login-form button[type="submit"]:hover:not(:disabled) {
   background: linear-gradient(135deg, #357abd 0%, #2a5f9e 100%);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(74, 144, 226, 0.3);
 }
 
-.admin-login-form button[type="submit"]:active {
+.admin-login-form button[type="submit"]:active:not(:disabled) {
   transform: translateY(0);
+}
+
+.admin-login-form button[type="submit"]:disabled {
+  cursor: not-allowed;
+  opacity: 0.8;
+  transform: none;
+  background: linear-gradient(135deg, #6ba3e8 0%, #5a8bc4 100%);
+  height: 48px;
+  padding: 0 1rem;
+}
+
+.admin-login-form button[type="submit"]:disabled:hover {
+  transform: none;
+  box-shadow: none;
+  background: linear-gradient(135deg, #6ba3e8 0%, #5a8bc4 100%);
 }
 
 .admin-error {
@@ -187,13 +213,15 @@
 /* Loading state */
 .loading-spinner {
   display: inline-block;
-  width: 20px;
-  height: 20px;
-  border: 3px solid rgba(255, 255, 255, 0.3);
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
   border-radius: 50%;
   border-top-color: #ffffff;
   animation: spin 1s ease-in-out infinite;
-  margin-right: 10px;
+  margin-right: 8px;
+  flex-shrink: 0;
+  vertical-align: middle;
 }
 
 @keyframes spin {
@@ -222,5 +250,17 @@
   .admin-login-form input {
     font-size: 0.95rem;
     padding: 0.7rem 0.8rem;
+  }
+  
+  .admin-login-form button[type="submit"] {
+    font-size: 1rem;
+    height: 44px;
+    padding: 0 0.9rem;
+  }
+  
+  .loading-spinner {
+    width: 16px;
+    height: 16px;
+    margin-right: 6px;
   }
 } 

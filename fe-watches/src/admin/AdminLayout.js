@@ -34,7 +34,7 @@ const menuConfig = [
     { label: 'Quản lý nhân viên', to: '/admin/employees', requiredPermissions: ['view_employee'] },
     { label: 'Tồn kho', to: '/admin/inventories', requiredPermissions: ['view_inventory'] },
     { label: 'Lịch sử giao dịch kho', to: '/admin/inventory-transactions', requiredPermissions: ['view_inventory'] },
-    { label: 'Kiểm kê', to: '/admin/stock-takes', requiredPermissions: ['view_stocktake'] },
+    // { label: 'Kiểm kê', to: '/admin/stock-takes', requiredPermissions: ['view_stocktake'] },
     { label: 'Chuyển kho', to: '/admin/stock-transfers', requiredPermissions: ['view_stocktransfer'] },
     { label: 'Nhà cung cấp', to: '/admin/suppliers', icon: '🏢', requiredPermissions: ['view_supplier'] },
     { label: 'Đơn đặt hàng mua', to: '/admin/purchase-orders', icon: '📝', requiredPermissions: ['view_purchaseorder'] },

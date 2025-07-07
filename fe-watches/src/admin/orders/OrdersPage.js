@@ -16,8 +16,9 @@ import {
   Col,
   Card,
   Tooltip,
+  Badge,
 } from 'antd';
-import { EditOutlined, DeleteOutlined, PlusOutlined, SearchOutlined, ShoppingCartOutlined, FilterOutlined, SettingOutlined, CarOutlined, CheckCircleOutlined, StopOutlined, CopyOutlined } from '@ant-design/icons';
+import { EditOutlined, DeleteOutlined, PlusOutlined, SearchOutlined, ShoppingCartOutlined, FilterOutlined, SettingOutlined, CarOutlined, CheckCircleOutlined, StopOutlined, CopyOutlined, BellOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { ORDER_ENDPOINTS, STORE_ENDPOINTS, PRODUCT_ENDPOINTS, CUSTOMER_ENDPOINTS } from '../../config/api';
 import '../static/AdminCommon.css';
@@ -72,6 +73,12 @@ const OrdersPage = () => {
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+
+  // State cho đơn hàng chưa gán cửa hàng
+  const [unassignedOrders, setUnassignedOrders] = useState([]);
+  const [unassignedOrdersCount, setUnassignedOrdersCount] = useState(0);
+  const [unassignedOrdersModalVisible, setUnassignedOrdersModalVisible] = useState(false);
+  const [unassignedOrdersLoading, setUnassignedOrdersLoading] = useState(false);
 
   const user = JSON.parse(localStorage.getItem('adminUser') || '{}');
   const isSuperUser = localStorage.getItem('is_superuser') === 'true';
@@ -274,6 +281,48 @@ const OrdersPage = () => {
     }
   };
 
+  // Hàm fetch đơn hàng chưa gán cửa hàng
+  const fetchUnassignedOrders = async () => {
+    try {
+      setUnassignedOrdersLoading(true);
+      const token = localStorage.getItem('accessToken');
+      const response = await fetch(ORDER_ENDPOINTS.UNASSIGNED_ORDERS, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.status === 403) {
+        message.error('Bạn không có quyền xem đơn hàng chưa gán cửa hàng.');
+        setUnassignedOrders([]);
+        setUnassignedOrdersCount(0);
+        return;
+      }
+
+      const data = await response.json();
+      console.log('Unassigned orders response:', data); // Debug log
+
+      // Xử lý cấu trúc dữ liệu nested
+      if (data.results && data.results.success) {
+        setUnassignedOrders(data.results.data || []);
+        setUnassignedOrdersCount(data.count || 0);
+      } else if (data.success) {
+        // Fallback cho cấu trúc cũ
+        setUnassignedOrders(data.data || []);
+        setUnassignedOrdersCount(data.count || 0);
+      } else {
+        message.error(data.results?.message || data.message || 'Lỗi khi tải danh sách đơn hàng chưa gán cửa hàng');
+        setUnassignedOrders([]);
+        setUnassignedOrdersCount(0);
+      }
+    } catch (error) {
+      console.error('Error fetching unassigned orders:', error);
+      message.error('Lỗi khi tải danh sách đơn hàng chưa gán cửa hàng');
+      setUnassignedOrders([]);
+      setUnassignedOrdersCount(0);
+    } finally {
+      setUnassignedOrdersLoading(false);
+    }
+  };
+
   const fetchOrderDetails = async (orderId) => {
     try {
       setOrderDetailLoading(true);
@@ -291,12 +340,41 @@ const OrdersPage = () => {
     }
   };
 
+  // Hàm nhận đơn hàng về cửa hàng
+  const handleAssignOrder = async (orderId) => {
+    try {
+      const token = localStorage.getItem('accessToken');
+      const response = await fetch(ORDER_ENDPOINTS.ASSIGN_ORDER(orderId), {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      const data = await response.json();
+      console.log('Assign order response:', data); // Debug log
+
+      if (response.ok && data.success) {
+        message.success(data.message || 'Đã nhận đơn hàng thành công');
+        // Refresh danh sách đơn hàng chưa gán
+        fetchUnassignedOrders();
+        // Refresh danh sách đơn hàng chính
+        fetchOrders();
+      } else {
+        message.error(data.message || 'Không thể nhận đơn hàng này');
+      }
+    } catch (error) {
+      console.error('Error assigning order:', error);
+      message.error('Có lỗi xảy ra khi nhận đơn hàng');
+    }
+  };
+
   useEffect(() => {
     fetchOrders();
     fetchStores();
     fetchEmployees();
     fetchProducts();
     fetchCoupons();
+    // Fetch đơn hàng chưa gán cửa hàng
+    fetchUnassignedOrders();
   }, [fetchOrders]);
 
   // Reset page when filters change
@@ -617,6 +695,143 @@ const OrdersPage = () => {
     },
   ];
 
+  // Columns cho bảng đơn hàng chưa gán cửa hàng
+  const unassignedOrderColumns = [
+    {
+      title: 'Mã đơn',
+      dataIndex: 'id',
+      key: 'id',
+      width: 80,
+    },
+    {
+      title: 'Khách hàng',
+      dataIndex: 'customer_first_name',
+      key: 'customer_first_name',
+      width: 150,
+      render: (name, record) => (
+        <div>
+          <div style={{ fontWeight: 500 }}>{name}</div>
+          <div style={{ fontSize: '12px', color: '#666' }}>
+            ID: {record.customer || '-'}
+          </div>
+        </div>
+      ),
+    },
+    {
+      title: 'Địa chỉ giao hàng',
+      dataIndex: 'shipping_address',
+      key: 'shipping_address',
+      width: 200,
+      render: (address) => (
+        <div style={{ fontSize: '12px' }}>
+          {address || 'Chưa có địa chỉ'}
+        </div>
+      ),
+    },
+    {
+      title: 'Ghi chú',
+      dataIndex: 'note',
+      key: 'note',
+      width: 150,
+      render: (note) => (
+        <div style={{ fontSize: '12px' }}>
+          {note || 'Không có ghi chú'}
+        </div>
+      ),
+    },
+    {
+      title: 'Trạng thái',
+      dataIndex: 'status',
+      key: 'status',
+      width: 120,
+      render: (status) => {
+        const statusMap = {
+          'pending': 'Chờ xử lý',
+          'processing': 'Đang xử lý',
+          'shipped': 'Đã giao hàng',
+          'delivered': 'Đã nhận hàng',
+          'cancelled': 'Đã hủy'
+        };
+        const colorMap = {
+          'pending': '#faad14',
+          'processing': '#1890ff',
+          'shipped': '#722ed1',
+          'delivered': '#52c41a',
+          'cancelled': '#ff4d4f'
+        };
+        return (
+          <span style={{ 
+            color: colorMap[status] || '#666',
+            fontWeight: 500 
+          }}>
+            {statusMap[status] || status}
+          </span>
+        );
+      }
+    },
+    {
+      title: 'Tổng tiền',
+      dataIndex: 'total_amount',
+      key: 'total_amount',
+      width: 120,
+      align: 'right',
+      render: (amount) => formatCurrency(amount),
+    },
+    {
+      title: 'Ngày tạo',
+      dataIndex: 'created_at',
+      key: 'created_at',
+      width: 140,
+      render: (date) => dayjs(date).format('DD/MM/YYYY HH:mm'),
+    },
+    {
+      title: 'Thao tác',
+      key: 'action',
+      width: 150,
+      fixed: 'right',
+      render: (_, record) => (
+        <Space>
+          <Tooltip title="Xem chi tiết">
+            <Button
+              type="primary"
+              icon={<ShoppingCartOutlined />}
+              onClick={() => {
+                setSelectedOrderId(record.id);
+                fetchOrderDetails(record.id);
+                setOrderDetailModalVisible(true);
+              }}
+              size="small"
+            />
+          </Tooltip>
+          {record.status === 'pending' && (
+            <Tooltip title="Nhận đơn hàng">
+              <Button
+                type="primary"
+                icon={<CheckCircleOutlined />}
+                onClick={() => handleAssignOrder(record.id)}
+                size="small"
+                style={{ background: '#52c41a', borderColor: '#52c41a' }}
+              >
+                Nhận
+              </Button>
+            </Tooltip>
+          )}
+          {record.status === 'cancelled' && (
+            <Tooltip title="Đơn hàng đã hủy">
+              <Button
+                disabled
+                size="small"
+                style={{ color: '#999', borderColor: '#d9d9d9' }}
+              >
+                Đã hủy
+              </Button>
+            </Tooltip>
+          )}
+        </Space>
+      ),
+    },
+  ];
+
   const handleEdit = async (record) => {
     try {
       setEditingId(record.id);
@@ -868,6 +1083,31 @@ const OrdersPage = () => {
           >
             Thêm đơn hàng
           </Button>
+          
+          {/* Nút thông báo đơn hàng mới */}
+          <Badge count={unassignedOrdersCount} size="small">
+            <Button
+              type="primary"
+              icon={<BellOutlined />}
+              onClick={() => {
+                setUnassignedOrdersModalVisible(true);
+                fetchUnassignedOrders();
+              }}
+              style={{
+                background: unassignedOrdersCount > 0 ? '#ff4d4f' : '#1890ff',
+                borderColor: unassignedOrdersCount > 0 ? '#ff4d4f' : '#1890ff',
+                marginLeft: 8
+              }}
+            >
+              Đơn hàng mới
+              {unassignedOrdersCount > 0 && (
+                <span style={{ marginLeft: 4 }}>
+                  ({unassignedOrdersCount})
+                </span>
+              )}
+            </Button>
+          </Badge>
+          
           {/* Nút hiển thị bộ lọc ngoài cùng bên phải */}
           <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
             <Button
@@ -1572,6 +1812,121 @@ const OrdersPage = () => {
             </Form.Item>
           </Form>
         )}
+      </Modal>
+
+      {/* Modal đơn hàng chưa gán cửa hàng */}
+      <Modal
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <BellOutlined style={{ color: '#ff4d4f' }} />
+            <span>Đơn hàng chưa gán cửa hàng</span>
+            {unassignedOrdersCount > 0 && (
+              <Badge count={unassignedOrdersCount} size="small" />
+            )}
+          </div>
+        }
+        open={unassignedOrdersModalVisible}
+        onCancel={() => setUnassignedOrdersModalVisible(false)}
+        footer={null}
+        width={1200}
+      >
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ 
+            padding: '12px 16px', 
+            background: '#f6ffed', 
+            border: '1px solid #b7eb8f', 
+            borderRadius: 6,
+            marginBottom: 16
+          }}>
+            <div style={{ fontWeight: 500, color: '#52c41a', marginBottom: 4 }}>
+              📋 Hướng dẫn nhận đơn hàng
+            </div>
+            <div style={{ fontSize: '14px', color: '#666' }}>
+              • Đây là danh sách các đơn hàng online chưa được gán cho cửa hàng nào
+            </div>
+            <div style={{ fontSize: '14px', color: '#666' }}>
+              • Chỉ có thể nhận đơn hàng có trạng thái "Chờ xử lý" (pending)
+            </div>
+            <div style={{ fontSize: '14px', color: '#666' }}>
+              • Nhấn nút "Nhận" để nhận đơn hàng về cửa hàng của bạn
+            </div>
+            <div style={{ fontSize: '14px', color: '#666' }}>
+              • Sau khi nhận, đơn hàng sẽ xuất hiện trong danh sách đơn hàng chính
+            </div>
+          </div>
+          
+          <Row gutter={16} style={{ marginBottom: 16 }}>
+            <Col span={8}>
+              <Card size="small" style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#1890ff' }}>
+                  {unassignedOrdersCount}
+                </div>
+                <div style={{ fontSize: '14px', color: '#666' }}>
+                  Tổng đơn hàng
+                </div>
+              </Card>
+            </Col>
+            <Col span={8}>
+              <Card size="small" style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#faad14' }}>
+                  {unassignedOrders.filter(order => order.status === 'pending').length}
+                </div>
+                <div style={{ fontSize: '14px', color: '#666' }}>
+                  Chờ xử lý
+                </div>
+              </Card>
+            </Col>
+            <Col span={8}>
+              <Card size="small" style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#ff4d4f' }}>
+                  {unassignedOrders.filter(order => order.status === 'cancelled').length}
+                </div>
+                <div style={{ fontSize: '14px', color: '#666' }}>
+                  Đã hủy
+                </div>
+              </Card>
+            </Col>
+          </Row>
+          
+          <Button
+            type="primary"
+            icon={<SearchOutlined />}
+            onClick={fetchUnassignedOrders}
+            loading={unassignedOrdersLoading}
+          >
+            Làm mới danh sách
+          </Button>
+        </div>
+
+        <Table
+          columns={unassignedOrderColumns}
+          dataSource={unassignedOrders}
+          loading={unassignedOrdersLoading}
+          rowKey="id"
+          scroll={{ x: 1000 }}
+          className="admin-table"
+          pagination={{
+            pageSize: 10,
+            showSizeChanger: true,
+            showQuickJumper: true,
+            showTotal: (total, range) => `Hiển thị ${range[0]}-${range[1]} của ${total} đơn hàng`,
+            pageSizeOptions: ['10', '20', '50'],
+            position: ['bottomCenter'],
+          }}
+          locale={{
+            emptyText: (
+              <div style={{ padding: '40px 0', textAlign: 'center' }}>
+                <BellOutlined style={{ fontSize: 48, color: '#d9d9d9', marginBottom: 16 }} />
+                <div style={{ fontSize: 16, color: '#666', marginBottom: 8 }}>
+                  Không có đơn hàng mới
+                </div>
+                <div style={{ fontSize: 14, color: '#999' }}>
+                  Tất cả đơn hàng đã được gán cho các cửa hàng
+                </div>
+              </div>
+            )
+          }}
+        />
       </Modal>
     </div>
   );

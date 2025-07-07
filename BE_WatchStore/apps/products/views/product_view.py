@@ -286,6 +286,12 @@ class ProductVariantViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+    def perform_destroy(self, instance):
+        """
+        Override phương thức perform_destroy để thực hiện soft delete cho ProductVariant
+        """
+        instance.delete()  # Sẽ gọi phương thức delete() của BaseModel
+
 class VariantImageViewSet(viewsets.ModelViewSet):
     queryset = VariantImage.objects.all()
     serializer_class = VariantImageSerializer

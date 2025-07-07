@@ -5310,3 +5310,486 @@ Authorization: Bearer <token>
   "updated_at": "2025-07-05T10:10:00Z"
 }
 ```
+
+# API TẠO ĐƠN HÀNG HOÀN CHỈNH
+
+## Mô tả
+API này cho phép client tạo một đơn hàng hoàn chỉnh bao gồm thông tin khách hàng, đơn hàng và chi tiết đơn hàng trong một request duy nhất.
+
+## Endpoint
+```
+POST /api/orders/create-complete-order/
+```
+
+## Headers
+```
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+## Request Body
+```json
+{
+  "customer": {
+    "first_name": "Nguyễn Văn",
+    "last_name": "A",
+    "email": "nguyenvana@email.com",
+    "phone": "0123456789",
+    "address": "123 Đường ABC, Quận 1, TP.HCM",
+    "birth_date": "1990-01-01",
+    "gender": "male",
+    "notes": "Khách hàng VIP"
+  },
+  "store_id": 1,
+  "employee_id": 1,
+  "order_date": "2024-01-15T10:30:00Z",
+  "status": "pending",
+  "payment_method": "cash",
+  "payment_status": "pending",
+  "shipping_address": "123 Đường ABC, Quận 1, TP.HCM",
+  "shipping_method": "delivery",
+  "tracking_number": "",
+  "tax": 10.00,
+  "shipping_fee": 0.00,
+  "discount": 0.00,
+  "note": "Giao hàng vào buổi chiều",
+  "is_online_order": false,
+  "order_details": [
+    {
+      "product_variant_id": 1,
+      "quantity": 2,
+      "coupon_id": null
+    },
+    {
+      "product_variant_id": 3,
+      "quantity": 1,
+      "coupon_id": 1
+    }
+  ]
+}
+```
+
+## Response Success (201 Created)
+```json
+{
+  "success": true,
+  "message": "Tạo đơn hàng thành công",
+  "data": {
+    "customer": {
+      "id": 1,
+      "first_name": "Nguyễn Văn",
+      "last_name": "A",
+      "email": "nguyenvana@email.com",
+      "phone": "0123456789",
+      "address": "123 Đường ABC, Quận 1, TP.HCM",
+      "birth_date": "1990-01-01",
+      "gender": "male",
+      "notes": "Khách hàng VIP",
+      "is_deleted": false,
+      "created_at": "2024-01-15T10:30:00Z",
+      "updated_at": "2024-01-15T10:30:00Z"
+    },
+    "order": {
+      "id": 1,
+      "customer": 1,
+      "customer_first_name": "Nguyễn Văn",
+      "store": 1,
+      "store_name": "Cửa hàng chính",
+      "employee": "employee1",
+      "employee_id": 1,
+      "order_date": "2024-01-15T10:30:00Z",
+      "status": "pending",
+      "payment_method": "cash",
+      "payment_status": "pending",
+      "shipping_address": "123 Đường ABC, Quận 1, TP.HCM",
+      "shipping_method": "delivery",
+      "tracking_number": "",
+      "subtotal": 5000000.00,
+      "tax": 10.00,
+      "shipping_fee": 0.00,
+      "discount": 0.00,
+      "total_amount": 4500000.00,
+      "note": "Giao hàng vào buổi chiều",
+      "is_online_order": false,
+      "order_details": [],
+      "created_at": "2024-01-15T10:30:00Z",
+      "updated_at": "2024-01-15T10:30:00Z"
+    },
+    "order_details": [
+      {
+        "id": 1,
+        "order": 1,
+        "product_variant": 1,
+        "product": {
+          "id": 1,
+          "name": "Đồng hồ Casio",
+          "description": "Đồng hồ đeo tay nam",
+          "base_price": 2000000.00
+        },
+        "variant": {
+          "id": 1,
+          "sku": "CASIO-001",
+          "price_adjustment": 0.00
+        },
+        "quantity": 2,
+        "unit_price": 2000000.00,
+        "discount": 0.00,
+        "final_price": 4000000.00,
+        "coupon": null,
+        "warranty_info": {
+          "has_warranty": true,
+          "warranty_period": 12,
+          "warranty_period_unit": "months",
+          "warranty_number": null,
+          "warranty_status": null,
+          "warranty_created": false,
+          "message": "Bảo hành 12 tháng (chưa tạo warranty)"
+        },
+        "created_at": "2024-01-15T10:30:00Z",
+        "updated_at": "2024-01-15T10:30:00Z"
+      }
+    ]
+  }
+}
+```
+
+## Response Error (400 Bad Request)
+```json
+{
+  "success": false,
+  "message": "Dữ liệu không hợp lệ",
+  "errors": {
+    "customer": {
+      "phone": "Số điện thoại này đã được sử dụng bởi khách hàng khác"
+    },
+    "order_details": "Sản phẩm Đồng hồ Casio chỉ còn 1 trong kho"
+  }
+}
+```
+
+## Tính năng chính
+
+### 1. Validation
+- Kiểm tra số điện thoại khách hàng không trùng lặp
+- Kiểm tra tồn kho của sản phẩm
+- Validate coupon có hợp lệ và đáp ứng điều kiện sử dụng
+- Đảm bảo có ít nhất một sản phẩm trong đơn hàng
+
+### 2. Tự động tính toán
+- Tính toán unit_price từ base_price và price_adjustment
+- Tính toán discount từ coupon
+- Tính toán final_price cho từng order detail
+- Tính toán subtotal và total_amount cho đơn hàng
+
+### 3. Quản lý tồn kho
+- Tự động cập nhật số lượng tồn kho khi tạo đơn hàng
+- Tạo inventory transaction record để theo dõi
+
+### 4. Xử lý giao dịch
+- Sử dụng database transaction để đảm bảo tính nhất quán
+- Rollback nếu có lỗi xảy ra
+
+## Các trường bắt buộc
+- `customer.first_name`: Tên khách hàng
+- `customer.phone`: Số điện thoại
+- `customer.gender`: Giới tính
+- `order_details`: Danh sách sản phẩm (ít nhất 1 sản phẩm)
+- `order_details[].product_variant_id`: ID biến thể sản phẩm
+- `order_details[].quantity`: Số lượng (>= 1)
+
+## Các trường tùy chọn
+- `customer.last_name`: Họ khách hàng
+- `customer.email`: Email
+- `customer.address`: Địa chỉ
+- `customer.birth_date`: Ngày sinh
+- `customer.notes`: Ghi chú
+- `store_id`: ID cửa hàng
+- `employee_id`: ID nhân viên
+- `order_date`: Ngày đặt hàng (mặc định: hiện tại)
+- `status`: Trạng thái đơn hàng (mặc định: "pending")
+- `payment_method`: Phương thức thanh toán
+- `payment_status`: Trạng thái thanh toán (mặc định: "pending")
+- `shipping_address`: Địa chỉ giao hàng
+- `shipping_method`: Phương thức giao hàng
+- `tracking_number`: Mã theo dõi
+- `tax`: Thuế (%)
+- `shipping_fee`: Phí vận chuyển
+- `discount`: Giảm giá đơn hàng
+- `note`: Ghi chú đơn hàng
+- `is_online_order`: Đơn hàng online (mặc định: false)
+- `order_details[].coupon_id`: ID coupon
+
+## Lưu ý
+1. API này yêu cầu authentication (Bearer token)
+2. Nếu khách hàng đã tồn tại (dựa trên số điện thoại), sẽ sử dụng thông tin khách hàng hiện có
+3. Tất cả các tính toán giá được thực hiện tự động
+4. Tồn kho sẽ được cập nhật ngay lập tức khi tạo đơn hàng
+5. Nếu có lỗi, toàn bộ giao dịch sẽ được rollback
+
+# API QUẢN LÝ ĐƠN HÀNG CHƯA GÁN CỬA HÀNG
+
+## Mô tả
+Các API này cho phép nhân viên xem danh sách đơn hàng chưa được gán cửa hàng và nhận đơn hàng về cửa hàng của mình.
+
+## 1. API Lấy danh sách đơn hàng chưa gán cửa hàng
+
+### Endpoint
+```
+GET /api/orders/unassigned-orders/
+```
+
+### Headers
+```
+Authorization: Bearer <token>
+```
+
+### Query Parameters
+- `page`: Số trang (mặc định: 1)
+- `page_size`: Số lượng đơn hàng mỗi trang (mặc định: 20, tối đa: 100)
+
+### Response Success (200 OK)
+```json
+{
+  "success": true,
+  "message": "Lấy danh sách đơn hàng chưa gán cửa hàng thành công",
+  "data": [
+    {
+      "id": 1,
+      "customer": 1,
+      "customer_first_name": "Nguyễn Văn A",
+      "store": null,
+      "store_name": null,
+      "employee": null,
+      "employee_id": null,
+      "order_date": "2024-01-15T10:30:00Z",
+      "status": "pending",
+      "payment_method": "cash",
+      "payment_status": "pending",
+      "shipping_address": "123 Đường ABC, Quận 1, TP.HCM",
+      "shipping_method": "delivery",
+      "tracking_number": "",
+      "subtotal": 5000000.00,
+      "tax": 10.00,
+      "shipping_fee": 0.00,
+      "discount": 0.00,
+      "total_amount": 4500000.00,
+      "note": "Giao hàng vào buổi chiều",
+      "is_online_order": true,
+      "order_details": [],
+      "created_at": "2024-01-15T10:30:00Z",
+      "updated_at": "2024-01-15T10:30:00Z"
+    }
+  ],
+  "count": 1,
+  "next": null,
+  "previous": null
+}
+```
+
+## 2. API Nhận đơn hàng về cửa hàng
+
+### Endpoint
+```
+POST /api/orders/assign-order/{order_id}/
+```
+
+### Headers
+```
+Authorization: Bearer <token>
+```
+
+### Path Parameters
+- `order_id`: ID của đơn hàng cần nhận
+
+### Response Success (200 OK)
+```json
+{
+  "success": true,
+  "message": "Đã nhận đơn hàng #1 về cửa hàng Cửa hàng chính",
+  "data": {
+    "id": 1,
+    "customer": 1,
+    "customer_first_name": "Nguyễn Văn A",
+    "store": 1,
+    "store_name": "Cửa hàng chính",
+    "employee": "employee1",
+    "employee_id": 1,
+    "order_date": "2024-01-15T10:30:00Z",
+    "status": "pending",
+    "payment_method": "cash",
+    "payment_status": "pending",
+    "shipping_address": "123 Đường ABC, Quận 1, TP.HCM",
+    "shipping_method": "delivery",
+    "tracking_number": "",
+    "subtotal": 5000000.00,
+    "tax": 10.00,
+    "shipping_fee": 0.00,
+    "discount": 0.00,
+    "total_amount": 4500000.00,
+    "note": "Giao hàng vào buổi chiều",
+    "is_online_order": true,
+    "order_details": [],
+    "created_at": "2024-01-15T10:30:00Z",
+    "updated_at": "2024-01-15T10:30:00Z"
+  }
+}
+```
+
+### Response Error (400 Bad Request)
+```json
+{
+  "success": false,
+  "message": "Đơn hàng này đã được gán cho cửa hàng khác"
+}
+```
+
+### Response Error (403 Forbidden)
+```json
+{
+  "success": false,
+  "message": "Tài khoản này không phải là nhân viên"
+}
+```
+
+### Response Error (404 Not Found)
+```json
+{
+  "success": false,
+  "message": "Đơn hàng không tồn tại"
+}
+```
+
+## 3. API Lấy danh sách đơn hàng của cửa hàng
+
+### Endpoint
+```
+GET /api/orders/my-store-orders/
+```
+
+### Headers
+```
+Authorization: Bearer <token>
+```
+
+### Query Parameters
+- `page`: Số trang (mặc định: 1)
+- `page_size`: Số lượng đơn hàng mỗi trang (mặc định: 20, tối đa: 100)
+
+### Response Success (200 OK)
+```json
+{
+  "success": true,
+  "message": "Lấy danh sách đơn hàng của cửa hàng Cửa hàng chính thành công",
+  "data": [
+    {
+      "id": 1,
+      "customer": 1,
+      "customer_first_name": "Nguyễn Văn A",
+      "store": 1,
+      "store_name": "Cửa hàng chính",
+      "employee": "employee1",
+      "employee_id": 1,
+      "order_date": "2024-01-15T10:30:00Z",
+      "status": "pending",
+      "payment_method": "cash",
+      "payment_status": "pending",
+      "shipping_address": "123 Đường ABC, Quận 1, TP.HCM",
+      "shipping_method": "delivery",
+      "tracking_number": "",
+      "subtotal": 5000000.00,
+      "tax": 10.00,
+      "shipping_fee": 0.00,
+      "discount": 0.00,
+      "total_amount": 4500000.00,
+      "note": "Giao hàng vào buổi chiều",
+      "is_online_order": true,
+      "order_details": [],
+      "created_at": "2024-01-15T10:30:00Z",
+      "updated_at": "2024-01-15T10:30:00Z"
+    }
+  ],
+  "count": 1,
+  "next": null,
+  "previous": null,
+  "store_info": {
+    "store_id": 1,
+    "store_name": "Cửa hàng chính",
+    "employee_name": "Nguyễn Văn Employee"
+  }
+}
+```
+
+## Tính năng chính
+
+### 1. Phân quyền
+- Chỉ nhân viên mới có thể truy cập các API này
+- Tự động lấy cửa hàng của nhân viên đăng nhập
+
+### 2. Validation
+- Kiểm tra đơn hàng tồn tại
+- Kiểm tra đơn hàng chưa được gán cửa hàng
+- Kiểm tra nhân viên có cửa hàng không
+
+### 3. Phân trang
+- Hỗ trợ phân trang cho danh sách đơn hàng
+- Có thể tùy chỉnh số lượng đơn hàng mỗi trang
+
+### 4. Tự động cập nhật
+- Tự động gán nhân viên vào đơn hàng khi nhận
+- Cập nhật thời gian chỉnh sửa
+
+## Quy trình sử dụng
+
+1. **Nhân viên đăng nhập** vào hệ thống
+2. **Xem danh sách đơn hàng chưa gán** qua API `GET /api/orders/unassigned-orders/`
+3. **Nhận đơn hàng** về cửa hàng qua API `POST /api/orders/assign-order/{order_id}/`
+4. **Xem đơn hàng của cửa hàng** qua API `GET /api/orders/my-store-orders/`
+
+## Lưu ý
+1. Tất cả API đều yêu cầu authentication (Bearer token)
+2. Chỉ nhân viên mới có thể sử dụng các API này
+3. Nhân viên phải được gán cho một cửa hàng
+4. Mỗi đơn hàng chỉ có thể được gán cho một cửa hàng
+5. Khi nhận đơn hàng, nhân viên sẽ tự động được gán vào đơn hàng đó
+
+## Ví dụ sử dụng
+
+### Bước 1: Lấy danh sách đơn hàng chưa gán
+```bash
+GET /api/orders/unassigned-orders/
+Authorization: Bearer <employee_token>
+```
+
+### Bước 2: Nhận đơn hàng về cửa hàng
+```bash
+POST /api/orders/assign-order/1/
+Authorization: Bearer <employee_token>
+```
+
+### Bước 3: Xem đơn hàng của cửa hàng
+```bash
+GET /api/orders/my-store-orders/
+Authorization: Bearer <employee_token>
+```
+
+## Các trường hợp lỗi thường gặp
+
+### 1. Không phải nhân viên
+- **Lỗi**: 403 Forbidden
+- **Nguyên nhân**: Tài khoản đăng nhập không phải là nhân viên
+- **Giải pháp**: Đăng nhập bằng tài khoản nhân viên
+
+### 2. Nhân viên chưa được gán cửa hàng
+- **Lỗi**: 400 Bad Request
+- **Nguyên nhân**: Nhân viên chưa được gán cho cửa hàng nào
+- **Giải pháp**: Admin cần gán nhân viên cho cửa hàng
+
+### 3. Đơn hàng đã được gán
+- **Lỗi**: 400 Bad Request
+- **Nguyên nhân**: Đơn hàng đã được gán cho cửa hàng khác
+- **Giải pháp**: Chọn đơn hàng khác hoặc liên hệ admin
+
+### 4. Đơn hàng không tồn tại
+- **Lỗi**: 404 Not Found
+- **Nguyên nhân**: ID đơn hàng không đúng
+- **Giải pháp**: Kiểm tra lại ID đơn hàng 

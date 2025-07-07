@@ -1,7 +1,6 @@
-from .daily_revenue_view import DailyRevenueViewSet, DailyRevenueFilter
-from .top_products_view import TopProductViewSet, TopProductFilter
 from .best_selling_view import BestSellingView
 from .top_customers_view import TopCustomersView 
+from .top_products_view import TopProductsView
 from .dashboard_view import DashboardViewSet
 from .sales_analysis_view import SalesAnalysisViewSet
 from .revenue_report_view import RevenueReportViewSet

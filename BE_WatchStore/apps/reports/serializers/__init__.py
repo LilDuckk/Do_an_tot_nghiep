@@ -1,3 +1,2 @@
-from .daily_revenue_serializer import DailyRevenueSerializer
 from .best_selling_serializer import BestSellingSerializer
 from .top_customers_serializer import TopCustomersSerializer 

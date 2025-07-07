@@ -58,8 +58,23 @@ class ProductService:
                 if not product or product.is_deleted:
                     raise ValidationError("Invalid product")
                 
-                # Delete existing variants
-                product.variants.all().delete()
+                # Kiểm tra xem có inventory records nào đang tham chiếu đến variants không
+                from apps.inventory.models.inventory import Inventory
+                existing_variants = product.variants.all()
+                for variant in existing_variants:
+                    inventory_exists = Inventory.objects.filter(
+                        product_variant=variant,
+                        is_deleted=False
+                    ).exists()
+                    if inventory_exists:
+                        raise ValidationError(
+                            f"Không thể xóa variant {variant.sku} vì đang có tồn kho. "
+                            "Vui lòng xóa tồn kho trước hoặc sử dụng soft delete."
+                        )
+                
+                # Soft delete existing variants thay vì hard delete
+                for variant in existing_variants:
+                    variant.delete()  # Sử dụng soft delete từ BaseModel
                 
                 # Create new variants
                 created_variants = []

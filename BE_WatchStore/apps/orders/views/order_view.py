@@ -119,8 +119,8 @@ class OrderViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
         Trả lại số lượng sản phẩm vào inventory nếu order có status đã trừ kho
         """
         with transaction.atomic():
-            # Kiểm tra xem order có status đã trừ kho không
-            if self._get_status_type(instance.status) == "deducted":
+            # Kiểm tra xem order có status đã trừ kho không và có cửa hàng không
+            if self._get_status_type(instance.status) == "deducted" and instance.store:
                 # Trả lại inventory cho tất cả order details
                 order_details = OrderDetail.objects.filter(order=instance, is_deleted=False)
                 store_id = instance.store.id
@@ -453,8 +453,8 @@ class OrderViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
                 order.updated_by = request.user
                 order.save()
                 
-                # Xử lý inventory nếu đơn hàng đã trừ kho
-                if self._get_status_type(old_status) == "deducted":
+                # Xử lý inventory nếu đơn hàng đã trừ kho và có cửa hàng
+                if self._get_status_type(old_status) == "deducted" and order.store:
                     order_details = OrderDetail.objects.filter(order=order, is_deleted=False)
                     store_id = order.store.id
                     
@@ -467,7 +467,6 @@ class OrderViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
                 })
                 
         except Exception as e:
-            transaction.set_rollback(True)
             return Response(
                 {'error': str(e)},
                 status=status.HTTP_400_BAD_REQUEST
@@ -579,6 +578,13 @@ class OrderViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
+        # Kiểm tra đơn hàng đã có cửa hàng chưa
+        if not order.store:
+            return Response(
+                {'error': 'Đơn hàng chưa được gán cho cửa hàng nào. Vui lòng nhận đơn hàng về cửa hàng trước khi xử lý.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
         try:
             with transaction.atomic():
                 # Lưu trạng thái cũ
@@ -602,7 +608,6 @@ class OrderViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
                 })
                 
         except Exception as e:
-            transaction.set_rollback(True)
             return Response(
                 {'error': str(e)},
                 status=status.HTTP_400_BAD_REQUEST

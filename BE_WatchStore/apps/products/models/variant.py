@@ -169,24 +169,6 @@ class ProductVariant(BaseModel):
         """Kiểm tra variant có bảo hành không"""
         return self.get_warranty_period() is not None and self.get_warranty_period() > 0
 
-class ProductVariantAttribute(BaseModel):
-    product_variant = models.ForeignKey(ProductVariant, models.DO_NOTHING, blank=True, null=True, related_name='attributes')
-    attribute_value = models.ForeignKey(AttributeValue, models.DO_NOTHING, blank=True, null=True)
-    required = models.BooleanField(default=False)
-
-    class Meta:
-        managed = True
-        db_table = 'productvariantattribute'
-        unique_together = (('product_variant', 'attribute_value'),)
-        indexes = [
-            models.Index(fields=['product_variant', 'attribute_value']),
-            models.Index(fields=['required']),
-        ]
-
-    def clean(self):
-        if self.required and not self.attribute_value:
-            raise ValidationError({'attribute_value': 'Attribute value is required when attribute is marked as required'})
-
 class VariantImage(BaseModel):
     variant = models.ForeignKey(ProductVariant, on_delete=models.CASCADE, related_name='images')
     image = models.ImageField(upload_to='variants/')
