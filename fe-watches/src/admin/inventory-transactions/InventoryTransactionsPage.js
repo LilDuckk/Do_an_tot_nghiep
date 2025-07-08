@@ -13,7 +13,8 @@ import {
   Card,
   Statistic,
   Divider,
-  message
+  message,
+  Typography
 } from 'antd';
 import {
   SearchOutlined,
@@ -26,6 +27,8 @@ import { useDebounce } from '../hooks/useDebounce';
 import '../static/AdminCommon.css';
 import '../static/AdminLayout.css';
 import { INVENTORY_ENDPOINTS } from '../../config/api';
+
+const { Title } = Typography;
 
 const InventoryTransactionsPage = () => {
   const [transactions, setTransactions] = useState([]);
@@ -680,158 +683,142 @@ const InventoryTransactionsPage = () => {
   const stats = calculateStats();
 
   return (
-    <div className="inventory-transactions-page" style={{ padding: '24px' }}>
-      <div className="page-header" style={{ marginBottom: '24px' }}>
-        <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 600 }}>
-          Lịch sử giao dịch kho
-        </h1>
-        <p style={{ margin: '8px 0 0 0', color: '#666' }}>
-          Quản lý và theo dõi tất cả giao dịch nhập/xuất kho
-        </p>
-      </div>
-
-      {/* Search and Filter Section */}
-      <div className="search-filter-section" style={{ 
-        background: '#fff', 
-        padding: '16px', 
-        borderRadius: '8px', 
-        marginBottom: '16px',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-      }}>
-        <Row gutter={[16, 16]} align="middle">
-          <Col xs={24} sm={12} md={8} lg={6}>
-            <Input.Search
-              placeholder="Tìm kiếm theo sản phẩm, SKU, ghi chú..."
-              prefix={<SearchOutlined />}
-              value={searchTerm}
-              onChange={handleSearchChange}
-              style={{ width: '100%' }}
-              allowClear
-            />
+    <div className="admin-section">
+      <Card>
+        <Title level={2}>Lịch sử giao dịch kho</Title>
+        
+        {/* Statistics Cards */}
+        <Row gutter={[16, 16]} className="admin-statistics-section">
+          <Col xs={24} sm={6}>
+            <Card className="admin-statistics-card info">
+              <Statistic
+                title="Tổng giao dịch"
+                value={summary?.total_transactions ?? total}
+                suffix="giao dịch"
+              />
+              <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
+                Trang {currentPage} / {totalPages}
+              </div>
+            </Card>
           </Col>
-          <Col xs={24} sm={12} md={8} lg={6}>
-            <Button 
-              icon={<ReloadOutlined />} 
-              onClick={() => fetchTransactions()}
-              className="admin-btn"
-              style={{ width: '100%' }}
-            >
-              Làm mới
-            </Button>
+          <Col xs={24} sm={6}>
+            <Card className="admin-statistics-card success">
+              <Statistic
+                title="Tổng nhập kho"
+                value={summary?.total_in ?? 0}
+                suffix="sản phẩm"
+              />
+            </Card>
           </Col>
-          <Col xs={24} sm={12} md={8} lg={6}>
-            <Button 
-              onClick={() => setShowFilters(!showFilters)}
-              icon={<FilterOutlined />} 
-              style={{ width: '100%', background: showFilters ? '#52c41a' : '#1890ff', borderColor: showFilters ? '#52c41a' : '#1890ff', color: '#fff' }}
-            >
-              {showFilters ? 'Ẩn bộ lọc' : 'Hiện bộ lọc'}
-            </Button>
+          <Col xs={24} sm={6}>
+            <Card className="admin-statistics-card danger">
+              <Statistic
+                title="Tổng xuất kho"
+                value={summary?.total_out ?? 0}
+                suffix="sản phẩm"
+              />
+            </Card>
           </Col>
-          <Col xs={24} sm={12} md={8} lg={6}>
-            <Button 
-              onClick={handleClearFilters}
-              icon={<ClearOutlined />} 
-              style={{ width: '100%', background: '#ff4d4f', borderColor: '#ff4d4f', color: '#fff' }}
-            >
-              Xóa bộ lọc
-            </Button>
+          <Col xs={24} sm={6}>
+            <Card className="admin-statistics-card info">
+              <Statistic
+                title="Chênh lệch"
+                value={summary?.net_change ?? 0}
+                suffix="sản phẩm"
+              />
+            </Card>
           </Col>
         </Row>
 
-        {showFilters && (
-          <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #f0f0f0' }}>
-            <Row gutter={[16, 16]}>
-              <Col xs={24} sm={12} md={8}>
-                <Select
-                  placeholder="Loại giao dịch"
-                  value={transactionType}
-                  onChange={(value) => handleFilterChange('transaction_type', value)}
-                  allowClear
-                  style={{ width: '100%' }}
-                >
-                  <Select.Option value="IN">Nhập kho</Select.Option>
-                  <Select.Option value="OUT">Xuất kho</Select.Option>
-                </Select>
-              </Col>
-              <Col xs={24} sm={12} md={8}>
-                <Select
-                  placeholder="Loại tham chiếu"
-                  value={referenceType}
-                  onChange={(value) => handleFilterChange('reference_type', value)}
-                  allowClear
-                  style={{ width: '100%' }}
-                >
-                  <Select.Option value="goods_receipt">Phiếu nhập</Select.Option>
-                  <Select.Option value="order_detail">Đơn hàng chi tiết</Select.Option>
-                  <Select.Option value="order">Đơn hàng xuất kho</Select.Option>
-                  <Select.Option value="order_cancel">Đơn hàng hủy</Select.Option>
-                  <Select.Option value="return_order">Đơn trả hàng</Select.Option>
-                  <Select.Option value="stock_transfer">Chuyển kho</Select.Option>
-                  <Select.Option value="stock_take">Kiểm kê</Select.Option>
-                </Select>
-              </Col>
-              <Col xs={24} sm={12} md={8}>
-                <DatePicker.RangePicker
-                  placeholder={['Từ ngày', 'Đến ngày']}
-                  value={dateRange}
-                  onChange={(dates) => handleFilterChange('date_range', dates)}
-                  style={{ width: '100%' }}
-                />
-              </Col>
-            </Row>
-          </div>
-        )}
-      </div>
+        {/* Search and Filter Section */}
+        <Card size="small" style={{ marginBottom: 16 }}>
+          <Row gutter={[16, 16]} align="middle">
+            <Col xs={24} sm={12} md={8} lg={6}>
+              <Input.Search
+                placeholder="Tìm kiếm theo sản phẩm, SKU, ghi chú..."
+                prefix={<SearchOutlined />}
+                value={searchTerm}
+                onChange={handleSearchChange}
+                style={{ width: '100%' }}
+                allowClear
+              />
+            </Col>
+            <Col xs={24} sm={12} md={8} lg={6}>
+              <Button 
+                icon={<ReloadOutlined />} 
+                onClick={() => fetchTransactions()}
+                className="admin-btn"
+                style={{ width: '100%' }}
+              >
+                Làm mới
+              </Button>
+            </Col>
+            <Col xs={24} sm={12} md={8} lg={6}>
+              <Button 
+                onClick={() => setShowFilters(!showFilters)}
+                icon={<FilterOutlined />} 
+                style={{ width: '100%', background: showFilters ? '#52c41a' : '#1890ff', borderColor: showFilters ? '#52c41a' : '#1890ff', color: '#fff' }}
+              >
+                {showFilters ? 'Ẩn bộ lọc' : 'Hiện bộ lọc'}
+              </Button>
+            </Col>
+            <Col xs={24} sm={12} md={8} lg={6}>
+              <Button 
+                onClick={handleClearFilters}
+                icon={<ClearOutlined />} 
+                style={{ width: '100%', background: '#ff4d4f', borderColor: '#ff4d4f', color: '#fff' }}
+              >
+                Xóa bộ lọc
+              </Button>
+            </Col>
+          </Row>
 
-      {/* Statistics Cards */}
-      <Row gutter={[16, 16]} style={{ marginBottom: '16px' }}>
-        <Col xs={24} sm={6}>
-          <Card style={{ textAlign: 'center' }}>
-            <Statistic
-              title="Tổng giao dịch"
-              value={summary?.total_transactions ?? total}
-              suffix="giao dịch"
-            />
-            <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
-              Trang {currentPage} / {totalPages}
+          {showFilters && (
+            <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #f0f0f0' }}>
+              <Row gutter={[16, 16]}>
+                <Col xs={24} sm={12} md={8}>
+                  <Select
+                    placeholder="Loại giao dịch"
+                    value={transactionType}
+                    onChange={(value) => handleFilterChange('transaction_type', value)}
+                    allowClear
+                    style={{ width: '100%' }}
+                  >
+                    <Select.Option value="IN">Nhập kho</Select.Option>
+                    <Select.Option value="OUT">Xuất kho</Select.Option>
+                  </Select>
+                </Col>
+                <Col xs={24} sm={12} md={8}>
+                  <Select
+                    placeholder="Loại tham chiếu"
+                    value={referenceType}
+                    onChange={(value) => handleFilterChange('reference_type', value)}
+                    allowClear
+                    style={{ width: '100%' }}
+                  >
+                    <Select.Option value="goods_receipt">Phiếu nhập</Select.Option>
+                    <Select.Option value="order_detail">Đơn hàng chi tiết</Select.Option>
+                    <Select.Option value="order">Đơn hàng xuất kho</Select.Option>
+                    <Select.Option value="order_cancel">Đơn hàng hủy</Select.Option>
+                    <Select.Option value="return_order">Đơn trả hàng</Select.Option>
+                    <Select.Option value="stock_transfer">Chuyển kho</Select.Option>
+                    <Select.Option value="stock_take">Kiểm kê</Select.Option>
+                  </Select>
+                </Col>
+                <Col xs={24} sm={12} md={8}>
+                  <DatePicker.RangePicker
+                    placeholder={['Từ ngày', 'Đến ngày']}
+                    value={dateRange}
+                    onChange={(dates) => handleFilterChange('date_range', dates)}
+                    style={{ width: '100%' }}
+                  />
+                </Col>
+              </Row>
             </div>
-          </Card>
-        </Col>
-        <Col xs={24} sm={6}>
-          <Card style={{ textAlign: 'center' }}>
-            <Statistic
-              title="Tổng nhập kho"
-              value={summary?.total_in ?? 0}
-              valueStyle={{ color: '#52c41a' }}
-              suffix="sản phẩm"
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={6}>
-          <Card style={{ textAlign: 'center' }}>
-            <Statistic
-              title="Tổng xuất kho"
-              value={summary?.total_out ?? 0}
-              valueStyle={{ color: '#ff4d4f' }}
-              suffix="sản phẩm"
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={6}>
-          <Card style={{ textAlign: 'center' }}>
-            <Statistic
-              title="Chênh lệch"
-              value={summary?.net_change ?? 0}
-              valueStyle={{ color: '#1890ff' }}
-              suffix="sản phẩm"
-            />
-          </Card>
-        </Col>
-      </Row>
+          )}
+        </Card>
 
-      {/* Table */}
-      <div className="table-section" style={{ background: '#fff', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+        {/* Table */}
         <Table
           columns={columns}
           dataSource={transactions}
@@ -853,106 +840,106 @@ const InventoryTransactionsPage = () => {
           scroll={{ x: 1200 }}
           className="admin-table"
         />
-      </div>
 
-      {/* Detail Modal */}
-      <DetailModal
-        visible={detailModalVisible}
-        onClose={() => setDetailModalVisible(false)}
-        transaction={selectedTransaction}
-      />
+        {/* Detail Modal */}
+        <DetailModal
+          visible={detailModalVisible}
+          onClose={() => setDetailModalVisible(false)}
+          transaction={selectedTransaction}
+        />
 
-      {/* Summary Modal */}
-      <Modal
-        title="Thống kê giao dịch kho"
-        open={summaryModalVisible}
-        onCancel={() => setSummaryModalVisible(false)}
-        footer={null}
-        width={600}
-      >
-        <div className="summary-content">
-          <Row gutter={[16, 16]}>
-            <Col span={8}>
-              <Card className="stat-card">
-                <Statistic
-                  title="Tổng nhập kho"
-                  value={stats.totalIn}
-                  valueStyle={{ color: '#52c41a' }}
-                  suffix="sản phẩm"
-                />
-              </Card>
-            </Col>
-            <Col span={8}>
-              <Card className="stat-card">
-                <Statistic
-                  title="Tổng xuất kho"
-                  value={stats.totalOut}
-                  valueStyle={{ color: '#ff4d4f' }}
-                  suffix="sản phẩm"
-                />
-              </Card>
-            </Col>
-            <Col span={8}>
-              <Card className="stat-card">
-                <Statistic
-                  title="Giá trị tổng"
-                  value={stats.totalValue}
-                  valueStyle={{ color: '#1890ff' }}
-                  prefix="₫"
-                  formatter={(value) => new Intl.NumberFormat('vi-VN').format(value)}
-                />
-              </Card>
-            </Col>
-          </Row>
+        {/* Summary Modal */}
+        <Modal
+          title="Thống kê giao dịch kho"
+          open={summaryModalVisible}
+          onCancel={() => setSummaryModalVisible(false)}
+          footer={null}
+          width={600}
+        >
+          <div className="summary-content">
+            <Row gutter={[16, 16]}>
+              <Col span={8}>
+                <Card className="stat-card">
+                  <Statistic
+                    title="Tổng nhập kho"
+                    value={stats.totalIn}
+                    valueStyle={{ color: '#52c41a' }}
+                    suffix="sản phẩm"
+                  />
+                </Card>
+              </Col>
+              <Col span={8}>
+                <Card className="stat-card">
+                  <Statistic
+                    title="Tổng xuất kho"
+                    value={stats.totalOut}
+                    valueStyle={{ color: '#ff4d4f' }}
+                    suffix="sản phẩm"
+                  />
+                </Card>
+              </Col>
+              <Col span={8}>
+                <Card className="stat-card">
+                  <Statistic
+                    title="Giá trị tổng"
+                    value={stats.totalValue}
+                    valueStyle={{ color: '#1890ff' }}
+                    prefix="₫"
+                    formatter={(value) => new Intl.NumberFormat('vi-VN').format(value)}
+                  />
+                </Card>
+              </Col>
+            </Row>
 
-          <Divider />
+            <Divider />
 
-          <div className="summary-details">
-            <h4>Chi tiết theo loại giao dịch</h4>
-            <Table
-              dataSource={transactions}
-              pagination={false}
-              size="small"
-              columns={[
-                {
-                  title: 'Loại',
-                  dataIndex: 'transaction_type',
-                  key: 'type',
-                  render: (type) => (
-                    <Tag color={getTransactionTypeColor(type)}>
-                      {(type || '').toUpperCase() === 'IN' ? 'Nhập kho' : 'Xuất kho'}
-                    </Tag>
-                  ),
-                },
-                {
-                  title: 'Sản phẩm',
-                  dataIndex: ['product_variant_info', 'product_name'],
-                  key: 'product',
-                  render: (text, record) => 
-                    record.product_variant_info?.product_name || record.product_info?.name || text,
-                },
-                {
-                  title: 'Số lượng',
-                  dataIndex: 'quantity',
-                  key: 'quantity',
-                  align: 'right',
-                },
-                {
-                  title: 'Thành tiền',
-                  dataIndex: 'subtotal',
-                  key: 'subtotal',
-                  align: 'right',
-                  render: (subtotal, record) => 
-                    new Intl.NumberFormat('vi-VN', {
-                      style: 'currency',
-                      currency: 'VND'
-                    }).format(subtotal || (record.quantity * record.unit_price)),
-                },
-              ]}
-            />
+            <div className="summary-details">
+              <h4>Chi tiết theo loại giao dịch</h4>
+              <Table
+                dataSource={transactions}
+                pagination={false}
+                size="small"
+                columns={[
+                  {
+                    title: 'Loại',
+                    dataIndex: 'transaction_type',
+                    key: 'type',
+                    render: (type) => (
+                      <Tag color={getTransactionTypeColor(type)}>
+                        {(type || '').toUpperCase() === 'IN' ? 'Nhập kho' : 'Xuất kho'}
+                      </Tag>
+                    ),
+                  },
+                  {
+                    title: 'Sản phẩm',
+                    dataIndex: ['product_variant_info', 'product_name'],
+                    key: 'product',
+                    render: (text, record) => 
+                      record.product_variant_info?.product_name || record.product_info?.name || text,
+                  },
+                  {
+                    title: 'Số lượng',
+                    dataIndex: 'quantity',
+                    key: 'quantity',
+                    align: 'right',
+                  },
+                  {
+                    title: 'Thành tiền',
+                    dataIndex: 'subtotal',
+                    key: 'subtotal',
+                    align: 'right',
+                    render: (subtotal, record) => 
+                      new Intl.NumberFormat('vi-VN', {
+                        style: 'currency',
+                        currency: 'VND'
+                      }).format(subtotal || (record.quantity * record.unit_price)),
+                  },
+                ]}
+              />
+            </div>
           </div>
-        </div>
-      </Modal>
+        </Modal>
+      </Card>
     </div>
   );
 };

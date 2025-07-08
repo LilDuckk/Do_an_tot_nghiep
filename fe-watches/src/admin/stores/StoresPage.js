@@ -12,8 +12,9 @@ import {
   AutoComplete,
   Badge,
   Alert,
+  Tag,
 } from 'antd';
-import { EditOutlined, DeleteOutlined, PlusOutlined, SearchOutlined, TeamOutlined } from '@ant-design/icons';
+import { EditOutlined, DeleteOutlined, PlusOutlined, SearchOutlined, TeamOutlined, UserOutlined, ShopOutlined } from '@ant-design/icons';
 import { STORE_ENDPOINTS } from '../../config/api';
 import '../static/AdminCommon.css';
 
@@ -337,78 +338,95 @@ const StoresPage = () => {
       </div>
 
       <div className="table-responsive">
-        <table className="admin-table">
-          <thead>
-            <tr>
-              <th>Tên cửa hàng</th>
-              <th>Địa chỉ</th>
-              <th>Số điện thoại</th>
-              <th>Quản lý</th>
-              <th>Số nhân viên</th>
-              <th>Trạng thái</th>
-              <th>Thao tác</th>
-            </tr>
-          </thead>
-          <tbody>
-            {stores.length === 0 ? (
-              <tr>
-                <td colSpan="7" style={{ textAlign: 'center', padding: '40px 0' }}>
-                  {loading ? 'Đang tải...' : 'Không có dữ liệu'}
-                </td>
-              </tr>
-            ) : (
-              stores.map(store => (
-                <tr key={store.id}>
-                  <td>{store.name}</td>
-                  <td>{store.address}</td>
-                  <td>{store.phone}</td>
-                  <td>
-                    {store.managers && store.managers.length > 0 
-                      ? store.managers.map(manager => 
-                          `${manager.name} - ${manager.employee_code}`
-                        ).join(', ')
-                      : '-'
-                    }
-                  </td>
-                  <td>
-                    <Badge 
-                      count={employeeCounts[store.id] || 0} 
-                      showZero
-                      style={{ backgroundColor: 'rgb(96 131 207)' }}
-                    >
-                      <TeamOutlined style={{ fontSize: '20px' }} />
-                    </Badge>
-                  </td>
-                  <td>{store.is_active ? 'Hoạt động' : 'Không hoạt động'}</td>
-                  <td className="admin-table-actions">
-                    <button
-                      className="admin-btn"
-                      onClick={() => {
-                        setEditingId(store.id);
-                        form.setFieldsValue({
-                          ...store,
-                          manager: store.manager ? `${store.manager.name} - ${store.manager.employee_code}` : undefined
-                        });
-                        setSelectedManager(store.manager);
-                        setModalVisible(true);
-                      }}
-                      disabled={!hasAccess}
-                    >
-                      Sửa
-                    </button>
-                    <button
-                      className="admin-btn danger"
-                      onClick={() => handleDelete(store.id)}
-                      disabled={!hasAccess}
-                    >
-                      Xóa
-                    </button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+        <Table
+          columns={[
+            {
+              title: 'Tên cửa hàng',
+              dataIndex: 'name',
+              key: 'name',
+            },
+            {
+              title: 'Địa chỉ',
+              dataIndex: 'address',
+              key: 'address',
+            },
+            {
+              title: 'Số điện thoại',
+              dataIndex: 'phone',
+              key: 'phone',
+            },
+            {
+              title: 'Quản lý',
+              key: 'managers',
+              render: (_, record) => (
+                <>
+                  {record.managers && record.managers.length > 0 ? (
+                    record.managers.map((manager, index) => (
+                      <div key={index} style={{ marginBottom: index < record.managers.length - 1 ? '4px' : '0' }}>
+                        <UserOutlined style={{ marginRight: '8px' }} />
+                        <Tag color="blue">{manager.name}</Tag>
+                      </div>
+                    ))
+                  ) : (
+                    <Tag color="default">Chưa có quản lý</Tag>
+                  )}
+                </>
+              ),
+            },
+            {
+              title: 'Số nhân viên',
+              key: 'employee_count',
+              render: (_, record) => (
+                <Badge 
+                  count={employeeCounts[record.id] || 0} 
+                  showZero
+                  style={{ backgroundColor: 'rgb(96 131 207)' }}
+                >
+                  <TeamOutlined style={{ fontSize: '20px' }} />
+                </Badge>
+              ),
+            },
+            {
+              title: 'Trạng thái',
+              dataIndex: 'is_active',
+              key: 'is_active',
+              render: (isActive) => isActive ? 'Hoạt động' : 'Không hoạt động',
+            },
+            {
+              title: 'Thao tác',
+              key: 'action',
+              render: (_, record) => (
+                <Space>
+                  <Button
+                    type="primary"
+                    icon={<EditOutlined />}
+                    onClick={() => {
+                      setEditingId(record.id);
+                      form.setFieldsValue({
+                        ...record,
+                        manager: record.manager ? `${record.manager.name} - ${record.manager.employee_code}` : undefined
+                      });
+                      setSelectedManager(record.manager);
+                      setModalVisible(true);
+                    }}
+                    disabled={!hasAccess}
+                  />
+                  <Popconfirm
+                    title="Bạn có chắc chắn muốn xóa?"
+                    onConfirm={() => handleDelete(record.id)}
+                  >
+                    <Button danger icon={<DeleteOutlined />} disabled={!hasAccess} />
+                  </Popconfirm>
+                </Space>
+              ),
+            },
+          ]}
+          dataSource={stores}
+          loading={loading}
+          rowKey="id"
+          pagination={false}
+          className="admin-table"
+        />
       </div>
       {renderPagination()}
 

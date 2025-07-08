@@ -4,9 +4,12 @@ import { SearchOutlined, ReloadOutlined, PlusOutlined, EditOutlined, DeleteOutli
 import { PURCHASE_ENDPOINTS, SUPPLIER_ENDPOINTS, STORE_ENDPOINTS, EMPLOYEE_ENDPOINTS, PRODUCT_ENDPOINTS } from '../../config/api';
 import '../static/AdminCommon.css';
 import dayjs from 'dayjs';
+import { getUserInfo, debugUserInfo } from '../../services/userInfo';
 
 const { confirm } = Modal;
 const { RangePicker } = DatePicker;
+
+
 
 // Hàm lấy string đầu tiên từ object/array
 function extractFirstString(obj) {
@@ -46,11 +49,11 @@ const GoodsReceiptsPage = () => {
   const [dateRange, setDateRange] = useState(null);
   const [totalAmountRange, setTotalAmountRange] = useState([null, null]);
   const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0 });
-  const currentUser = JSON.parse(localStorage.getItem('adminUser') || '{}');
-  const isSuperUser = localStorage.getItem('is_superuser') === 'true';
-  const currentEmployeeId = currentUser.employee_id || currentUser.id;
-  const currentStoreId = currentUser.store_id || null;
+  const { currentUser, isSuperUser, currentEmployeeId, currentStoreId } = getUserInfo();
   const [filteredEmployees, setFilteredEmployees] = useState([]);
+  
+  // Debug log để kiểm tra thông tin user
+  debugUserInfo();
 
   // State cho chi tiết phiếu nhập kho
   const [receiptDetails, setReceiptDetails] = useState([]);
@@ -89,7 +92,10 @@ const GoodsReceiptsPage = () => {
     fetchSuppliers();
     fetchStores();
     fetchEmployees().then(() => {
-      if (!isSuperUser && currentStoreId) filterEmployeesByStore(currentStoreId);
+      // Tự động lọc nhân viên theo cửa hàng của user hiện tại nếu không phải superuser
+      if (!isSuperUser && currentStoreId) {
+        filterEmployeesByStore(currentStoreId);
+      }
     });
     fetchPurchaseOrders();
     fetchOrdersWithoutReceipt();
@@ -309,6 +315,18 @@ const GoodsReceiptsPage = () => {
     setSelectedPurchaseOrder(null);
     form.resetFields();
     setModalVisible(true);
+    // Tự động điền thông tin nhân viên nếu không phải superuser
+    if (!isSuperUser) {
+      setTimeout(() => {
+        form.setFieldsValue({
+          employee: currentEmployeeId
+        });
+        // Lọc nhân viên theo cửa hàng nếu có
+        if (currentStoreId) {
+          filterEmployeesByStore(currentStoreId);
+        }
+      }, 100);
+    }
   };
   const handleEdit = async (record) => {
     try {
@@ -389,9 +407,12 @@ const GoodsReceiptsPage = () => {
           notes: values.notes || '',
         };
 
+        // Tự động điền employee ID nếu không phải superuser
         if (!isSuperUser) {
           createReceiptData.employee = currentEmployeeId;
         }
+
+        console.log('Creating goods receipt with data:', createReceiptData);
 
         const res = await fetch(PURCHASE_ENDPOINTS.GOODS_RECEIPT_CREATE_FROM_PO, {
           method: 'POST',
@@ -1287,6 +1308,17 @@ const GoodsReceiptsPage = () => {
             // Khi thêm mới
             form.resetFields();
             setSelectedPurchaseOrder(null);
+              // Tự động điền thông tin nhân viên nếu không phải superuser
+              if (!isSuperUser) {
+                setTimeout(() => {
+                  form.setFieldsValue({
+                    employee: currentEmployeeId
+                  });
+                  if (currentStoreId) {
+                    filterEmployeesByStore(currentStoreId);
+                  }
+                }, 100);
+              }
           }
         }}
       >

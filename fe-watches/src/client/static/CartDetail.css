@@ -17,7 +17,7 @@
 .cart-detail-header h1 {
   margin: 0;
   font-size: 2rem;
-  color: #333;
+  color: #ffffff;
 }
 
 .clear-cart-btn {
@@ -96,11 +96,15 @@
   gap: 40px;
 }
 
-.cart-items-section h2,
+.cart-items-section h2 {
+  margin: 0 0 20px 0;
+  font-size: 1.5rem;
+  color: #ffffff;
+}
 .order-section h2 {
   margin: 0 0 20px 0;
   font-size: 1.5rem;
-  color: #333;
+  color: #363636;
 }
 
 .cart-items {

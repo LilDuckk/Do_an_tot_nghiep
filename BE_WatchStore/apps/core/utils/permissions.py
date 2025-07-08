@@ -10,6 +10,44 @@ class IsSuperUser(permissions.BasePermission):
     def has_permission(self, request, view):
         return bool(request.user and request.user.is_superuser)
 
+class ViewReportsPermission(permissions.BasePermission):
+    """
+    Cho phép truy cập xem thống kê với quyền view_reports
+    """
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            logger.warning(f"User not authenticated")
+            return False
+            
+        # Superuser luôn có quyền
+        if request.user.is_superuser:
+            logger.info(f"User {request.user.username} is superuser")
+            return True
+            
+        # Kiểm tra quyền view_reports
+        has_view_reports = request.user.has_perm('reports.view_reports')
+        logger.info(f"Checking view_reports permission for user {request.user.username}")
+        logger.info(f"User has view_reports permission: {has_view_reports}")
+        
+        if not has_view_reports:
+            logger.warning(f"User {request.user.username} does not have view_reports permission")
+            return False
+            
+        # Kiểm tra xem user có phải là employee của cửa hàng không
+        try:
+            from apps.stores.models.employee import Employee
+            employee = Employee.objects.get(user=request.user, is_deleted=False)
+            if not employee or not employee.store:
+                logger.warning(f"User {request.user.username} is not an active employee or has no store")
+                return False
+                
+            logger.info(f"User {request.user.username} is employee of store {employee.store.id}")
+            return True
+            
+        except Employee.DoesNotExist:
+            logger.warning(f"User {request.user.username} is not an employee")
+            return False
+
 class IsStoreEmployee(permissions.BasePermission):
     """
     Cho phép truy cập với nhân viên cửa hàng có quyền tương ứng

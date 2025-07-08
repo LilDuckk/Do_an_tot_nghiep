@@ -7,7 +7,7 @@ from django.utils import timezone
 from datetime import timedelta
 from decimal import Decimal
 
-from apps.core.utils.permissions import IsSuperUser, IsStoreEmployee
+from apps.core.utils.permissions import IsSuperUser, ViewReportsPermission
 from apps.stores.models.employee import Employee
 
 class TopProductsView(APIView):
@@ -17,7 +17,7 @@ class TopProductsView(APIView):
     
     def get_permissions(self):
         """Tùy chỉnh permission"""
-        return [OR(IsSuperUser(), IsStoreEmployee())]
+        return [OR(IsSuperUser(), ViewReportsPermission())]
 
     def get_user_store_filter(self):
         """Lấy điều kiện lọc theo cửa hàng của user"""

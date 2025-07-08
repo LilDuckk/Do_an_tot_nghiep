@@ -1,5 +1,60 @@
 /* CSS dùng chung cho các trang quản lý (list, create, update) */
 
+/* Sửa màu chữ cho ant-typography */
+
+.ant-typography h1,
+.ant-typography h2 {
+  color: var(--text) !important;
+}
+
+.ant-typography p {
+  color: var(--text) !important;
+}
+
+.ant-typography span {
+  color: var(--text) !important;
+}
+
+/* Đảm bảo hiệu ứng loading của Ant Design Table hiển thị đúng */
+.ant-table-loading .ant-table-tbody > tr > td {
+  padding: 16px 8px !important;
+}
+
+.ant-table-loading .ant-spin-container {
+  position: relative;
+  transition: opacity 0.3s;
+}
+
+.ant-table-loading .ant-spin {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+}
+
+.ant-table-loading .ant-table-placeholder {
+  position: relative;
+}
+
+.ant-table-loading .ant-table-placeholder .ant-table-cell {
+  border-bottom: 1px solid var(--border);
+}
+
+/* Đảm bảo skeleton loading hiển thị đúng */
+.ant-table-loading .ant-table-tbody > tr > td {
+  background: var(--bg) !important;
+}
+
+.ant-table-loading .ant-skeleton {
+  width: 100%;
+}
+
+.ant-table-loading .ant-skeleton-input {
+  width: 100% !important;
+  height: 16px !important;
+}
+
 .admin-list-header {
   display: flex;
   flex-direction: column;
@@ -1137,53 +1192,18 @@
 }
 
 /* Coupon Page Styles */
+
+
+
+/* Coupon Page Styles */
 .coupon-page {
   padding: 24px;
   background-color: #f0f2f5;
   min-height: 100vh;
 }
 
-.coupon-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-}
-
-.coupon-header h2 {
-  margin: 0;
-  color: #1a1a1a;
-  font-size: 24px;
-}
-
 .coupon-table {
   background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-/* Customers Page Styles */
-.customers-page {
-  padding: 24px;
-  background-color: var(--bg);
-  min-height: 100vh;
-}
-
-.customers-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-}
-
-.customers-header h2 {
-  margin: 0;
-  color: #1a1a1a;
-  font-size: 24px;
-}
-
-.customers-table {
-  background-color: var(--header-bg);
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
@@ -1791,5 +1811,102 @@ body[data-admin-theme="dark"] .filter-container .ant-input-number-focused {
 
 .warranty-detail-item .ant-tag {
   margin-left: 8px;
+}
+
+/* Statistics Cards - Thống kê thống nhất cho các trang quản trị */
+.admin-statistics-section {
+  margin-bottom: 16px;
+}
+
+.admin-statistics-card {
+  text-align: center;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  transition: all 0.3s ease;
+}
+
+.admin-statistics-card:hover {
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  transform: translateY(-2px);
+}
+
+.admin-statistics-card .ant-card-body {
+  padding: 16px 12px;
+}
+
+.admin-statistics-card .ant-statistic-title {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.admin-statistics-card .ant-statistic-content {
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.admin-statistics-card .ant-statistic-content-value,
+.admin-statistics-card .ant-typography {
+  color: #1890ff;
+}
+
+.admin-statistics-card .ant-statistic-content-suffix {
+  font-size: 14px;
+  color: #999;
+  margin-left: 4px;
+}
+
+/* Màu sắc cho các loại thống kê khác nhau */
+.admin-statistics-card.success .ant-statistic-content-value,
+.admin-statistics-card.success .ant-typography {
+  color: #52c41a;
+}
+
+.admin-statistics-card.warning .ant-statistic-content-value,
+.admin-statistics-card.warning .ant-typography {
+  color: #faad14;
+}
+
+.admin-statistics-card.danger .ant-statistic-content-value,
+.admin-statistics-card.danger .ant-typography {
+  color: #ff4d4f;
+}
+
+.admin-statistics-card.info .ant-statistic-content-value,
+.admin-statistics-card.info .ant-typography {
+  color: #1890ff;
+}
+
+.admin-statistics-card.purple .ant-statistic-content-value,
+.admin-statistics-card.purple .ant-typography {
+  color: #722ed1;
+}
+
+/* Responsive cho statistics */
+@media (max-width: 768px) {
+  .admin-statistics-section .ant-col {
+    margin-bottom: 8px;
+  }
+  
+  .admin-statistics-card .ant-statistic-content {
+    font-size: 20px;
+  }
+  
+  .admin-statistics-card .ant-statistic-title {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 576px) {
+  .admin-statistics-section .ant-col {
+    flex: 0 0 50%;
+    max-width: 50%;
+  }
+  
+  .admin-statistics-card .ant-statistic-content {
+    font-size: 18px;
+  }
 }
 

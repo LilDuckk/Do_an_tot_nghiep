@@ -20,6 +20,7 @@ import {
   InputNumber,
   AutoComplete,
   Alert,
+  Typography,
 } from 'antd';
 import {
   EditOutlined,
@@ -38,6 +39,8 @@ import {
 import { RETURN_ORDER_ENDPOINTS, ORDER_ENDPOINTS } from '../../config/api';
 import { useDebounce } from '../hooks/useDebounce';
 import '../static/AdminCommon.css';
+
+const { Title } = Typography;
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -762,191 +765,173 @@ const ReturnOrdersPage = () => {
   ];
 
   return (
-    <div className="return-orders-page" style={{ padding: '24px' }}>
-      <div className="page-header" style={{ marginBottom: '24px' }}>
-        <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 600 }}>
-          Quản lý đơn trả hàng
-        </h1>
-        <p style={{ margin: '8px 0 0 0', color: '#666' }}>
-          Quản lý và theo dõi tất cả đơn trả hàng từ khách hàng
-        </p>
-      </div>
-
-      {/* Statistics Cards */}
-      <Row gutter={[16, 16]} style={{ marginBottom: '16px' }}>
-        <Col xs={24} sm={6}>
-          <Card style={{ textAlign: 'center' }}>
-            <Statistic
-              title="Tổng đơn trả hàng"
-              value={statistics.total_returns}
-              suffix="đơn"
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={6}>
-          <Card style={{ textAlign: 'center' }}>
-            <Statistic
-              title="Chờ duyệt"
-              value={statistics.pending_returns}
-              valueStyle={{ color: '#faad14' }}
-              suffix="đơn"
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={6}>
-          <Card style={{ textAlign: 'center' }}>
-            <Statistic
-              title="Đã duyệt"
-              value={statistics.approved_returns}
-              valueStyle={{ color: '#1890ff' }}
-              suffix="đơn"
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={6}>
-          <Card style={{ textAlign: 'center' }}>
-            <Statistic
-              title="Hoàn thành"
-              value={statistics.completed_returns}
-              valueStyle={{ color: '#52c41a' }}
-              suffix="đơn"
-            />
-          </Card>
-        </Col>
-      </Row>
-      
-      {/* Additional Statistics Row */}
-      <Row gutter={[16, 16]} style={{ marginBottom: '16px' }}>
-        <Col xs={24} sm={12}>
-          <Card style={{ textAlign: 'center' }}>
-            <Statistic
-              title="Tổng tiền hoàn"
-              value={statistics.total_refund_amount}
-              valueStyle={{ color: '#1890ff', fontSize: '24px' }}
-              suffix="VNĐ"
-              formatter={(value) => `${parseFloat(value || 0).toLocaleString('vi-VN')}`}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12}>
-          <Card style={{ textAlign: 'center' }}>
-            <Statistic
-              title="Tỷ lệ đơn đã duyệt"
-              value={statistics.total_returns > 0 ? 
-                Math.round((statistics.approved_returns / statistics.total_returns) * 100) : 0}
-              valueStyle={{ color: '#52c41a' }}
-              suffix="%"
-            />
-          </Card>
-        </Col>
-      </Row>
-
-      {/* Search and Filter Section */}
-      <div className="search-filter-section" style={{ 
-        background: '#fff', 
-        padding: '16px', 
-        borderRadius: '8px', 
-        marginBottom: '16px',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-      }}>
-        <Row gutter={[16, 16]} align="middle">
-          <Col xs={24} sm={12} md={8} lg={6}>
-            <Input.Search
-              placeholder="Tìm kiếm theo mã đơn trả, lý do..."
-              prefix={<SearchOutlined />}
-              value={searchText}
-              onChange={e => setSearchText(e.target.value)}
-              style={{ width: '100%' }}
-              allowClear
-            />
+    <div className="admin-section">
+      <Card>
+        <Title level={2}>Quản lý đơn trả hàng</Title>
+        
+        {/* Statistics Cards */}
+        <Row gutter={[16, 16]} className="admin-statistics-section">
+          <Col xs={24} sm={6}>
+            <Card className="admin-statistics-card info">
+              <Statistic
+                title="Tổng đơn trả hàng"
+                value={statistics.total_returns}
+                suffix="đơn"
+              />
+            </Card>
           </Col>
-          <Col xs={24} sm={12} md={8} lg={6}>
-            <Button 
-              icon={<ReloadOutlined />} 
-              onClick={() => fetchReturnOrders()}
-              className="admin-btn"
-              style={{ width: '100%' }}
-            >
-              Làm mới
-            </Button>
+          <Col xs={24} sm={6}>
+            <Card className="admin-statistics-card warning">
+              <Statistic
+                title="Chờ duyệt"
+                value={statistics.pending_returns}
+                suffix="đơn"
+              />
+            </Card>
           </Col>
-          <Col xs={24} sm={12} md={8} lg={6}>
-            <Button 
-              onClick={() => setShowFilters(!showFilters)}
-              icon={<FilterOutlined />} 
-              style={{ width: '100%', background: showFilters ? '#52c41a' : '#1890ff', borderColor: showFilters ? '#52c41a' : '#1890ff', color: '#fff' }}
-            >
-              {showFilters ? 'Ẩn bộ lọc' : 'Hiện bộ lọc'}
-            </Button>
+          <Col xs={24} sm={6}>
+            <Card className="admin-statistics-card info">
+              <Statistic
+                title="Đã duyệt"
+                value={statistics.approved_returns}
+                suffix="đơn"
+              />
+            </Card>
           </Col>
-          <Col xs={24} sm={12} md={8} lg={6}>
-            <Button 
-              onClick={handleClearFilters}
-              icon={<ClearOutlined />} 
-              style={{ width: '100%', background: '#ff4d4f', borderColor: '#ff4d4f', color: '#fff' }}
-            >
-              Xóa bộ lọc
-            </Button>
+          <Col xs={24} sm={6}>
+            <Card className="admin-statistics-card success">
+              <Statistic
+                title="Hoàn thành"
+                value={statistics.completed_returns}
+                suffix="đơn"
+              />
+            </Card>
+          </Col>
+        </Row>
+        
+        {/* Additional Statistics Row */}
+        <Row gutter={[16, 16]} className="admin-statistics-section">
+          <Col xs={24} sm={12}>
+            <Card className="admin-statistics-card info">
+              <Statistic
+                title="Tổng tiền hoàn"
+                value={statistics.total_refund_amount}
+                suffix="VNĐ"
+                formatter={(value) => `${parseFloat(value || 0).toLocaleString('vi-VN')}`}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12}>
+            <Card className="admin-statistics-card success">
+              <Statistic
+                title="Tỷ lệ đơn đã duyệt"
+                value={statistics.total_returns > 0 ? 
+                  Math.round((statistics.approved_returns / statistics.total_returns) * 100) : 0}
+                suffix="%"
+              />
+            </Card>
           </Col>
         </Row>
 
-        {showFilters && (
-          <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #f0f0f0' }}>
-            <Row gutter={[16, 16]}>
-              <Col xs={24} sm={12} md={8}>
-                <Select
-                  placeholder="Trạng thái đơn trả hàng"
-                  value={statusFilter}
-                  onChange={(value) => setStatusFilter(value)}
-                  allowClear
-                  style={{ width: '100%' }}
-                >
-                  <Option value="PENDING">Chờ duyệt</Option>
-                  <Option value="APPROVED">Đã duyệt</Option>
-                  <Option value="COMPLETED">Hoàn thành</Option>
-                  <Option value="REJECTED">Từ chối</Option>
-                </Select>
-              </Col>
-              <Col xs={24} sm={12} md={8}>
-                <DatePicker.RangePicker
-                  placeholder={['Từ ngày', 'Đến ngày']}
-                  value={dateRange}
-                  onChange={(dates) => setDateRange(dates)}
-                  style={{ width: '100%' }}
-                />
-              </Col>
-              <Col xs={24} sm={12} md={8}>
-                <AutoComplete
-                  options={orderOptions}
-                  onSearch={searchOrders}
-                  onChange={(value) => setSelectedOrder(value)}
-                  placeholder="Tìm kiếm đơn hàng..."
-                  style={{ width: '100%' }}
-                  allowClear
-                />
-              </Col>
-            </Row>
-          </div>
-        )}
-      </div>
+        {/* Search and Filter Section */}
+        <Card size="small" style={{ marginBottom: 16 }}>
+          <Row gutter={[16, 16]} align="middle">
+            <Col xs={24} sm={12} md={8} lg={6}>
+              <Input.Search
+                placeholder="Tìm kiếm theo mã đơn trả, lý do..."
+                prefix={<SearchOutlined />}
+                value={searchText}
+                onChange={e => setSearchText(e.target.value)}
+                style={{ width: '100%' }}
+                allowClear
+              />
+            </Col>
+            <Col xs={24} sm={12} md={8} lg={6}>
+              <Button 
+                icon={<ReloadOutlined />} 
+                onClick={() => fetchReturnOrders()}
+                className="admin-btn"
+                style={{ width: '100%' }}
+              >
+                Làm mới
+              </Button>
+            </Col>
+            <Col xs={24} sm={12} md={8} lg={6}>
+              <Button 
+                onClick={() => setShowFilters(!showFilters)}
+                icon={<FilterOutlined />} 
+                style={{ width: '100%', background: showFilters ? '#52c41a' : '#1890ff', borderColor: showFilters ? '#52c41a' : '#1890ff', color: '#fff' }}
+              >
+                {showFilters ? 'Ẩn bộ lọc' : 'Hiện bộ lọc'}
+              </Button>
+            </Col>
+            <Col xs={24} sm={12} md={8} lg={6}>
+              <Button 
+                onClick={handleClearFilters}
+                icon={<ClearOutlined />} 
+                style={{ width: '100%', background: '#ff4d4f', borderColor: '#ff4d4f', color: '#fff' }}
+              >
+                Xóa bộ lọc
+              </Button>
+            </Col>
+          </Row>
 
-      {/* Action Buttons */}
-      <div style={{ marginBottom: '16px' }}>
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={() => {
-            setEditingId(null);
-            form.resetFields();
-            setModalVisible(true);
-          }}
-        >
-          Thêm đơn trả hàng mới
-        </Button>
-      </div>
+          {showFilters && (
+            <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #f0f0f0' }}>
+              <Row gutter={[16, 16]}>
+                <Col xs={24} sm={12} md={8}>
+                  <Select
+                    placeholder="Trạng thái đơn trả hàng"
+                    value={statusFilter}
+                    onChange={(value) => setStatusFilter(value)}
+                    allowClear
+                    style={{ width: '100%' }}
+                  >
+                    <Option value="PENDING">Chờ duyệt</Option>
+                    <Option value="APPROVED">Đã duyệt</Option>
+                    <Option value="COMPLETED">Hoàn thành</Option>
+                    <Option value="REJECTED">Từ chối</Option>
+                  </Select>
+                </Col>
+                <Col xs={24} sm={12} md={8}>
+                  <DatePicker.RangePicker
+                    placeholder={['Từ ngày', 'Đến ngày']}
+                    value={dateRange}
+                    onChange={(dates) => setDateRange(dates)}
+                    style={{ width: '100%' }}
+                  />
+                </Col>
+                <Col xs={24} sm={12} md={8}>
+                  <AutoComplete
+                    options={orderOptions}
+                    onSearch={searchOrders}
+                    onChange={(value) => setSelectedOrder(value)}
+                    placeholder="Tìm kiếm đơn hàng..."
+                    style={{ width: '100%' }}
+                    allowClear
+                  />
+                </Col>
+              </Row>
+            </div>
+          )}
+        </Card>
 
-      {/* Table */}
-      <div className="table-section" style={{ background: '#fff', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+        {/* Action Buttons */}
+        <div style={{ marginBottom: 16 }}>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => {
+              setEditingId(null);
+              form.resetFields();
+              setModalVisible(true);
+            }}
+          >
+            Thêm đơn trả hàng mới
+          </Button>
+        </div>
+
+        {/* Table */}
         <Table
           columns={columns}
           dataSource={returnOrders}
@@ -975,7 +960,6 @@ const ReturnOrdersPage = () => {
           scroll={{ x: 1500 }}
           className="admin-table"
         />
-      </div>
 
       {/* Products Modal */}
       <Modal
@@ -1784,6 +1768,7 @@ const ReturnOrdersPage = () => {
           </div>
         )}
       </Modal>
+      </Card>
     </div>
   );
 };

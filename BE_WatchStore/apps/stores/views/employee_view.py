@@ -9,7 +9,7 @@ from apps.stores.serializers.employee_serializer import EmployeeSerializer
 from apps.core.utils.permissions import IsSuperUser, IsStoreEmployee
 
 class EmployeeViewSet(viewsets.ModelViewSet):
-    queryset = Employee.objects.all()
+    queryset = Employee.objects.all().filter(is_deleted=False)
     serializer_class = EmployeeSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ['store', 'position', 'is_manager']
@@ -37,6 +37,7 @@ class EmployeeViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def list_all(self, request):
+        """Lấy tất cả nhân viên không phân trang"""
         queryset = self.filter_queryset(self.get_queryset())
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data) 

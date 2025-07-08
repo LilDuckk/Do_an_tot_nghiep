@@ -842,43 +842,43 @@ const StockTransfersPage = () => {
         <Title level={2}>Quản lý chuyển kho</Title>
         
         {/* Thống kê */}
-        <Row gutter={16} style={{ marginBottom: 16 }}>
+        <Row gutter={16} className="admin-statistics-section">
           <Col span={4}>
-            <Card size="small">
+            <Card size="small" className="admin-statistics-card info">
               <div style={{ textAlign: 'center' }}>
-                <Title level={4} style={{ margin: 0, color: '#1890ff' }}>{statistics.total}</Title>
+                <Title level={4} style={{ margin: 0 }}>{statistics.total}</Title>
                 <Text type="secondary">Tổng cộng</Text>
               </div>
             </Card>
           </Col>
           <Col span={4}>
-            <Card size="small">
+            <Card size="small" className="admin-statistics-card warning">
               <div style={{ textAlign: 'center' }}>
-                <Title level={4} style={{ margin: 0, color: '#faad14' }}>{statistics.pending}</Title>
+                <Title level={4} style={{ margin: 0 }}>{statistics.pending}</Title>
                 <Text type="secondary">Chờ xử lý</Text>
               </div>
             </Card>
           </Col>
           <Col span={4}>
-            <Card size="small">
+            <Card size="small" className="admin-statistics-card info">
               <div style={{ textAlign: 'center' }}>
-                <Title level={4} style={{ margin: 0, color: '#1890ff' }}>{statistics.inTransit}</Title>
+                <Title level={4} style={{ margin: 0 }}>{statistics.inTransit}</Title>
                 <Text type="secondary">Đang chuyển</Text>
               </div>
             </Card>
           </Col>
           <Col span={4}>
-            <Card size="small">
+            <Card size="small" className="admin-statistics-card success">
               <div style={{ textAlign: 'center' }}>
-                <Title level={4} style={{ margin: 0, color: '#52c41a' }}>{statistics.completed}</Title>
+                <Title level={4} style={{ margin: 0 }}>{statistics.completed}</Title>
                 <Text type="secondary">Hoàn thành</Text>
               </div>
             </Card>
           </Col>
           <Col span={4}>
-            <Card size="small">
+            <Card size="small" className="admin-statistics-card danger">
               <div style={{ textAlign: 'center' }}>
-                <Title level={4} style={{ margin: 0, color: '#ff4d4f' }}>{statistics.cancelled}</Title>
+                <Title level={4} style={{ margin: 0 }}>{statistics.cancelled}</Title>
                 <Text type="secondary">Đã hủy</Text>
               </div>
             </Card>

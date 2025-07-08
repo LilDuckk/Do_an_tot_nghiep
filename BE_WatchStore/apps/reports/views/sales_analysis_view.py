@@ -17,7 +17,7 @@ from apps.inventory.models.inventory import Inventory
 from apps.inventory.models.inventory_transaction import InventoryTransaction
 from apps.stores.models.store import Store
 from apps.stores.models.employee import Employee
-from apps.core.utils.permissions import IsSuperUser, IsStoreEmployee
+from apps.core.utils.permissions import IsSuperUser, ViewReportsPermission
 
 class SalesAnalysisViewSet(viewsets.ViewSet):
     """
@@ -26,7 +26,7 @@ class SalesAnalysisViewSet(viewsets.ViewSet):
     
     def get_permissions(self):
         """Tùy chỉnh permission"""
-        return [OR(IsSuperUser(), IsStoreEmployee())]
+        return [OR(IsSuperUser(), ViewReportsPermission())]
 
     def get_user_store_filter(self):
         """Lấy điều kiện lọc theo cửa hàng của user"""

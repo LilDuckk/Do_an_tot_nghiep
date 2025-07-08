@@ -13,8 +13,10 @@ import {
   Checkbox,
   AutoComplete,
   Alert,
+  Tag,
 } from 'antd';
-import { EditOutlined, DeleteOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
+import { EditOutlined, DeleteOutlined, PlusOutlined, SearchOutlined, UserOutlined } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 import { EMPLOYEE_ENDPOINTS, USER_ENDPOINTS, STORE_ENDPOINTS } from '../../config/api';
 import '../static/AdminCommon.css';
@@ -33,11 +35,16 @@ const EmployeesPage = () => {
   const [userSearchValue, setUserSearchValue] = useState('');
   const [userOptions, setUserOptions] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
-  const [storeSearchValue, setStoreSearchValue] = useState('');
+
   const [storeOptions, setStoreOptions] = useState([]);
+  const [allStoreOptions, setAllStoreOptions] = useState([]);
   const [selectedStore, setSelectedStore] = useState(null);
   const [hasAccess, setHasAccess] = useState(true);
   const accessErrorShown = useRef(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const ITEMS_PER_PAGE = 20;
+  const navigate = useNavigate();
 
   // Debounce search text
   useEffect(() => {
@@ -48,6 +55,11 @@ const EmployeesPage = () => {
     return () => clearTimeout(timer);
   }, [searchText]);
 
+  // Reset page when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchText]);
+
   const showAccessError = useCallback((msg) => {
     if (!accessErrorShown.current) {
       message.error(msg);
@@ -56,14 +68,15 @@ const EmployeesPage = () => {
   }, []);
 
   const fetchEmployees = useCallback(async () => {
-    if (!hasAccess || accessErrorShown.current) return;
+    if (!hasAccess || accessErrorShown.current) return false;
     try {
       setLoading(true);
       const token = localStorage.getItem('accessToken');
-      const queryParams = new URLSearchParams();
-      if (debouncedSearchText) {
-        queryParams.append('search', debouncedSearchText);
-      }
+      const queryParams = new URLSearchParams({
+        page: currentPage,
+        page_size: ITEMS_PER_PAGE,
+        search: debouncedSearchText
+      });
       const response = await fetch(`${EMPLOYEE_ENDPOINTS.EMPLOYEES}/?${queryParams}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -71,17 +84,33 @@ const EmployeesPage = () => {
         setHasAccess(false);
         showAccessError('Bạn không có quyền xem danh sách nhân viên.');
         setEmployees([]);
-        return;
+        setTotalPages(1);
+        return false;
       }
       const data = await response.json();
-      setEmployees(Array.isArray(data.results) ? data.results : []);
+      
+      // API hỗ trợ phân trang với count và results
+      const employeesData = Array.isArray(data.results) ? data.results : [];
+      const count = data.count || 0;
+      setEmployees(employeesData);
+      
+      // Tính toán tổng số trang
+      if (count === 0) {
+        setTotalPages(1);
+        if (currentPage !== 1) setCurrentPage(1);
+      } else {
+        setTotalPages(Math.ceil(count / ITEMS_PER_PAGE));
+      }
+      return true;
     } catch (error) {
       message.error('Lỗi khi tải danh sách nhân viên');
       setEmployees([]);
+      setTotalPages(1);
+      return false;
     } finally {
       setLoading(false);
     }
-  }, [debouncedSearchText, hasAccess, showAccessError]);
+  }, [debouncedSearchText, hasAccess, showAccessError, currentPage]);
 
   const fetchStores = async () => {
     if (!hasAccess || accessErrorShown.current) return;
@@ -102,6 +131,7 @@ const EmployeesPage = () => {
         label: `${store.name} - ${store.address}`,
         store: store
       }));
+      setAllStoreOptions(options);
       setStoreOptions(options);
     } catch (error) {
       message.error('Lỗi khi tải danh sách cửa hàng');
@@ -137,8 +167,13 @@ const EmployeesPage = () => {
 
   useEffect(() => {
     if (!hasAccess || accessErrorShown.current) return;
-    fetchEmployees();
-    fetchStores();
+    const fetchAll = async () => {
+      const ok = await fetchEmployees();
+      if (ok) {
+        fetchStores();
+      }
+    };
+    fetchAll();
   }, [fetchEmployees, hasAccess]);
 
   const handleSubmit = async (values) => {
@@ -150,7 +185,7 @@ const EmployeesPage = () => {
         email: values.email,
         address: values.address,
         hire_date: values.hire_date?.format('YYYY-MM-DD'),
-        store: selectedStore?.id,
+        store: selectedStore?.id || values.store,
         auto_create: selectedUser ? true : (values.auto_create || false),
         user: selectedUser?.id,
         is_manager: values.is_manager || false,
@@ -214,99 +249,51 @@ const EmployeesPage = () => {
       }
 
       message.success('Xóa nhân viên thành công');
+      if (!hasAccess || accessErrorShown.current) return;
       fetchEmployees();
     } catch (error) {
       message.error('Có lỗi xảy ra khi xóa');
     }
   };
 
-  const columns = [
-    {
-      title: 'Họ và tên',
-      dataIndex: 'name',
-      key: 'name',
-    },
-    {
-      title: 'Số điện thoại',
-      dataIndex: 'phone',
-      key: 'phone',
-    },
-    {
-      title: 'Email',
-      dataIndex: 'email',
-      key: 'email',
-    },
-    {
-      title: 'Tài khoản',
-      dataIndex: ['user_details', 'username'],
-      key: 'user',
-      render: (_, record) => record.user_details?.username || '-'
-    },
-    // {
-    //   title: 'Địa chỉ',
-    //   dataIndex: 'address',
-    //   key: 'address',
-    // },
-    {
-      title: 'Mã nhân viên',
-      dataIndex: 'employee_code',
-      key: 'employee_code',
-    },
-    // {
-    //   title: 'Chức vụ',
-    //   dataIndex: 'position',
-    //   key: 'position',
-    // },
-    {
-      title: 'Vị trí',
-      dataIndex: 'is_manager',
-      key: 'is_manager',
-      render: (isManager) => isManager ? 'Quản lý' : 'Nhân viên'
-    },
-    {
-      title: 'Ngày vào làm',
-      dataIndex: 'hire_date',
-      key: 'hire_date',
-    },
-    {
-      title: 'Cửa hàng',
-      dataIndex: ['store_details', 'name'],
-      key: 'store',
-    },
-    {
-      title: 'Thao tác',
-      key: 'action',
-      render: (_, record) => (
-        <Space>
-          <Button
-            type="primary"
-            icon={<EditOutlined />}
-            onClick={() => {
-              setEditingId(record.id);
-              form.setFieldsValue({
-                ...record,
-                hire_date: record.hire_date ? dayjs(record.hire_date) : null,
-                store: record.store_details ? `${record.store_details.name} - ${record.store_details.address}` : undefined,
-                user: record.user_details ? `${record.user_details.username}${record.user_details.email ? ` (${record.user_details.email})` : ''}` : undefined
-              });
-              setSelectedUser(record.user_details);
-              setSelectedStore(record.store_details);
-              setModalVisible(true);
-            }}
-          />
-          <Popconfirm
-            title="Bạn có chắc chắn muốn xóa?"
-            onConfirm={() => handleDelete(record.id)}
-          >
-            <Button danger icon={<DeleteOutlined />} />
-          </Popconfirm>
-        </Space>
-      ),
-    },
-  ];
+  const renderPagination = () => {
+    if (!employees.length) {
+      return (
+        <div className="admin-pagination">
+          <button disabled>Trước</button>
+          <div className="page-numbers"><button className="active" disabled>1</button></div>
+          <button disabled>Sau</button>
+          <span className="page-info">Trang 1 / 1</span>
+        </div>
+      );
+    }
+    const pages = [];
+    for (let i = 1; i <= totalPages; i++) {
+      pages.push(
+        <button
+          key={i}
+          onClick={() => setCurrentPage(i)}
+          className={currentPage === i ? 'active' : ''}
+          disabled={currentPage === i || !hasAccess}
+        >
+          {i}
+        </button>
+      );
+    }
+    return (
+      <div className="admin-pagination">
+        <button onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1 || !hasAccess}>Trước</button>
+        <div className="page-numbers">{pages}</div>
+        <button onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages || !hasAccess}>Sau</button>
+        <span className="page-info">Trang {currentPage} / {totalPages}</span>
+      </div>
+    );
+  };
+
+
 
   return (
-    <div className="coupon-page">
+    <div className="admin-users-list">
       {!hasAccess && (
         <Alert
           message="Không có quyền truy cập"
@@ -316,9 +303,9 @@ const EmployeesPage = () => {
           style={{ marginBottom: 16 }}
         />
       )}
-      <div className="coupon-header">
+      <div className="admin-list-header">
         <h2>Quản lý nhân viên</h2>
-        <Space>
+        <div className="search-bar">
           <Input
             placeholder="Tìm kiếm nhân viên..."
             prefix={<SearchOutlined />}
@@ -336,21 +323,129 @@ const EmployeesPage = () => {
               form.resetFields();
               setSelectedUser(null);
               setSelectedStore(null);
+              setStoreOptions(allStoreOptions);
               setModalVisible(true);
             }}
             disabled={!hasAccess}
           >
             Thêm nhân viên
           </Button>
-        </Space>
+        </div>
       </div>
 
-      <Table
-        columns={columns}
-        dataSource={employees}
-        loading={loading}
-        rowKey="id"
-      />
+      <div className="table-responsive">
+        <Table
+          columns={[
+            {
+              title: 'Họ và tên',
+              dataIndex: 'name',
+              key: 'name',
+            },
+            {
+              title: 'Số điện thoại',
+              dataIndex: 'phone',
+              key: 'phone',
+            },
+            {
+              title: 'Email',
+              dataIndex: 'email',
+              key: 'email',
+            },
+            {
+              title: 'Tài khoản',
+              dataIndex: ['user_details', 'username'],
+              key: 'username',
+              render: (username, record) => {
+                if (username && record.user_details) {
+                  return (
+                    <div 
+                      style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '8px',
+                        cursor: 'pointer'
+                      }}
+                      onClick={() => navigate(`/admin/users/${record.user_details.id}`)}
+                      onMouseEnter={(e) => {
+                        e.target.style.textDecoration = 'underline';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.textDecoration = 'none';
+                      }}
+                    >
+                      <UserOutlined style={{ marginRight: '8px' }} />
+                      <Tag color="blue">{username}</Tag>
+                    </div>
+                  );
+                }
+                return <Tag color="default">Chưa có tài khoản</Tag>;
+              },
+            },
+            {
+              title: 'Mã nhân viên',
+              dataIndex: 'employee_code',
+              key: 'employee_code',
+            },
+            {
+              title: 'Vị trí',
+              dataIndex: 'is_manager',
+              key: 'is_manager',
+              render: (isManager) => isManager ? 'Quản lý' : 'Nhân viên',
+            },
+            {
+              title: 'Ngày vào làm',
+              dataIndex: 'hire_date',
+              key: 'hire_date',
+            },
+            {
+              title: 'Cửa hàng',
+              dataIndex: ['store_details', 'name'],
+              key: 'store_name',
+              render: (storeName) => storeName || '-',
+            },
+            {
+              title: 'Thao tác',
+              key: 'action',
+              render: (_, record) => (
+                <Space>
+                  <Button
+                    type="primary"
+                    icon={<EditOutlined />}
+                    onClick={() => {
+                      setEditingId(record.id);
+                      form.setFieldsValue({
+                        ...record,
+                        hire_date: record.hire_date ? dayjs(record.hire_date) : null,
+                        store: record.store_details ? `${record.store_details.name} - ${record.store_details.address}` : undefined,
+                        user: record.user_details ? `${record.user_details.username}${record.user_details.email ? ` (${record.user_details.email})` : ''}` : undefined
+                      });
+                      setSelectedUser(record.user_details);
+                      setSelectedStore(record.store_details);
+                      setStoreOptions(allStoreOptions);
+                      setModalVisible(true);
+                    }}
+                    disabled={!hasAccess}
+                  />
+                  <Popconfirm
+                    title="Bạn có chắc chắn muốn xóa?"
+                    onConfirm={() => handleDelete(record.id)}
+                  >
+                    <Button danger icon={<DeleteOutlined />} disabled={!hasAccess} />
+                  </Popconfirm>
+                </Space>
+              ),
+            },
+          ]}
+          dataSource={employees}
+          loading={loading}
+          rowKey="id"
+          pagination={false}
+          className="admin-table"
+          scroll={{ x: true }}
+          size="middle"
+        />
+      </div>
+      {renderPagination()}
 
       <Modal
         title={editingId ? "Sửa nhân viên" : "Thêm nhân viên mới"}
@@ -360,6 +455,7 @@ const EmployeesPage = () => {
           form.resetFields();
           setSelectedUser(null);
           setSelectedStore(null);
+          setStoreOptions(allStoreOptions);
         }}
         footer={null}
         width={600}
@@ -442,30 +538,37 @@ const EmployeesPage = () => {
           <Form.Item
             name="store"
             label="Cửa hàng"
+            rules={[{ required: true, message: 'Vui lòng chọn cửa hàng' }]}
           >
             <AutoComplete
               options={storeOptions}
               onSearch={(value) => {
-                const filteredOptions = storeOptions.filter(option =>
-                  option.label.toLowerCase().includes(value.toLowerCase())
-                );
-                setStoreOptions(filteredOptions);
-              }}
-              onChange={(value) => {
-                form.setFieldsValue({ store: value });
-                setStoreSearchValue(value);
                 if (!value) {
-                  setSelectedStore(null);
+                  setStoreOptions(allStoreOptions);
+                } else {
+                  const filteredOptions = allStoreOptions.filter(option =>
+                    option.label.toLowerCase().includes(value.toLowerCase())
+                  );
+                  setStoreOptions(filteredOptions);
                 }
               }}
               onSelect={(value, option) => {
                 setSelectedStore(option.store);
-                form.setFieldsValue({ store: option.label });
+                form.setFieldsValue({ store: option.label }); // hiển thị tên trong form
+              }}
+              onChange={(value) => {
+                if (!value) {
+                  setSelectedStore(null);
+                  setStoreOptions(allStoreOptions);
+                  form.setFieldsValue({ store: undefined });
+                }
               }}
               placeholder="Tìm kiếm cửa hàng..."
               style={{ width: '100%' }}
             />
           </Form.Item>
+
+
 
           <Form.Item
             name="auto_create"

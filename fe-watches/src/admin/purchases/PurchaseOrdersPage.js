@@ -4,9 +4,12 @@ import { SearchOutlined, ReloadOutlined, PlusOutlined, EditOutlined, DeleteOutli
 import { PURCHASE_ENDPOINTS, SUPPLIER_ENDPOINTS, STORE_ENDPOINTS, EMPLOYEE_ENDPOINTS, PRODUCT_ENDPOINTS } from '../../config/api';
 import '../static/AdminCommon.css';
 import dayjs from 'dayjs';
+import { getUserInfo, debugUserInfo } from '../../services/userInfo';
 
 const { confirm } = Modal;
 const { RangePicker } = DatePicker;
+
+
 
 const PurchaseOrdersPage = () => {
   const [data, setData] = useState([]);
@@ -44,10 +47,10 @@ const PurchaseOrdersPage = () => {
   const [showAddProductForm, setShowAddProductForm] = useState(false);
 
   // Lấy thông tin user từ localStorage
-  const currentUser = JSON.parse(localStorage.getItem('adminUser') || '{}');
-  const isSuperUser = localStorage.getItem('is_superuser') === 'true';
-  const currentEmployeeId = currentUser.employee_id || currentUser.id;
-  const currentStoreId = currentUser.store_id || null;
+  const { currentUser, isSuperUser, currentEmployeeId, currentStoreId } = getUserInfo();
+  
+  // Debug log để kiểm tra thông tin user
+  debugUserInfo();
 
   // Debounce search
   useEffect(() => {
@@ -58,7 +61,12 @@ const PurchaseOrdersPage = () => {
   useEffect(() => {
     fetchSuppliers();
     fetchStores();
-    fetchEmployees();
+    fetchEmployees().then(() => {
+      // Tự động lọc nhân viên theo cửa hàng của user hiện tại nếu không phải superuser
+      if (!isSuperUser && currentStoreId) {
+        filterEmployeesByStore(currentStoreId);
+      }
+    });
     fetchProducts();
   }, []);
 
@@ -184,6 +192,19 @@ const PurchaseOrdersPage = () => {
   const handleAdd = () => {
     setEditing(null);
     setModalVisible(true);
+    // Tự động điền thông tin cửa hàng và nhân viên nếu không phải superuser
+    if (!isSuperUser) {
+      setTimeout(() => {
+        form.setFieldsValue({
+          store: currentStoreId,
+          employee: currentEmployeeId
+        });
+        // Lọc nhân viên theo cửa hàng
+        if (currentStoreId) {
+          filterEmployeesByStore(currentStoreId);
+        }
+      }, 100);
+    }
   };
   const handleEdit = async (record) => {
     try {
@@ -242,10 +263,17 @@ const PurchaseOrdersPage = () => {
       if (values.order_date) values.order_date = values.order_date.format('YYYY-MM-DD');
       if (values.expected_delivery_date) values.expected_delivery_date = values.expected_delivery_date.format('YYYY-MM-DD');
       
-      // Tự động điền employee ID nếu không phải superuser
-      if (!isSuperUser && !values.employee) {
+      // Tự động điền employee ID và store ID nếu không phải superuser
+      if (!isSuperUser) {
+        if (!values.employee) {
         values.employee = currentEmployeeId;
+        }
+        if (!values.store) {
+          values.store = currentStoreId;
+        }
       }
+      
+      console.log('Submitting purchase order with values:', values);
       
       const token = localStorage.getItem('accessToken');
       const method = editing ? 'PUT' : 'POST';
@@ -725,6 +753,20 @@ const PurchaseOrdersPage = () => {
         cancelText="Hủy"
         destroyOnHidden
         width={800}
+          afterOpenChange={(open) => {
+            if (open && !editing && !isSuperUser) {
+              // Khi thêm mới và không phải superuser, tự động điền thông tin
+              setTimeout(() => {
+                form.setFieldsValue({
+                  store: currentStoreId,
+                  employee: currentEmployeeId
+                });
+                if (currentStoreId) {
+                  filterEmployeesByStore(currentStoreId);
+                }
+              }, 100);
+            }
+          }}
       >
         <Form
           form={form}
@@ -746,10 +788,14 @@ const PurchaseOrdersPage = () => {
                 <Select 
                   placeholder="Chọn cửa hàng" 
                   showSearch
+                  disabled={!isSuperUser}
+                  value={isSuperUser ? undefined : currentStoreId}
                   onChange={(storeId) => {
                     filterEmployeesByStore(storeId);
                     // Reset employee field when store changes
+                    if (isSuperUser) {
                     form.setFieldsValue({ employee: undefined });
+                    }
                   }}
                 >
                   {stores.map(store => (
@@ -766,10 +812,11 @@ const PurchaseOrdersPage = () => {
                   placeholder="Chọn nhân viên"
                   showSearch
                   allowClear
+                  disabled={!isSuperUser || !form.getFieldValue('store')}
+                  value={isSuperUser ? undefined : currentEmployeeId}
                   filterOption={(input, option) =>
                     (option.children || '').toLowerCase().indexOf(input.toLowerCase()) >= 0
                   }
-                  disabled={!isSuperUser || !form.getFieldValue('store')}
                 >
                   {filteredEmployees.map(employee => (
                     <Select.Option key={employee.id} value={employee.id}>

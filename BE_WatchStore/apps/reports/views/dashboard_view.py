@@ -21,7 +21,7 @@ from apps.purchases.models.goods_receipt import GoodsReceipt
 from apps.purchases.models.purchase_order import PurchaseOrder
 from apps.stores.models.store import Store
 from apps.stores.models.employee import Employee
-from apps.core.utils.permissions import IsSuperUser, IsStoreEmployee
+from apps.core.utils.permissions import IsSuperUser, ViewReportsPermission
 
 class DashboardViewSet(viewsets.ViewSet):
     """
@@ -30,7 +30,7 @@ class DashboardViewSet(viewsets.ViewSet):
     
     def get_permissions(self):
         """Tùy chỉnh permission"""
-        return [OR(IsSuperUser(), IsStoreEmployee())]
+        return [OR(IsSuperUser(), ViewReportsPermission())]
 
     def get_user_store_filter(self):
         """Lấy điều kiện lọc theo cửa hàng của user"""

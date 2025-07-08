@@ -249,97 +249,93 @@ const InventoriesPage = () => {
     setModalVisible(true);
   };
 
-  const columns = [
-    {
-      title: 'Sản phẩm',
-      dataIndex: ['product', 'name'],
-      key: 'product',
-    },
-    // {
-    //   title: 'Thương hiệu',
-    //   dataIndex: ['product', 'brand'],
-    //   key: 'brand',
-    // },
-    // {
-    //   title: 'Danh mục',
-    //   dataIndex: ['product', 'category'],
-    //   key: 'category',
-    // },
-    {
-      title: 'Mã SKU',
-      dataIndex: ['variant', 'sku'],
-      key: 'sku',
-    },
-    {
-      title: 'Thuộc tính',
-      key: 'attribute_name',
-      render: (_, record) => {
-        const attrs = record.variant?.attribute_values_detail || record.attribute_values_detail || [];
-        return (
-          <div>
-            {attrs.map((attr, idx) => (
-              <div key={idx}>{attr.attribute_type?.name || ''}</div>
-            ))}
-          </div>
-        );
+  const renderPagination = () => {
+    const pages = [];
+    const maxVisiblePages = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+    if (endPage - startPage + 1 < maxVisiblePages) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+
+    // Previous button
+    pages.push(
+      <button
+        key="prev"
+        onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+        disabled={currentPage === 1}
+        className="pagination-btn"
+      >
+        Trước
+      </button>
+    );
+
+    // First page
+    if (startPage > 1) {
+      pages.push(
+        <button
+          key="1"
+          onClick={() => setCurrentPage(1)}
+          className="pagination-btn"
+        >
+          1
+        </button>
+      );
+      if (startPage > 2) {
+        pages.push(<span key="ellipsis1" className="pagination-ellipsis">...</span>);
       }
-    },
-    {
-      title: 'Giá trị thuộc tính',
-      key: 'attribute_value',
-      render: (_, record) => {
-        const attrs = record.variant?.attribute_values_detail || record.attribute_values_detail || [];
-        return (
-          <div>
-            {attrs.map((attr, idx) => (
-              <div key={idx}>{attr.value || ''}</div>
-            ))}
-          </div>
-        );
+    }
+
+    // Page numbers
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(
+        <button
+          key={i}
+          onClick={() => setCurrentPage(i)}
+          className={`pagination-btn ${currentPage === i ? 'active' : ''}`}
+        >
+          {i}
+        </button>
+      );
+    }
+
+    // Last page
+    if (endPage < totalPages) {
+      if (endPage < totalPages - 1) {
+        pages.push(<span key="ellipsis2" className="pagination-ellipsis">...</span>);
       }
-    },
-    {
-      title: 'Cửa hàng',
-      dataIndex: ['store_details', 'name'],
-      key: 'store',
-    },
-    {
-      title: 'Số lượng',
-      dataIndex: 'quantity',
-      key: 'quantity',
-    },
-    {
-      title: 'Cập nhật lần cuối',
-      dataIndex: 'last_updated',
-      key: 'last_updated',
-      render: (date) => new Date(date).toLocaleString('vi-VN')
-    },
-    {
-      title: 'Thao tác',
-      key: 'action',
-      render: (_, record) => (
-        <Space>
-          <Button
-            type="primary"
-            icon={<EditOutlined />}
-            onClick={() => handleEditInventory(record)}
-          />
-          <Popconfirm
-            title="Bạn có chắc chắn muốn xóa?"
-            onConfirm={() => handleDelete(record.id)}
-          >
-            <Button danger icon={<DeleteOutlined />} />
-          </Popconfirm>
-        </Space>
-      ),
-    },
-  ];
+      pages.push(
+        <button
+          key={totalPages}
+          onClick={() => setCurrentPage(totalPages)}
+          className="pagination-btn"
+        >
+          {totalPages}
+        </button>
+      );
+    }
+
+    // Next button
+    pages.push(
+      <button
+        key="next"
+        onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+        disabled={currentPage === totalPages}
+        className="pagination-btn"
+      >
+        Sau
+      </button>
+    );
+
+    return pages;
+  };
 
   return (
-    <div className="coupon-page">
-      <div className="coupon-header">
+    <div className="admin-users-list">
+      <div className="admin-list-header">
         <h2>Quản lý tồn kho</h2>
-        <Space>
+        <div className="search-bar">
           {canViewAllInventory && (
             <Select
               placeholder="Chọn cửa hàng để lọc"
@@ -376,35 +372,106 @@ const InventoriesPage = () => {
           >
             Thêm tồn kho
           </Button>
-        </Space>
+        </div>
       </div>
 
-      <Table
-        columns={columns}
-        dataSource={inventories}
-        loading={loading}
-        rowKey="id"
-        pagination={{
-          current: currentPage,
-          pageSize: pageSize,
-          total: total,
-          showSizeChanger: true,
-          showQuickJumper: true,
-          showTotal: (total, range) => `Hiển thị ${range[0]}-${range[1]} của ${total} tồn kho`,
-          pageSizeOptions: ['10', '20', '50', '100'],
-          position: ['bottomCenter'],
-          size: 'default',
-          responsive: true,
-        }}
-        onChange={(pagination) => {
-          if (pagination.pageSize !== pageSize) {
-            setPageSize(pagination.pageSize);
-            setCurrentPage(1);
-          } else {
-            setCurrentPage(pagination.current);
-          }
-        }}
-      />
+      <div className="table-container">
+        <Table
+          columns={[
+            {
+              title: 'Sản phẩm',
+              dataIndex: ['product', 'name'],
+              key: 'product_name',
+              render: (_, record) => record.product?.name || record.product_name,
+            },
+            {
+              title: 'Mã SKU',
+              dataIndex: ['variant', 'sku'],
+              key: 'sku',
+              render: (_, record) => record.variant?.sku || record.sku,
+            },
+            {
+              title: 'Thuộc tính',
+              key: 'attribute_name',
+              render: (_, record) => {
+                const attrs = record.variant?.attribute_values_detail || record.attribute_values_detail || [];
+                return (
+                  <div>
+                    {attrs.map((attr, idx) => (
+                      <div key={idx}>{attr.attribute_type?.name || ''}</div>
+                    ))}
+                  </div>
+                );
+              }
+            },
+            {
+              title: 'Giá trị thuộc tính',
+              key: 'attribute_value',
+              render: (_, record) => {
+                const attrs = record.variant?.attribute_values_detail || record.attribute_values_detail || [];
+                return (
+                  <div>
+                    {attrs.map((attr, idx) => (
+                      <div key={idx}>{attr.value || ''}</div>
+                    ))}
+                  </div>
+                );
+              }
+            },
+            {
+              title: 'Cửa hàng',
+              dataIndex: ['store_details', 'name'],
+              key: 'store',
+            },
+            {
+              title: 'Số lượng',
+              dataIndex: 'quantity',
+              key: 'quantity',
+            },
+            {
+              title: 'Cập nhật lần cuối',
+              dataIndex: 'last_updated',
+              key: 'last_updated',
+              render: (date) => new Date(date).toLocaleString('vi-VN')
+            },
+            {
+              title: 'Thao tác',
+              key: 'action',
+              render: (_, record) => (
+                <Space>
+                  <Button
+                    type="primary"
+                    icon={<EditOutlined />}
+                    onClick={() => handleEditInventory(record)}
+                  />
+                  <Popconfirm
+                    title="Bạn có chắc chắn muốn xóa?"
+                    onConfirm={() => handleDelete(record.id)}
+                  >
+                    <Button danger icon={<DeleteOutlined />} />
+                  </Popconfirm>
+                </Space>
+              ),
+            },
+          ]}
+          dataSource={inventories}
+          loading={loading}
+          rowKey="id"
+          pagination={false}
+          className="admin-table"
+        />
+      </div>
+
+      {totalPages > 1 && (
+        <div className="pagination-container">
+          <div className="pagination-info">
+            Hiển thị {((currentPage - 1) * pageSize) + 1}-{Math.min(currentPage * pageSize, total)} của {total} tồn kho
+          </div>
+          <div className="pagination-controls">
+            {renderPagination()}
+          </div>
+        </div>
+      )}
 
       <Modal
         title={editingId ? "Sửa tồn kho" : "Thêm tồn kho mới"}

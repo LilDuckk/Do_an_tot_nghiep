@@ -219,10 +219,10 @@ const CustomersListPage = () => {
   ];
 
   return (
-    <div className="customers-page">
-      <div className="customers-header">
+    <div className="admin-users-list">
+      <div className="admin-list-header">
         <h2>Quản lý khách hàng</h2>
-        <Space>
+        <div className="search-bar">
           <Input
             placeholder="Tìm kiếm khách hàng..."
             prefix={<SearchOutlined />}
@@ -233,7 +233,7 @@ const CustomersListPage = () => {
           />
           <Button
             type="primary"
-            icon={<PlusOutlined />}
+            icon={<PlusOutlined />} 
             onClick={() => {
               setEditingId(null);
               form.resetFields();
@@ -242,7 +242,7 @@ const CustomersListPage = () => {
           >
             Thêm khách hàng
           </Button>
-        </Space>
+        </div>
       </div>
 
       <Table

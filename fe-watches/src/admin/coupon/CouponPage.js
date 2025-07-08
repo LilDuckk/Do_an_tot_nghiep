@@ -228,9 +228,9 @@ const CouponListPage = () => {
 
   return (
     <div className="coupon-page">
-      <div className="coupon-header">
+      <div className="admin-list-header">
         <h2>Quản lý mã giảm giá</h2>
-        <Space>
+        <div className="search-bar">
           <Input
             placeholder="Tìm kiếm mã giảm giá..."
             prefix={<SearchOutlined />}
@@ -277,7 +277,7 @@ const CouponListPage = () => {
           >
             Thêm mã giảm giá
           </Button>
-        </Space>
+        </div>
       </div>
 
       <Table
