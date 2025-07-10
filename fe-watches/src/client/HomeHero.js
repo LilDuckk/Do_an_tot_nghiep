@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { CONTENT_ENDPOINTS } from '../config/api';
+import { CONTENT_ENDPOINTS } from '@/config/api';
 import './static/HomeHero.css';
 
 export default function HomeHero() {

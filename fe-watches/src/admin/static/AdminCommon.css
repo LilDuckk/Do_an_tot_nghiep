@@ -3,7 +3,8 @@
 /* Sửa màu chữ cho ant-typography */
 
 .ant-typography h1,
-.ant-typography h2 {
+.ant-typography h2,
+.ant-badge-status-text {
   color: var(--text) !important;
 }
 

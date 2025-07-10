@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PRODUCT_ENDPOINTS } from '../config/api';
+import { PRODUCT_ENDPOINTS } from '@/config/api';
 import './static/WatchSuggest.css';
 
 export default function WatchSuggest() {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { PRODUCT_ENDPOINTS } from '../config/api';
+import { PRODUCT_ENDPOINTS } from '@/config/api';
 import Header from './Header';
 import Footer from './Footer';
 import './static/ProductList.css';

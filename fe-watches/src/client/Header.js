@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { PRODUCT_ENDPOINTS } from '../config/api';
+import { PRODUCT_ENDPOINTS } from '@/config/api';
 import './static/Header.css';
 import DropdownMenu from './DropdownMenu';
 import DropdownCart from './DropdownCart';

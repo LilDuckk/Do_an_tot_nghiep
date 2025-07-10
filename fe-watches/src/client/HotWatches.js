@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CONTENT_ENDPOINTS } from '../config/api';
+import { CONTENT_ENDPOINTS } from '@/config/api';
 import './static/HotWatches.css';
 
 export default function HotWatches() {

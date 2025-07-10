@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axiosInstance from '../services/axiosConfig';
 import { authService } from '../services/authService';
-import { saveUserPermissionsAfterLogin } from '../services/permission';
+import { saveUserPermissionsAfterLogin } from '@/services/permission';
 import './static/Admin.css';
 
 export default function AdminLogin() {

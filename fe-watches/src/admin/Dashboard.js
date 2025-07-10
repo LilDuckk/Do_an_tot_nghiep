@@ -15,7 +15,7 @@ import {
   ArcElement,
   Filler
 } from 'chart.js';
-import { REPORT_ENDPOINTS, PRODUCT_ENDPOINTS } from '../config/api';
+import { REPORT_ENDPOINTS, PRODUCT_ENDPOINTS } from '@/config/api';
 import { 
   DatePicker, 
   Select, 

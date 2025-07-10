@@ -1,59 +1,60 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
-import { authService } from './services/authService';
-import AdminLogin from './admin/AdminLogin';
-import ClientHome from './client/ClientHome';
-import Dashboard from './admin/Dashboard';
-import AdminLayout from './admin/AdminLayout';
-import OrdersPage from './admin/orders/OrdersPage';
-import ProductsPage from './admin/products/ProductsPage';
-import StoresPage from './admin/stores/StoresPage';
-import WarrantyPage from './admin/warranties/WarrantyPage';
-import AuditLogsPage from './admin/audit/AuditLogsPage';
-import LogoutPage from './admin/logout/LogoutPage';
-import ProfilePage from './admin/profile/ProfilePage';
-import CategoriesPage from './admin/categories/CategoriesPage';
-import BrandsPage from './admin/brands/BrandsPage';
-import VariantsPage from './admin/variants/VariantsPage';
-import AttributesPage from './admin/attributes/AttributesPage';
-import ReturnOrdersPage from './admin/return-orders/ReturnOrdersPage';
-import InventoriesPage from './admin/inventories/InventoriesPage';
-import StockTakesPage from './admin/stock-takes/StockTakesPage';
-import StockTransfersPage from './admin/stock-transfers/StockTransfersPage';
-import UsersListPage from './admin/users/UsersListPage';
-import UserCreatePage from './admin/users/UserCreatePage';
-import UserEditPage from './admin/users/UserEditPage';
-import UserViewPage from './admin/users/UserViewPage';
-import GroupsListPage from './admin/groups/GroupsListPage';
-import GroupCreatePage from './admin/groups/GroupCreatePage';
-import GroupEditPage from './admin/groups/GroupEditPage';
-import GroupViewPage from './admin/groups/GroupViewPage';
-import PermissionsListPage from './admin/permissions/PermissionsListPage';
-import ProductCreatePage from './admin/products/ProductCreatePage';
-import ProductEditPage from './admin/products/ProductEditPage';
-import ProductViewPage from './admin/products/ProductViewPage';
-import BrandCreatePage from './admin/brands/BrandCreatePage';
-import BrandEditPage from './admin/brands/BrandEditPage';
-import BrandViewPage from './admin/brands/BrandViewPage';
-import CategoryCreatePage from './admin/categories/CategoryCreatePage';
-import CategoryEditPage from './admin/categories/CategoryEditPage';
-import CategoryViewPage from './admin/categories/CategoryViewPage';
-import ProductList from './client/ProductList';
-import ProductDetail from './client/ProductDetail';
-import CartDetail from './client/CartDetail';
-import Maintenance from './client/Maintenance';
-import Contact from './client/Contact';
-import BannerManagement from './admin/system/BannerManagement';
-import ContactManagement from './admin/system/ContactManagement';
-import FooterManagement from './admin/system/FooterManagement';
-import NewsManagement from './admin/system/NewsManagement';
-import CouponListPage from './admin/coupon/CouponPage';
-import CustomersListPage from './admin/customers/CustomersListPage';
-import EmployeesPage from './admin/employee/EmployeesPage';
-import SupplierPage from './admin/suppliers/SupplierPage';
-import PurchaseOrdersPage from './admin/purchases/PurchaseOrdersPage';
-import GoodsReceiptsPage from './admin/purchases/GoodsReceiptsPage';
-import InventoryTransactionsPage from './admin/inventory-transactions/InventoryTransactionsPage';
+import { authService } from '@/services';
+import AdminLogin from '@/admin/AdminLogin';
+import ClientHome from '@/client/ClientHome';
+import Dashboard from '@/admin/Dashboard';
+import AdminLayout from '@/admin/AdminLayout';
+import ProductList from '@/client/ProductList';
+import ProductDetail from '@/client/ProductDetail';
+import CartDetail from '@/client/CartDetail';
+import Maintenance from '@/client/Maintenance';
+import Contact from '@/client/Contact';
+
+// Import tất cả admin pages từ file index tập trung
+import {
+  OrdersPage,
+  ProductsPage,
+  StoresPage,
+  WarrantyPage,
+  AuditLogsPage,
+  LogoutPage,
+  ProfilePage,
+  CategoriesPage,
+  BrandsPage,
+  VariantsPage,
+  AttributesPage,
+  ReturnOrdersPage,
+  InventoriesPage,
+  StockTakesPage,
+  StockTransfersPage,
+  UsersListPage,
+  GroupsListPage,
+  GroupCreatePage,
+  GroupEditPage,
+  GroupViewPage,
+  PermissionsListPage,
+  ProductCreatePage,
+  ProductEditPage,
+  ProductViewPage,
+  BrandCreatePage,
+  BrandEditPage,
+  BrandViewPage,
+  CategoryCreatePage,
+  CategoryEditPage,
+  CategoryViewPage,
+  BannerManagement,
+  ContactManagement,
+  FooterManagement,
+  NewsManagement,
+  CouponListPage,
+  CustomersListPage,
+  EmployeesPage,
+  SupplierPage,
+  PurchaseOrdersPage,
+  GoodsReceiptsPage,
+  InventoryTransactionsPage
+} from '@/admin/pages';
 
 
 function PrivateRoute({ children }) {
@@ -68,9 +69,6 @@ function App() {
         <Route path="/admin" element={<PrivateRoute><AdminLayout /></PrivateRoute>}>
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="users" element={<UsersListPage />} />
-          <Route path="users/create" element={<UserCreatePage />} />
-          <Route path="users/:id" element={<UserViewPage />} />
-          <Route path="users/:id/edit" element={<UserEditPage />} />
           <Route path="groups" element={<GroupsListPage />} />
           <Route path="groups/create" element={<GroupCreatePage />} />
           <Route path="groups/:id" element={<GroupViewPage />} />

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
-import { PRODUCT_ENDPOINTS } from '../config/api';
+import { PRODUCT_ENDPOINTS } from '@/config/api';
 import Header from './Header';
 import Footer from './Footer';
 import { addToCart, formatPrice, getUserInfo, setUserInfo } from './cartUtils';

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { PRODUCT_ENDPOINTS } from '../config/api';
+import { PRODUCT_ENDPOINTS } from '@/config/api';
 import { getCart, removeFromCart, getCartTotal, formatPrice } from './cartUtils';
 import './static/DropdownCart.css';
 
