@@ -1,145 +1,176 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { hasModulePermission } from '@/services/permission';
-import { Input, Button, Space, Empty } from 'antd';
+import { Input, Button, Empty, Table } from 'antd';
 import { SearchOutlined, PlusOutlined } from '@ant-design/icons';
 import { PRODUCT_ENDPOINTS } from '@/config/api';
+import { useListData, useCRUD, useAccessControl } from '@/admin/hooks';
+import { AccessDeniedAlert, CustomPagination, ActionButtons } from '@/admin/components';
 import '@/admin/static/AdminCommon.css';
-import { useDebounceSearch } from '@/admin/hooks/useDebounce';
 
 export default function ProductsPage() {
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [searchText, setSearchText] = useState('');
-  const [totalPages, setTotalPages] = useState(1);
   const navigate = useNavigate();
 
-  const { debouncedSearchText, currentPage, setCurrentPage } = useDebounceSearch(searchText);
-  const ITEMS_PER_PAGE = 20;
+  // Hook tích hợp cho danh sách products
+  const {
+    data: products,
+    isLoading,
+    hasAccess,
+    searchText,
+    setSearchText,
+    currentPage,
+    setCurrentPage,
+    totalPages,
+    total,
+    hasNext,
+    hasPrevious,
+    fetchData: fetchProducts
+  } = useListData({
+    module: 'product',
+    action: 'view',
+    apiEndpoint: PRODUCT_ENDPOINTS.PRODUCTS,
+    pageSize: 20,
+    debounceDelay: 500
+  });
 
-  const fetchProducts = useCallback(async () => {
-    try {
-      setLoading(true);
-      const token = localStorage.getItem('accessToken');
-      const queryParams = new URLSearchParams({
-        page: currentPage,
-        page_size: ITEMS_PER_PAGE,
-        search: debouncedSearchText,
-        timestamp: new Date().getTime()
-      });
-      const res = await fetch(`${PRODUCT_ENDPOINTS.PRODUCTS}?${queryParams}`, {
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-        }
-      });
-      if (res.status === 403) {
-        setError('Bạn không có quyền xem danh sách này.');
-        setProducts([]);
-        setTotalPages(1);
-        return;
-      }
-      if (!res.ok) throw new Error('Lỗi khi lấy danh sách sản phẩm');
-      const data = await res.json();
-      const count = data.count || 0;
-      const results = data.results || [];
-      setProducts(results);
-      if (count === 0) {
-        setTotalPages(1);
-      } else {
-        setTotalPages(Math.ceil(count / ITEMS_PER_PAGE));
-      }
-    } catch (err) {
-      setError(err.message);
-      setProducts([]);
-      setTotalPages(1);
-    } finally {
-      setLoading(false);
+  // CRUD operations với kiểm tra quyền
+  const { deleteData } = useCRUD({
+    baseUrl: PRODUCT_ENDPOINTS.PRODUCTS,
+    entityName: 'sản phẩm',
+    canDelete: hasAccess
+  });
+
+  // Access control cho các action cụ thể
+  const { checkModulePermission } = useAccessControl();
+
+  const handleDelete = useCallback(async (record) => {
+    const success = await deleteData(record.id);
+    if (success) {
+      fetchProducts();
     }
-  }, [currentPage, debouncedSearchText]);
+  }, [deleteData, fetchProducts]);
 
-  useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
+  const handleView = useCallback((record) => {
+    navigate(`/admin/products/${record.id}`);
+  }, [navigate]);
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Bạn chắc chắn muốn xóa sản phẩm này?')) return;
-    try {
-      const token = localStorage.getItem('accessToken');
-      const res = await fetch(`${PRODUCT_ENDPOINTS.PRODUCT_DETAIL(id)}`, {
-        method: 'DELETE',
-        headers: { 
-          'Authorization': `Bearer ${token}`
-        },
-      });
-  
-      if (res.status === 403) {
-        alert('Bạn không có quyền xóa mục này.');
-        return;
-      }
-  
-      if (res.status === 204) {
-        setProducts(prevProducts => {
-          const updatedProducts = prevProducts.filter(product => product.id !== id);
-          if (updatedProducts.length === 0 && currentPage > 1) {
-            setCurrentPage(prev => prev - 1);
-          }
-          return updatedProducts;
-        });
-  
-        setTotalPages(prevTotal => {
-          const newCount = (products.length - 1);
-          return Math.max(1, Math.ceil(newCount / ITEMS_PER_PAGE));
-        });
-  
-        alert('Đã xóa sản phẩm thành công');
-      } else {
-        throw new Error('Xóa sản phẩm thất bại');
-      }
-    } catch (err) {
-      alert(err.message);
-    }
-  };
+  const handleEdit = useCallback((record) => {
+    navigate(`/admin/products/${record.id}/edit`);
+  }, [navigate]);
 
-  const renderPagination = () => {
-    if (!products.length) {
-      return (
-        <div className="admin-pagination">
-          <button disabled>Trước</button>
-          <div className="page-numbers"><button className="active" disabled>1</button></div>
-          <button disabled>Sau</button>
-          <span className="page-info">Trang 1 / 1</span>
+  // Định nghĩa columns cho Ant Design Table
+  const columns = [
+    {
+      title: 'ID',
+      dataIndex: 'id',
+      key: 'id',
+      width: 80,
+    },
+    {
+      title: 'Tên sản phẩm',
+      dataIndex: 'name',
+      key: 'name',
+      width: 200,
+      render: (name, record) => (
+        <div>
+          <div style={{ fontWeight: 500, color: '#1890ff' }}>
+            {name}
+          </div>
+          <div style={{ fontSize: '12px', color: '#666', marginTop: '2px' }}>
+            SKU: {record.sku || '-'}
+          </div>
         </div>
-      );
-    }
-    const pages = [];
-    for (let i = 1; i <= totalPages; i++) {
-      pages.push(
-        <button
-          key={i}
-          onClick={() => setCurrentPage(i)}
-          className={currentPage === i ? 'active' : ''}
-          disabled={currentPage === i}
-        >
-          {i}
-        </button>
-      );
-    }
-    return (
-      <div className="admin-pagination">
-        <button onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1}>Trước</button>
-        <div className="page-numbers">{pages}</div>
-        <button onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages}>Sau</button>
-        <span className="page-info">Trang {currentPage} / {totalPages}</span>
-      </div>
-    );
-  };
-
-  if (loading && !products.length) return <div>Đang tải...</div>;
-  if (error) return <div className="admin-error">{error}</div>;
+      ),
+    },
+    {
+      title: 'Mô tả',
+      dataIndex: 'description',
+      key: 'description',
+      width: 250,
+      render: (description) => (
+        <div style={{ fontSize: '12px' }}>
+          {description ? (description.length > 50 ? `${description.substring(0, 50)}...` : description) : '-'}
+        </div>
+      ),
+    },
+    {
+      title: 'Thương hiệu',
+      dataIndex: 'brand_detail',
+      key: 'brand',
+      width: 120,
+      render: (brandDetail, record) => (
+        <span style={{ fontWeight: 500 }}>
+          {brandDetail?.name || record.brand || '-'}
+        </span>
+      ),
+    },
+    {
+      title: 'Danh mục',
+      dataIndex: 'category_detail',
+      key: 'category',
+      width: 120,
+      render: (categoryDetail, record) => (
+        <span style={{ fontWeight: 500 }}>
+          {categoryDetail?.name || record.category || '-'}
+        </span>
+      ),
+    },
+    {
+      title: 'SLUG',
+      dataIndex: 'slug',
+      key: 'slug',
+      width: 150,
+      render: (slug) => (
+        <div style={{ fontSize: '12px', fontFamily: 'monospace' }}>
+          {slug || '-'}
+        </div>
+      ),
+    },
+    {
+      title: 'Trạng thái',
+      dataIndex: 'is_active',
+      key: 'status',
+      width: 100,
+      align: 'center',
+      render: (isActive) => (
+        <span style={{ 
+          color: isActive ? '#52c41a' : '#ff4d4f',
+          fontWeight: 500 
+        }}>
+          {isActive ? 'Hoạt động' : 'Ẩn'}
+        </span>
+      ),
+    },
+    {
+      title: 'Thao tác',
+      key: 'action',
+      width: 200,
+      fixed: 'right',
+      render: (_, record) => (
+        <ActionButtons
+          record={record}
+          onView={() => handleView(record)}
+          onEdit={() => handleEdit(record)}
+          onDelete={() => handleDelete(record)}
+          hasAccess={hasAccess}
+          showView={true}
+          showEdit={checkModulePermission('product', 'edit')}
+          showDelete={checkModulePermission('product', 'delete')}
+          entityName="sản phẩm"
+        />
+      ),
+    },
+  ];
 
   return (
     <div className="admin-products-list">
+      {/* Access Denied Alert */}
+      <AccessDeniedAlert 
+        hasAccess={hasAccess} 
+        module="product"
+        action="view"
+        showUserInfo={true}
+      />
+
       <div className="admin-list-header">
         <h2>Quản lý sản phẩm</h2>
         <div className="search-bar">
@@ -150,8 +181,9 @@ export default function ProductsPage() {
             onChange={(e) => setSearchText(e.target.value)}
             style={{ width: 300 }}
             allowClear
+            disabled={!hasAccess}
           />
-          {hasModulePermission('product', 'create') && (
+          {checkModulePermission('product', 'create') && (
             <Button
               type="primary"
               icon={<PlusOutlined />}
@@ -162,59 +194,35 @@ export default function ProductsPage() {
           )}
         </div>
       </div>
-      <div className="table-responsive">
-        <table className="admin-table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Tên sản phẩm</th>
-              <th>Mô tả</th>
-              <th>Thương hiệu</th>
-              <th>Danh mục</th>
-              <th>SLUG</th>
-              <th>Trạng thái</th>
-              <th>Hành động</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr>
-                <td colSpan="8" style={{ textAlign: 'center', padding: '40px 0' }}>
-                  <div>Đang tải...</div>
-                </td>
-              </tr>
-            ) : products.length === 0 ? (
-              <tr>
-                <td colSpan="8" style={{ textAlign: 'center', padding: '40px 0' }}>
-                  <Empty description="No data" imageStyle={{ height: 60 }} />
-                </td>
-              </tr>
-            ) : (
-              products.map(p => (
-                <tr key={p.id}>
-                  <td>{p.id}</td>
-                  <td>{p.name}</td>
-                  <td>{p.description}</td>
-                  <td>{p.brand_detail?.name || p.brand}</td>
-                  <td>{p.category_detail?.name || p.category}</td>
-                  <td>{p.slug}</td>
-                  <td>{p.is_active ? 'Hoạt động' : 'Ẩn'}</td>
-                  <td className="admin-table-actions">
-                    <button className="admin-btn" onClick={() => navigate(`/admin/products/${p.id}`)}>Xem</button>
-                    {hasModulePermission('product', 'edit') && (
-                      <button className="admin-btn" onClick={() => navigate(`/admin/products/${p.id}/edit`)}>Sửa</button>
-                    )}
-                    {hasModulePermission('product', 'delete') && (
-                      <button className="admin-btn danger" onClick={() => handleDelete(p.id)}>Xóa</button>
-                    )}
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-      {renderPagination()}
+
+      <Table
+        columns={columns}
+        dataSource={products}
+        loading={isLoading}
+        rowKey="id"
+        className="products-table"
+        scroll={{ x: 1200 }}
+        pagination={false}
+        locale={{
+          emptyText: (
+            <Empty 
+              description="Không có dữ liệu" 
+              imageStyle={{ height: 60 }} 
+            />
+          )
+        }}
+      />
+
+      {/* Pagination */}
+      <CustomPagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        total={total}
+        onPageChange={setCurrentPage}
+        hasAccess={hasAccess}
+        hasNext={hasNext}
+        hasPrevious={hasPrevious}
+      />
     </div>
   );
 }

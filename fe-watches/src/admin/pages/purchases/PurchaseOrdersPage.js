@@ -45,6 +45,8 @@ const PurchaseOrdersPage = () => {
   const [selectedProductId, setSelectedProductId] = useState(null);
   const [selectedVariant, setSelectedVariant] = useState(null);
   const [showAddProductForm, setShowAddProductForm] = useState(false);
+  const [productSearchText, setProductSearchText] = useState('');
+  const [variantsLoading, setVariantsLoading] = useState(false);
 
   // Lấy thông tin user từ localStorage
   const { currentUser, isSuperUser, currentEmployeeId, currentStoreId } = getUserInfo();
@@ -66,6 +68,19 @@ const PurchaseOrdersPage = () => {
     });
     fetchProducts();
   }, []);
+
+  // Debounce search products
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (productSearchText) {
+        fetchProducts(productSearchText);
+      } else {
+        fetchProducts();
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [productSearchText]);
 
   const fetchSuppliers = async () => {
     try {
@@ -89,10 +104,14 @@ const PurchaseOrdersPage = () => {
     } catch {}
   };
 
-  const fetchProducts = async () => {
+  const fetchProducts = async (searchText = '') => {
     try {
       const token = localStorage.getItem('accessToken');
-      const response = await fetch(PRODUCT_ENDPOINTS.PRODUCTS, {
+      let url = PRODUCT_ENDPOINTS.PRODUCTS;
+      if (searchText) {
+        url += `?search=${encodeURIComponent(searchText)}`;
+      }
+      const response = await fetch(url, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -104,6 +123,7 @@ const PurchaseOrdersPage = () => {
 
   const fetchVariants = async (productId) => {
     try {
+      setVariantsLoading(true);
       const token = localStorage.getItem('accessToken');
       const response = await fetch(PRODUCT_ENDPOINTS.PRODUCT_VARIANTS(productId), {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -113,6 +133,8 @@ const PurchaseOrdersPage = () => {
     } catch (error) {
       message.error('Lỗi khi tải danh sách biến thể');
       setVariants([]);
+    } finally {
+      setVariantsLoading(false);
     }
   };
 
@@ -291,10 +313,26 @@ const PurchaseOrdersPage = () => {
   };
 
   const handleProductChange = (productId) => {
+    console.log('Product changed to:', productId);
+    setSelectedProductId(productId);
     if (productId) {
       fetchVariants(productId);
     } else {
       setVariants([]);
+      setSelectedVariant(null);
+    }
+  };
+
+  const handleVariantChange = (variantId) => {
+    console.log('Variant changed to:', variantId);
+    const variant = variants.find(v => v.id === variantId);
+    console.log('Found variant:', variant);
+    setSelectedVariant(variant);
+    if (variant) {
+      orderDetailForm.setFieldsValue({ 
+        quantity: 1,
+        unit_price: variant?.price_adjustment || 0
+      });
     }
   };
 
@@ -449,20 +487,63 @@ const PurchaseOrdersPage = () => {
           <Button
             icon={<EditOutlined />}
             className="action-btn"
-            onClick={() => {
+            onClick={async () => {
               setEditingOrderDetail(record);
-              const productId = record.variant?.product || record.product?.id;
-              setSelectedProductId(productId);
-              fetchVariants(productId).then(() => {
-                orderDetailForm.setFieldsValue({
-                  product: productId,
-                  product_variant: record.variant?.id || record.product_variant,
-                  quantity: record.quantity,
-                  unit_price: record.unit_price,
-                  notes: record.notes || ""
-                });
-                setSelectedVariant(record.variant || null);
-              });
+              setShowAddProductForm(true);
+              
+              console.log('Editing record:', record);
+              
+              // Lấy product ID từ product_variant_info hoặc product_variant
+              const productId = record.product_variant_info?.product || 
+                               record.product_variant?.product || 
+                               record.product?.id;
+              
+              console.log('Product ID:', productId);
+              
+              if (productId) {
+                setSelectedProductId(productId);
+                
+                // Tìm sản phẩm trong danh sách products để set search text
+                const product = products.find(p => p.id === productId);
+                if (product) {
+                  setProductSearchText(product.name);
+                } else {
+                  // Nếu không tìm thấy trong danh sách hiện tại, fetch lại products
+                  await fetchProducts();
+                  const updatedProduct = products.find(p => p.id === productId);
+                  if (updatedProduct) {
+                    setProductSearchText(updatedProduct.name);
+                  }
+                }
+                
+                // Fetch variants và set form values
+                await fetchVariants(productId);
+                
+                // Tìm variant trong danh sách variants đã load
+                const variant = variants.find(v => v.id === record.product_variant);
+                setSelectedVariant(variant || null);
+                
+                // Set form values sau khi đã load variants
+                setTimeout(() => {
+                  console.log('Setting form values:', {
+                    product: productId,
+                    product_variant: record.product_variant,
+                    quantity: record.quantity,
+                    unit_price: record.unit_price,
+                    notes: record.notes || ""
+                  });
+                  
+                  orderDetailForm.setFieldsValue({
+                    product: productId,
+                    product_variant: record.product_variant,
+                    quantity: record.quantity,
+                    unit_price: record.unit_price,
+                    notes: record.notes || ""
+                  });
+                }, 100);
+              } else {
+                message.error('Không thể lấy thông tin sản phẩm');
+              }
             }}
           />
           <Popconfirm
@@ -903,6 +984,7 @@ const PurchaseOrdersPage = () => {
           setSelectedProductId(null);
           setSelectedVariant(null);
           setShowAddProductForm(false);
+          setProductSearchText('');
           orderDetailForm.resetFields();
           fetchData(pagination.current, pagination.pageSize);
         }}
@@ -920,6 +1002,15 @@ const PurchaseOrdersPage = () => {
               setSelectedProductId(null);
               setVariants([]);
               setSelectedVariant(null);
+              setProductSearchText('');
+              // Reset form values
+              orderDetailForm.setFieldsValue({
+                product: undefined,
+                product_variant: undefined,
+                quantity: undefined,
+                unit_price: undefined,
+                notes: ""
+              });
             }}
           >
             Thêm sản phẩm
@@ -940,11 +1031,13 @@ const PurchaseOrdersPage = () => {
               console.log('Form submitted with selectedOrderId:', selectedOrderId);
               const success = await handleOrderDetailSubmit(values);
               if (success) {
-                // Chỉ reset form và cập nhật danh sách nếu thêm thành công
+                // Reset form và cập nhật danh sách
                 orderDetailForm.resetFields();
                 setSelectedProductId(null);
                 setVariants([]);
                 setSelectedVariant(null);
+                setProductSearchText('');
+                setEditingOrderDetail(null);
                 fetchOrderDetails(selectedOrderId);
               }
             }}
@@ -957,30 +1050,24 @@ const PurchaseOrdersPage = () => {
               rules={[{ required: true, message: 'Vui lòng chọn sản phẩm' }]}
             >
               <Select
-                placeholder="Chọn sản phẩm"
-                onChange={(productId) => {
-                  setSelectedProductId(productId);
-                  if (productId) {
-                    fetchVariants(productId);
-                  } else {
-                    setVariants([]);
-                  }
-                  orderDetailForm.setFieldsValue({ 
-                    product_variant: undefined,
-                    quantity: undefined,
-                    unit_price: undefined
-                  });
-                  setSelectedVariant(null);
-                }}
+                placeholder="Tìm kiếm và chọn sản phẩm"
+                onChange={handleProductChange}
                 showSearch
-                filterOption={(input, option) =>
-                  option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
-                }
+                filterOption={false}
+                onSearch={setProductSearchText}
                 value={selectedProductId}
+                loading={false}
+                notFoundContent={productSearchText ? 'Không tìm thấy sản phẩm' : 'Nhập tên sản phẩm để tìm kiếm'}
+                style={{ width: '100%' }}
               >
                 {products.map(product => (
                   <Select.Option key={product.id} value={product.id}>
-                    {product.name}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>{product.name}</span>
+                      <span style={{ fontSize: '12px', color: '#666', marginLeft: '8px' }}>
+                        {product.sku || 'N/A'}
+                      </span>
+                    </div>
                   </Select.Option>
                 ))}
               </Select>
@@ -992,27 +1079,38 @@ const PurchaseOrdersPage = () => {
               rules={[{ required: true, message: 'Vui lòng chọn biến thể' }]}
             >
               <Select
-                placeholder="Chọn biến thể"
-                disabled={!selectedProductId || !variants.length}
+                placeholder="Chọn biến thể sản phẩm"
+                disabled={!selectedProductId || variantsLoading}
                 showSearch
-                filterOption={(input, option) =>
-                  option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
-                }
-                onChange={(variantId) => {
-                  const variant = variants.find(v => v.id === variantId);
-                  setSelectedVariant(variant);
-                  orderDetailForm.setFieldsValue({ 
-                    quantity: 1,
-                    unit_price: variant?.price_adjustment || 0
-                  });
+                filterOption={(input, option) => {
+                  const searchText = input.toLowerCase();
+                  const variantSku = option.label.toLowerCase();
+                  const attributes = option.attributes ? option.attributes.toLowerCase() : '';
+                  return variantSku.includes(searchText) || attributes.includes(searchText);
                 }}
+                onChange={handleVariantChange}
                 value={orderDetailForm.getFieldValue('product_variant')}
+                loading={variantsLoading}
+                notFoundContent={variantsLoading ? 'Đang tải...' : 'Không tìm thấy biến thể'}
               >
                 {variants.map(variant => (
-                  <Select.Option key={variant.id} value={variant.id}>
-                    {variant.attribute_values_detail?.map(attr => 
-                      `${attr.attribute_type.name}: ${attr.value}`
-                    ).join(', ')}
+                  <Select.Option 
+                    key={variant.id} 
+                    value={variant.id}
+                    label={variant.sku || `Variant ${variant.id}`}
+                    attributes={variant.attribute_values_detail ? 
+                      variant.attribute_values_detail.map(attr => `${attr.attribute_type.name}: ${attr.value}`).join(', ') : ''
+                    }
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>{variant.sku || `Variant ${variant.id}`}</span>
+                      <span style={{ fontSize: '12px', color: '#666', marginLeft: '8px' }}>
+                        {variant.attribute_values_detail ? 
+                          variant.attribute_values_detail.map(attr => `${attr.attribute_type.name}: ${attr.value}`).join(', ') : 
+                          'N/A'
+                        }
+                      </span>
+                    </div>
                   </Select.Option>
                 ))}
               </Select>
@@ -1020,10 +1118,10 @@ const PurchaseOrdersPage = () => {
 
             {selectedVariant && (
               <div style={{ marginBottom: 16, padding: 12, background: '#f6f6f6', borderRadius: 6 }}>
-                <div><b>Tên sản phẩm:</b> {selectedVariant.product_name}</div>
-                <div><b>SKU:</b> {selectedVariant.sku}</div>
+                <div><b>Tên sản phẩm:</b> {selectedVariant.product_name || 'N/A'}</div>
+                <div><b>SKU:</b> {selectedVariant.sku || 'N/A'}</div>
                 <div><b>Giá:</b> {selectedVariant.price_adjustment ? formatCurrency(selectedVariant.price_adjustment) : 'Không có'}</div>
-                <div><b>Thuộc tính:</b> {selectedVariant.attribute_values_detail?.map(attr => `${attr.attribute_type.name}: ${attr.value}`).join(', ')}</div>
+                <div><b>Thuộc tính:</b> {selectedVariant.attribute_values_detail?.map(attr => `${attr.attribute_type.name}: ${attr.value}`).join(', ') || 'N/A'}</div>
                 {selectedVariant.images && selectedVariant.images.length > 0 && (
                   <img src={selectedVariant.images[0].image} alt="" style={{ maxWidth: 120, marginTop: 8 }} />
                 )}
@@ -1064,6 +1162,8 @@ const PurchaseOrdersPage = () => {
                   setSelectedProductId(null);
                   setVariants([]);
                   setSelectedVariant(null);
+                  setProductSearchText('');
+                  setEditingOrderDetail(null);
                 }}>
                   Hủy
                 </Button>

@@ -199,6 +199,7 @@ export default function Header() {
                 DANH MỤC <span className="arrow">▼</span>
               </div>
             </li>
+            <li><Link to="/news">TIN TỨC</Link></li>
             <li><Link to="/maintenance">BẢO DƯỠNG</Link></li>
             <li><Link to="/contact">LIÊN HỆ</Link></li>
           </ul>

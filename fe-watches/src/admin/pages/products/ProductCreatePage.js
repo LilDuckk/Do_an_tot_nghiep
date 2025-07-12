@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { hasModulePermission } from '@/services/permission';
+import { message } from 'antd';
 import { PRODUCT_ENDPOINTS } from '@/config/api';
+import { useAccessControl, useApiCall } from '@/admin/hooks';
+import { AccessDeniedAlert } from '@/admin/components';
 import '@/admin/static/AdminCommon.css';
 
 export default function ProductCreatePage() {
@@ -30,61 +32,105 @@ export default function ProductCreatePage() {
   const [primaryImageIndex, setPrimaryImageIndex] = useState(0);
   const navigate = useNavigate();
 
+  // Chuẩn hóa kiểm tra quyền truy cập
+  const { hasAccess, checkModulePermission } = useAccessControl('product', 'create');
+
+  // Hook quản lý API calls
+  const { get, post } = useApiCall();
+
   // Thêm các hàm tiện ích
   const formatPrice = (price) => {
     if (price === null || price === undefined) return "0.00";
     return Number(price).toFixed(2);
   };
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const token = localStorage.getItem('accessToken');
-        
-        // Fetch brands
-        const brandsRes = await fetch(PRODUCT_ENDPOINTS.BRANDS_LIST_ALL, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (brandsRes.ok) {
-          setBrands(await brandsRes.json());
-        }
+  // Fetch brands
+  const fetchBrands = useCallback(async () => {
+    if (!hasAccess) return;
 
-        // Fetch categories
-        const categoriesRes = await fetch(PRODUCT_ENDPOINTS.CATEGORIES_LIST_ALL, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (categoriesRes.ok) {
-          setCategories(await categoriesRes.json());
-        }
+    try {
+      const result = await get(
+        PRODUCT_ENDPOINTS.BRANDS_LIST_ALL,
+        {},
+        'Lỗi khi tải danh sách thương hiệu'
+      );
 
-        // Fetch attribute types
-        const typesRes = await fetch(PRODUCT_ENDPOINTS.ATTRIBUTE_TYPES_LIST_ALL, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (typesRes.ok) {
-          const data = await typesRes.json();
-          setAttributeTypes(Array.isArray(data) ? data : data.results || []);
-        }
-
-        // Fetch attribute values
-        const valuesRes = await fetch(PRODUCT_ENDPOINTS.ATTRIBUTE_VALUES_LIST_ALL, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (valuesRes.ok) {
-          const data = await valuesRes.json();
-          setAttributeValues(Array.isArray(data) ? data : data.results || []);
-        }
-      } catch (error) {
-        setError('Lỗi khi tải dữ liệu');
+      if (result.success) {
+        setBrands(Array.isArray(result.data) ? result.data : []);
       }
-    };
+    } catch (error) {
+      console.error('Error fetching brands:', error);
+    }
+  }, [hasAccess, get]);
 
-    fetchData();
-  }, []);
+  // Fetch categories
+  const fetchCategories = useCallback(async () => {
+    if (!hasAccess) return;
 
-  if (!hasModulePermission('product', 'create')) {
-    return <div className="admin-error">Bạn không có quyền thêm sản phẩm.</div>;
-  }
+    try {
+      const result = await get(
+        PRODUCT_ENDPOINTS.CATEGORIES_LIST_ALL,
+        {},
+        'Lỗi khi tải danh sách danh mục'
+      );
+
+      if (result.success) {
+        setCategories(Array.isArray(result.data) ? result.data : []);
+      }
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  }, [hasAccess, get]);
+
+  // Fetch attribute types
+  const fetchAttributeTypes = useCallback(async () => {
+    if (!hasAccess) return;
+
+    try {
+      const result = await get(
+        PRODUCT_ENDPOINTS.ATTRIBUTE_TYPES_LIST_ALL,
+        {},
+        'Lỗi khi tải danh sách loại thuộc tính'
+      );
+
+      if (result.success) {
+        const data = result.data;
+        setAttributeTypes(Array.isArray(data) ? data : data.results || []);
+      }
+    } catch (error) {
+      console.error('Error fetching attribute types:', error);
+    }
+  }, [hasAccess, get]);
+
+  // Fetch attribute values
+  const fetchAttributeValues = useCallback(async () => {
+    if (!hasAccess) return;
+
+    try {
+      const result = await get(
+        PRODUCT_ENDPOINTS.ATTRIBUTE_VALUES_LIST_ALL,
+        {},
+        'Lỗi khi tải danh sách giá trị thuộc tính'
+      );
+
+      if (result.success) {
+        const data = result.data;
+        setAttributeValues(Array.isArray(data) ? data : data.results || []);
+      }
+    } catch (error) {
+      console.error('Error fetching attribute values:', error);
+    }
+  }, [hasAccess, get]);
+
+  // Initialize data
+  useEffect(() => {
+    if (hasAccess) {
+      fetchBrands();
+      fetchCategories();
+      fetchAttributeTypes();
+      fetchAttributeValues();
+    }
+  }, [hasAccess, fetchBrands, fetchCategories, fetchAttributeTypes, fetchAttributeValues]);
 
   const handleChange = e => {
     const { name, value, type, checked } = e.target;
@@ -125,8 +171,14 @@ export default function ProductCreatePage() {
       setError('Vui lòng nhập đầy đủ các trường bắt buộc: Tên, Thương hiệu, Danh mục, Giá gốc.');
       return;
     }
+
+    // Kiểm tra quyền create trước khi submit
+    if (!checkModulePermission('product', 'create')) {
+      setError('Bạn không có quyền tạo sản phẩm mới.');
+      return;
+    }
+
     try {
-      const token = localStorage.getItem('accessToken');
       const formData = new FormData();
       formData.append('name', form.name);
       formData.append('description', form.description);
@@ -146,24 +198,24 @@ export default function ProductCreatePage() {
 
       // Prepare payload with attribute_value_groups
       const attributeValueGroups = Object.entries(selectedAttributeValues).map(
-        ([typeId, values]) => values.map(v => Number(v.id)) // Đảm bảo là số
+        ([typeId, values]) => values.map(v => Number(v.id)) // Đảm bảo số
       );
       
       // Convert to a JSON string that can be parsed by Python
       formData.append('attribute_value_groups', JSON.stringify(attributeValueGroups));
 
-      const productRes = await fetch(PRODUCT_ENDPOINTS.PRODUCTS, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: formData,
-      });
-      if (!productRes.ok) {
-        const data = await productRes.json();
-        throw new Error(data.error || 'Tạo sản phẩm thất bại');
+      const result = await post(
+        PRODUCT_ENDPOINTS.PRODUCTS,
+        formData,
+        'Lỗi khi tạo sản phẩm'
+      );
+
+      if (result.success) {
+        message.success('Tạo sản phẩm thành công');
+        navigate('/admin/products');
+      } else {
+        setError('Tạo sản phẩm thất bại');
       }
-      navigate('/admin/products');
     } catch (err) {
       setError(err.message || 'Lỗi kết nối');
     }
@@ -171,7 +223,22 @@ export default function ProductCreatePage() {
 
   return (
     <div className="admin-form-container">
+      {/* Access Denied Alert */}
+      <AccessDeniedAlert 
+        hasAccess={hasAccess} 
+        module="product"
+        action="create"
+        showUserInfo={true}
+      />
+
       <h2>Thêm sản phẩm mới</h2>
+      
+      {error && (
+        <div className="admin-error" style={{ marginBottom: 16 }}>
+          {error}
+        </div>
+      )}
+
       <form className="admin-form" onSubmit={handleSubmit} encType="multipart/form-data">
         {/* Thông tin cơ bản */}
         <div className="form-section">
@@ -310,7 +377,6 @@ export default function ProductCreatePage() {
 
         <button type="submit" className="admin-btn primary">Thêm mới</button>
         <button type="button" className="admin-btn" onClick={() => navigate('/admin/products')}>Hủy</button>
-        {error && <div className="admin-error">{error}</div>}
       </form>
     </div>
   );

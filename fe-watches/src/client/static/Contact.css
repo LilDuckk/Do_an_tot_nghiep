@@ -1,28 +1,114 @@
 .contact-container {
-  max-width: 600px;
+  max-width: 75%;
   margin: 90px auto 10px auto;
   background: #fff;
   border-radius: 12px;
   box-shadow: 0 2px 12px rgba(0,0,0,0.08);
   padding: 36px 28px 28px 28px;
 }
+
 .contact-container h2 {
   text-align: center;
   margin-bottom: 22px;
 }
+
 .contact-info {
   margin-bottom: 18px;
   color: #444;
   font-size: 1.08rem;
 }
+
 .contact-map iframe {
   border-radius: 10px;
   width: 100%;
   min-height: 180px;
   border: none;
 }
+
+/* Social Media Icons Hover Effects */
+.contact-social a {
+  transition: all 0.3s ease;
+  display: inline-block;
+  padding: 8px;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.contact-social a:hover {
+  transform: translateY(-3px) scale(1.1);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+/* Facebook hover */
+.contact-social a[href*="facebook"]:hover {
+  background: rgba(24, 119, 242, 0.1);
+  color: #1877f2 !important;
+}
+
+/* Instagram hover */
+.contact-social a[href*="instagram"]:hover {
+  background: rgba(228, 64, 95, 0.1);
+  color: #e4405f !important;
+}
+
+/* YouTube hover */
+.contact-social a[href*="youtube"]:hover {
+  background: rgba(255, 0, 0, 0.1);
+  color: #ff0000 !important;
+}
+
+/* TikTok hover */
+.contact-social a[href*="tiktok"]:hover {
+  background: rgba(0, 0, 0, 0.1);
+  color: #000000 !important;
+}
+
+/* Google Maps link hover */
+.contact-container a[href*="google.com/maps"] {
+  transition: all 0.3s ease;
+  text-decoration: none;
+}
+
+.contact-container a[href*="google.com/maps"]:hover {
+  color: #52c41a !important;
+  text-decoration: underline;
+  transform: translateX(2px);
+}
+
+/* Card hover effects */
+.contact-container .ant-card {
+  transition: all 0.3s ease;
+}
+
+.contact-container .ant-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+}
+
+/* Responsive design */
+@media (max-width: 1200px) {
+  .contact-container {
+    max-width: 85%;
+  }
+}
+
+@media (max-width: 900px) {
+  .contact-container {
+    max-width: 90%;
+  }
+}
+
 @media (max-width: 700px) {
   .contact-container {
+    max-width: 95%;
     padding: 18px 6px 12px 6px;
+  }
+  
+  .contact-social a {
+    padding: 6px;
+  }
+  
+  .contact-social a:hover {
+    transform: translateY(-2px) scale(1.05);
   }
 } 

@@ -142,6 +142,8 @@ export default function AdminLogin() {
             onChange={e => setUsername(e.target.value)}
             required 
           />
+          {/* Thêm span giữ chỗ cho icon */}
+          <span className="input-icon-placeholder" />
         </div>
         <div className="input-group">
           <input 
@@ -155,6 +157,7 @@ export default function AdminLogin() {
             type="button"
             className="password-toggle"
             onClick={() => setShowPassword(!showPassword)}
+            tabIndex={-1}
           >
             <img 
               src={process.env.PUBLIC_URL + (showPassword ? '/images/icon-show-password.png' : '/images/icon-close-password.png')}

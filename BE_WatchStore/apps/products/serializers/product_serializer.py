@@ -229,8 +229,12 @@ class ProductSerializer(serializers.ModelSerializer):
         
         if attribute_value_groups:
             try:
-                # Try parsing the attribute_value_groups
-                parsed_groups = json.loads(attribute_value_groups)
+                # Check if it's already a list (from frontend)
+                if isinstance(attribute_value_groups, list):
+                    parsed_groups = attribute_value_groups
+                else:
+                    # Try parsing the attribute_value_groups as JSON string
+                    parsed_groups = json.loads(attribute_value_groups)
                 
                 # Validate and convert to list of lists of integers
                 validated_groups = []

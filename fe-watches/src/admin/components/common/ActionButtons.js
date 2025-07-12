@@ -5,7 +5,6 @@ import {
   DeleteOutlined, 
   EyeOutlined, 
   ReloadOutlined,
-  MoreOutlined 
 } from '@ant-design/icons';
 
 /**

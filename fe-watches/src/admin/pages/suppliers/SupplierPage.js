@@ -1,106 +1,83 @@
-import React, { useState, useEffect } from 'react';
-import { Table, Input, Button, Space, Tag, message, Modal, Form, Select, Popconfirm } from 'antd';
-import { SearchOutlined, ReloadOutlined, PlusOutlined, EditOutlined, DeleteOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Table, Modal, Form, Input, Select, Space, Tag, Button, message } from 'antd';
 import { SUPPLIER_ENDPOINTS } from '@/config/api';
-import { useDebounce } from '@/admin/hooks/useDebounce';
 import '@/admin/static/AdminCommon.css';
 
-const { confirm } = Modal;
+// Import hooks
+import { useListData, useCRUD } from '@/admin/hooks';
+
+// Import components
+import { AdminPageHeader, AccessDeniedAlert, CustomPagination, ActionButtons } from '@/admin/components';
+
+const { Option } = Select;
 
 const SupplierPage = () => {
-  const [suppliers, setSuppliers] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [searchText, setSearchText] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
-  const [editingSupplier, setEditingSupplier] = useState(null);
   const [form] = Form.useForm();
+  const [editingId, setEditingId] = useState(null);
 
-  const debouncedSearchText = useDebounce(searchText, 500);
+  // Hook tích hợp cho danh sách suppliers
+  const {
+    data: suppliers,
+    isLoading,
+    hasAccess,
+    searchText,
+    setSearchText,
+    currentPage,
+    setCurrentPage,
+    totalPages,
+    total,
+    hasNext,
+    hasPrevious,
+    fetchData: fetchSuppliers
+  } = useListData({
+    module: 'supplier',
+    action: 'view',
+    apiEndpoint: SUPPLIER_ENDPOINTS.SUPPLIERS,
+    pageSize: 20,
+    debounceDelay: 500
+  });
 
-  const fetchSuppliers = async () => {
-    setLoading(true);
-    try {
-      const token = localStorage.getItem('accessToken');
-      const params = debouncedSearchText ? `?search=${encodeURIComponent(debouncedSearchText)}` : '';
-      const res = await fetch(`${SUPPLIER_ENDPOINTS.SUPPLIERS}${params}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (!res.ok) throw new Error('Lỗi khi tải danh sách nhà cung cấp');
-      const data = await res.json();
-      setSuppliers(Array.isArray(data.results) ? data.results : []);
-    } catch (err) {
-      message.error(err.message || 'Lỗi khi tải danh sách nhà cung cấp');
-      setSuppliers([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // CRUD operations với kiểm tra quyền
+  const { createData, updateData, deleteData } = useCRUD({
+    baseUrl: SUPPLIER_ENDPOINTS.SUPPLIERS,
+    entityName: 'nhà cung cấp',
+    canCreate: hasAccess,
+    canEdit: hasAccess,
+    canDelete: hasAccess
+  });
 
-  useEffect(() => {
-    fetchSuppliers();
-  }, [debouncedSearchText]);
-
-  const handleAdd = () => {
-    setEditingSupplier(null);
-    setModalVisible(true);
-  };
-
-  const handleEdit = (record) => {
-    setEditingSupplier(record);
-    setModalVisible(true);
-  };
-
-  const handleDelete = (record) => {
-    confirm({
-      title: 'Bạn có chắc chắn muốn xóa nhà cung cấp này?',
-      icon: <ExclamationCircleOutlined />,
-      content: record.name,
-      okText: 'Xóa',
-      okType: 'danger',
-      cancelText: 'Hủy',
-      onOk: async () => {
-        try {
-          const token = localStorage.getItem('accessToken');
-          const res = await fetch(SUPPLIER_ENDPOINTS.SUPPLIER_DETAIL(record.id), {
-            method: 'DELETE',
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
-          if (!res.ok) throw new Error('Xóa thất bại');
-          message.success('Đã xóa nhà cung cấp');
-          fetchSuppliers();
-        } catch (err) {
-          message.error('Không thể xóa');
-        }
-      }
+  // Helper function để reset form
+  const resetForm = () => {
+    form.resetFields();
+    form.setFieldsValue({
+      is_active: true
     });
   };
 
-  const handleModalOk = async () => {
-    try {
-      const values = await form.validateFields();
-      // Ép kiểu boolean cho is_active
-      values.is_active = values.is_active === 'true';
-      const token = localStorage.getItem('accessToken');
-      const method = editingSupplier ? 'PUT' : 'POST';
-      const url = editingSupplier ? SUPPLIER_ENDPOINTS.SUPPLIER_DETAIL(editingSupplier.id) : SUPPLIER_ENDPOINTS.SUPPLIERS;
-      const res = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(values)
-      });
-      if (!res.ok) throw new Error(editingSupplier ? 'Cập nhật thất bại' : 'Thêm mới thất bại');
-      message.success(editingSupplier ? 'Cập nhật thành công' : 'Thêm mới thành công');
+  // Handle form submission
+  const handleSubmit = async (values) => {
+    // Ép kiểu boolean cho is_active
+    const formattedValues = {
+      ...values,
+      is_active: values.is_active === 'true' || values.is_active === true
+    };
+
+    let success = false;
+    if (editingId) {
+      success = await updateData(editingId, formattedValues);
+    } else {
+      success = await createData(formattedValues);
+    }
+
+    if (success) {
       setModalVisible(false);
+      resetForm();
       fetchSuppliers();
-    } catch (err) {
-      if (err.errorFields) return; // validation error
-      message.error(err.message);
     }
   };
 
+  // Table columns configuration
   const columns = [
     {
       title: 'Tên nhà cung cấp',
@@ -144,105 +121,164 @@ const SupplierPage = () => {
       title: 'Trạng thái',
       dataIndex: 'is_active',
       key: 'is_active',
-      render: (active) => <Tag color="default">{active ? 'Đang hoạt động' : 'Ngừng hoạt động'}</Tag>,
-      filters: [
-        { text: 'Đang hoạt động', value: true },
-        { text: 'Ngừng hoạt động', value: false },
-      ],
-      onFilter: (value, record) => record.is_active === value,
+      render: (active) => (
+        <Tag color={active ? 'green' : 'red'}>
+          {active ? 'Đang hoạt động' : 'Ngừng hoạt động'}
+        </Tag>
+      ),
     },
     {
       title: 'Thao tác',
       key: 'action',
       render: (_, record) => (
-        <Space>
-          <Button
-            type="primary"
-            icon={<EditOutlined />}
-            className="action-btn"
-            onClick={() => handleEdit(record)}
-          />
-          <Popconfirm
-            title="Bạn có chắc chắn muốn xóa?"
-            onConfirm={() => handleDelete(record)}
-          >
-            <Button danger icon={<DeleteOutlined />} className="action-btn" />
-          </Popconfirm>
-        </Space>
+        <ActionButtons
+          record={record}
+          onEdit={() => {
+            setEditingId(record.id);
+            const formData = {
+              name: record.name,
+              contact_person: record.contact_person,
+              email: record.email,
+              phone: record.phone,
+              address: record.address,
+              tax_code: record.tax_code,
+              website: record.website,
+              is_active: record.is_active ? 'true' : 'false'
+            };
+            form.setFieldsValue(formData);
+            setModalVisible(true);
+          }}
+          onDelete={async () => {
+            const success = await deleteData(record.id);
+            if (success) {
+              fetchSuppliers();
+            }
+          }}
+          hasAccess={hasAccess}
+          entityName="nhà cung cấp"
+        />
       ),
     },
   ];
 
   return (
     <div className="admin-users-list">
-      <div className="admin-list-header">
-        <h2>Quản lý nhà cung cấp</h2>
-        <div className="search-bar">
-          <Input
-            placeholder="Tìm kiếm theo tên, email, SĐT, mã số thuế..."
-            prefix={<SearchOutlined />}
-            value={searchText}
-            onChange={e => setSearchText(e.target.value)}
-            style={{ width: 320 }}
-            allowClear
-          />
-          <Button icon={<ReloadOutlined />} onClick={fetchSuppliers} />
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>Thêm mới</Button>
-        </div>
-      </div>
-      <Table
-        columns={columns}
-        dataSource={suppliers}
-        loading={loading}
-        rowKey="id"
-        className="admin-table"
-        pagination={{ pageSize: 10 }}
-        scroll={{ x: true }}
+      {/* Access Denied Alert */}
+      <AccessDeniedAlert 
+        hasAccess={hasAccess}
+        module="supplier"
+        action="view"
+        showUserInfo={true}
       />
-      <Modal
-        title={editingSupplier ? 'Chỉnh sửa nhà cung cấp' : 'Thêm nhà cung cấp'}
-        open={modalVisible}
-        onCancel={() => setModalVisible(false)}
-        onOk={handleModalOk}
-        okText={editingSupplier ? 'Cập nhật' : 'Thêm mới'}
-        cancelText="Hủy"
-        destroyOnHidden
-        afterOpenChange={(open) => {
-          if (open && !editingSupplier) form.resetFields();
-          if (open && editingSupplier) form.setFieldsValue(editingSupplier);
+
+      <AdminPageHeader
+        title="Quản lý nhà cung cấp"
+        searchText={searchText}
+        onSearchChange={setSearchText}
+        onAdd={() => {
+          setEditingId(null);
+          resetForm();
+          setModalVisible(true);
         }}
+        hasAccess={hasAccess}
+        searchPlaceholder="Tìm kiếm theo tên, email, SĐT, mã số thuế..."
+        addButtonText="Thêm nhà cung cấp"
+      />
+
+      <div className="table-responsive">
+        <Table
+          columns={columns}
+          dataSource={suppliers}
+          loading={isLoading}
+          rowKey="id"
+          pagination={false}
+          className="admin-table"
+          scroll={{ x: true }}
+        />
+      </div>
+
+      {/* Pagination */}
+      <CustomPagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        total={total}
+        onPageChange={setCurrentPage}
+        hasAccess={hasAccess}
+        hasNext={hasNext}
+        hasPrevious={hasPrevious}
+      />
+
+      <Modal
+        title={editingId ? "Chỉnh sửa nhà cung cấp" : "Thêm nhà cung cấp"}
+        open={modalVisible}
+        onCancel={() => {
+          setModalVisible(false);
+          resetForm();
+        }}
+        footer={null}
+        width={600}
       >
         <Form
           form={form}
           layout="vertical"
-          initialValues={{ is_active: true }}
+          onFinish={handleSubmit}
+          initialValues={{ is_active: 'true' }}
         >
-          <Form.Item name="name" label="Tên nhà cung cấp" rules={[{ required: true, message: 'Nhập tên nhà cung cấp' }]}>
+          <Form.Item 
+            name="name" 
+            label="Tên nhà cung cấp" 
+            rules={[{ required: true, message: 'Nhập tên nhà cung cấp' }]}
+          >
             <Input maxLength={100} />
           </Form.Item>
+
           <Form.Item name="contact_person" label="Người liên hệ">
             <Input maxLength={100} />
           </Form.Item>
-          <Form.Item name="email" label="Email" rules={[{ type: 'email', message: 'Email không hợp lệ' }]}>
+
+          <Form.Item 
+            name="email" 
+            label="Email" 
+            rules={[{ type: 'email', message: 'Email không hợp lệ' }]}
+          >
             <Input maxLength={100} />
           </Form.Item>
+
           <Form.Item name="phone" label="SĐT">
             <Input maxLength={30} />
           </Form.Item>
+
           <Form.Item name="address" label="Địa chỉ">
             <Input maxLength={200} />
           </Form.Item>
+
           <Form.Item name="tax_code" label="Mã số thuế">
             <Input maxLength={50} />
           </Form.Item>
+
           <Form.Item name="website" label="Website">
             <Input maxLength={100} />
           </Form.Item>
+
           <Form.Item name="is_active" label="Trạng thái">
             <Select>
-              <Select.Option value="true">Đang hoạt động</Select.Option>
-              <Select.Option value="false">Ngừng hoạt động</Select.Option>
+              <Option value="true">Đang hoạt động</Option>
+              <Option value="false">Ngừng hoạt động</Option>
             </Select>
+          </Form.Item>
+
+          <Form.Item>
+            <Space>
+              <Button type="primary" htmlType="submit">
+                {editingId ? 'Cập nhật' : 'Thêm mới'}
+              </Button>
+              <Button onClick={() => {
+                setModalVisible(false);
+                resetForm();
+              }}>
+                Hủy
+              </Button>
+            </Space>
           </Form.Item>
         </Form>
       </Modal>

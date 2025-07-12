@@ -18,5 +18,9 @@ module.exports = override(
     '@/utils': path.resolve(__dirname, 'src/utils'),
     '@/assets': path.resolve(__dirname, 'src/assets'),
     '@/styles': path.resolve(__dirname, 'src/styles'),
+    '@/orders': path.resolve(__dirname, 'src/admin/pages/orders'),
+    '@/orders/hooks': path.resolve(__dirname, 'src/admin/pages/orders/hooks'),
+    '@/orders/components': path.resolve(__dirname, 'src/admin/pages/orders/components'),
+    '@/orders/utils': path.resolve(__dirname, 'src/admin/pages/orders/utils'),
   })
 ); 

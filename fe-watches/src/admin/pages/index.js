@@ -11,15 +11,9 @@ export { default as ProductViewPage } from './products/ProductViewPage';
 
 // Categories
 export { default as CategoriesPage } from './categories/CategoriesPage';
-export { default as CategoryCreatePage } from './categories/CategoryCreatePage';
-export { default as CategoryEditPage } from './categories/CategoryEditPage';
-export { default as CategoryViewPage } from './categories/CategoryViewPage';
 
 // Brands
 export { default as BrandsPage } from './brands/BrandsPage';
-export { default as BrandCreatePage } from './brands/BrandCreatePage';
-export { default as BrandEditPage } from './brands/BrandEditPage';
-export { default as BrandViewPage } from './brands/BrandViewPage';
 
 // Users
 export { default as UsersListPage } from './users/UsersListPage';

@@ -9,10 +9,10 @@ from rest_framework.decorators import action
 class ContactInfoViewSet(viewsets.ModelViewSet):
     queryset = ContactInfo.objects.all()
     serializer_class = ContactInfoSerializer
-    filterset_fields = ['title', 'type', 'is_active']
-    search_fields = ['title', 'content']
-    ordering_fields = ['type', 'created_at']
-    ordering = ['type', '-created_at'] 
+    filterset_fields = ['is_active']
+    search_fields = ['company_name', 'address', 'phone', 'email']
+    ordering_fields = ['company_name', 'created_at']
+    ordering = ['company_name', '-created_at'] 
 
     def get_permissions(self):
         """

@@ -288,11 +288,12 @@ class RevenueReportViewSet(viewsets.ViewSet):
                 store_filter = f"AND o.store_id = {store_id}"
             else:
                 store_filter = self.get_user_store_filter()
-            
-            # SQL query tối ưu cho doanh thu và chi phí
+
+            debug_cogs_details = []  # Danh sách debug từng dòng xuất
+
             with connection.cursor() as cursor:
-                # Query doanh thu
-                cursor.execute(f"""
+                # 1. Query doanh thu
+                revenue_query = f"""
                     SELECT 
                         COUNT(DISTINCT o.id) as total_orders,
                         SUM(o.total_amount) as gross_revenue,
@@ -305,43 +306,62 @@ class RevenueReportViewSet(viewsets.ViewSet):
                         AND o.status IN ('delivered', 'completed')
                         AND o.is_deleted = FALSE
                         {store_filter}
-                """, [start_date, end_date])
-                
+                """
+                cursor.execute(revenue_query, [start_date, end_date])
                 revenue_result = cursor.fetchone()
-                
-                # Query chi phí hàng bán (COGS) - tính từ giá nhập kho
-                cursor.execute(f"""
-                    SELECT 
-                        SUM(od.quantity * COALESCE(
-                            (SELECT AVG(grd.unit_price) 
-                             FROM goods_receipt_details grd 
-                             JOIN goods_receipts gr ON grd.goods_receipt_id = gr.id
-                             WHERE grd.product_variant_id = od.product_variant_id 
-                               AND gr.status = 'confirmed'
-                               AND gr.is_deleted = FALSE
-                               AND gr.receipt_date <= o.order_date
-                             LIMIT 1), 0
-                        )) as cost_of_goods_sold
+
+                # 2. Lấy tất cả order detail trong kỳ
+                cursor.execute(f'''
+                    SELECT od.product_variant_id, od.quantity, o.order_date
                     FROM orders o
                     JOIN orderdetail od ON o.id = od.order_id AND od.is_deleted = FALSE
-                    WHERE o.order_date >= %s 
-                        AND o.order_date <= %s 
+                    WHERE o.order_date >= %s AND o.order_date <= %s
                         AND o.status IN ('delivered', 'completed')
                         AND o.is_deleted = FALSE
                         {store_filter}
-                """, [start_date, end_date])
-                
-                cogs_result = cursor.fetchone()
-            
-            # Xử lý kết quả
+                ''', [start_date, end_date])
+                order_details = cursor.fetchall()  # [(product_variant_id, quantity, order_date), ...]
+
+                # 3. Tính COGS theo bình quân tại thời điểm xuất, đồng thời debug từng dòng
+                total_cogs = 0
+                for product_variant_id, sold_qty, order_date in order_details:
+                    cursor.execute('''
+                        SELECT 
+                            SUM(grd.unit_price * grd.accepted_quantity) as total_cost,
+                            SUM(grd.accepted_quantity) as total_qty
+                        FROM goods_receipt_details grd
+                        JOIN goods_receipts gr ON grd.goods_receipt_id = gr.id
+                        WHERE grd.product_variant_id = %s
+                            AND gr.status IN ('confirmed', 'completed')
+                            AND gr.is_deleted = FALSE
+                            AND grd.is_deleted = FALSE
+                            AND grd.accepted_quantity > 0
+                            AND gr.receipt_date <= %s
+                    ''', [product_variant_id, order_date])
+                    gr_result = cursor.fetchone()
+                    total_cost = gr_result[0] or 0
+                    total_qty = gr_result[1] or 0
+                    avg_cost = (total_cost / total_qty) if total_qty else 0
+                    cogs_line = sold_qty * avg_cost
+                    total_cogs += cogs_line
+                    debug_cogs_details.append({
+                        'product_variant_id': product_variant_id,
+                        'sold_qty': float(sold_qty),
+                        'order_date': str(order_date),
+                        'total_cost_upto_order': float(total_cost),
+                        'total_qty_upto_order': float(total_qty),
+                        'avg_cost_upto_order': float(avg_cost),
+                        'cogs_line': float(cogs_line)
+                    })
+                cogs = Decimal(str(total_cogs))
+
+            # --- Xử lý kết quả ngoài khối with ---
             total_orders, gross_revenue, total_items, total_discounts = revenue_result
-            cogs = cogs_result[0] if cogs_result[0] else Decimal('0')
-            
             gross_revenue = gross_revenue or Decimal('0')
             total_discounts = total_discounts or Decimal('0')
             net_revenue = gross_revenue - total_discounts
             gross_profit = net_revenue - cogs
-            
+
             profit_analysis = {
                 'period': {
                     'start_date': start_date,
@@ -353,25 +373,122 @@ class RevenueReportViewSet(viewsets.ViewSet):
                     'net_revenue': float(net_revenue),
                     'discount_rate': float((total_discounts / gross_revenue * 100) if gross_revenue else 0)
                 },
-                'costs': {
-                    'cost_of_goods_sold': float(cogs),
-                    'cost_percentage': float((cogs / net_revenue * 100) if net_revenue else 0)
+                'cost_of_goods_sold': {
+                    'total_cost': float(cogs),
+                    'cost_percentage': float((cogs / net_revenue * 100) if net_revenue else 0),
+                    'cost_per_item': float(cogs / (total_items or 1)) if total_items else 0,
+                    'cost_per_order': float(cogs / total_orders) if total_orders else 0,
+                    'cost_to_revenue_ratio': float(cogs / gross_revenue) if gross_revenue else 0
                 },
                 'profit': {
                     'gross_profit': float(gross_profit),
                     'gross_profit_margin': float((gross_profit / net_revenue * 100) if net_revenue else 0),
-                    'profit_per_order': float(gross_profit / total_orders) if total_orders else 0
+                    'profit_per_order': float(gross_profit / total_orders) if total_orders else 0,
+                    'profit_per_item': float(gross_profit / (total_items or 1)) if total_items else 0,
+                    'profit_to_cost_ratio': float(gross_profit / cogs) if cogs else 0
                 },
                 'volume': {
                     'total_orders': total_orders,
                     'total_items': total_items or 0,
                     'average_order_value': float(gross_revenue / total_orders) if total_orders else 0
-                }
+                },
+                'debug_cogs_details': debug_cogs_details
             }
-            
+
             return Response(profit_analysis, status=status.HTTP_200_OK)
             
         except Exception as e:
+            import traceback
+            print(f"Error in profit_analysis: {e}")
+            print(f"Traceback: {traceback.format_exc()}")
+            return Response(
+                {"detail": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+    @action(detail=False, methods=['get'])
+    def debug_profit_data(self, request):
+        """Debug endpoint để kiểm tra dữ liệu cho profit analysis"""
+        try:
+            store_id = request.query_params.get('store_id')
+            start_date = request.query_params.get('start_date')
+            end_date = request.query_params.get('end_date')
+            
+            if not start_date:
+                start_date = (timezone.now() - timedelta(days=30)).strftime('%Y-%m-%d')
+            if not end_date:
+                end_date = timezone.now().strftime('%Y-%m-%d')
+            
+            store_filter = ""
+            if store_id:
+                store_filter = f"AND o.store_id = {store_id}"
+            
+            with connection.cursor() as cursor:
+                # Kiểm tra orders
+                cursor.execute(f"""
+                    SELECT o.id, o.order_date, o.status, o.total_amount, o.store_id
+                    FROM orders o
+                    WHERE o.order_date >= %s 
+                        AND o.order_date <= %s 
+                        AND o.status IN ('delivered', 'completed')
+                        AND o.is_deleted = FALSE
+                        {store_filter}
+                    ORDER BY o.order_date DESC
+                    LIMIT 10
+                """, [start_date, end_date])
+                orders = cursor.fetchall()
+                
+                # Kiểm tra goods_receipts
+                cursor.execute(f"""
+                    SELECT gr.id, gr.receipt_number, gr.receipt_date, gr.status, gr.store_id
+                    FROM goods_receipts gr
+                    WHERE gr.status IN ('confirmed', 'completed')
+                        AND gr.is_deleted = FALSE
+                        {store_filter}
+                    ORDER BY gr.receipt_date DESC
+                    LIMIT 10
+                """, [])
+                goods_receipts = cursor.fetchall()
+                
+                # Kiểm tra purchase_orders
+                cursor.execute(f"""
+                    SELECT po.id, po.po_number, po.order_date, po.status, po.store_id
+                    FROM purchase_orders po
+                    WHERE po.status IN ('confirmed', 'ordered', 'receiving', 'completed')
+                        AND po.is_deleted = FALSE
+                        {store_filter}
+                    ORDER BY po.order_date DESC
+                    LIMIT 10
+                """, [])
+                purchase_orders = cursor.fetchall()
+            
+            return Response({
+                'period': {'start_date': start_date, 'end_date': end_date},
+                'store_id': store_id,
+                'orders': [
+                    {
+                        'id': o[0], 'order_date': str(o[1]), 'status': o[2], 
+                        'total_amount': float(o[3]), 'store_id': o[4]
+                    } for o in orders
+                ],
+                'goods_receipts': [
+                    {
+                        'id': gr[0], 'receipt_number': gr[1], 'receipt_date': str(gr[2]), 
+                        'status': gr[3], 'store_id': gr[4]
+                    } for gr in goods_receipts
+                ],
+                'purchase_orders': [
+                    {
+                        'id': po[0], 'po_number': po[1], 'order_date': str(po[2]), 
+                        'status': po[3], 'store_id': po[4]
+                    } for po in purchase_orders
+                ]
+            })
+            
+        except Exception as e:
+            import traceback
+            print(f"Error in debug_profit_data: {e}")
+            print(f"Traceback: {traceback.format_exc()}")
             return Response(
                 {"detail": str(e)},
                 status=status.HTTP_400_BAD_REQUEST
@@ -528,15 +645,15 @@ class RevenueReportViewSet(viewsets.ViewSet):
                         pv.id as variant_id,
                         p.name as product_name,
                         pv.sku as sku,
-                        pv.name as variant_name,
+                        NULL as variant_name,
                         COALESCE(SUM(od.quantity), 0) as total_sold,
                         COALESCE(SUM(od.final_price), 0) as total_revenue,
                         COALESCE(AVG(od.final_price), 0) as avg_price,
                         COALESCE(SUM(od.quantity * od.final_price), 0) as total_value,
                         COUNT(DISTINCT o.id) as order_count,
                         COALESCE(SUM(od.quantity) / NULLIF(COUNT(DISTINCT o.id), 0), 0) as avg_quantity_per_order
-                    FROM products p
-                    JOIN productvariants pv ON p.id = pv.product_id
+                    FROM product p
+                    JOIN productvariant pv ON p.id = pv.product_id
                     LEFT JOIN orderdetail od ON pv.id = od.product_variant_id AND od.is_deleted = FALSE
                     LEFT JOIN orders o ON od.order_id = o.id 
                         AND o.order_date >= %s 
@@ -545,8 +662,8 @@ class RevenueReportViewSet(viewsets.ViewSet):
                         AND o.is_deleted = FALSE
                         {store_filter}
                     WHERE p.is_deleted = FALSE AND pv.is_deleted = FALSE
-                    GROUP BY pv.id, p.name, pv.sku, pv.name
-                    HAVING total_sold > 0
+                    GROUP BY pv.id, p.name, pv.sku
+                    HAVING SUM(od.quantity) > 0
                     ORDER BY total_sold DESC
                     LIMIT 50
                 """, [start_date, end_date])
@@ -670,10 +787,10 @@ class RevenueReportViewSet(viewsets.ViewSet):
                     
                     # Dự báo đơn giản với biến động ngẫu nhiên nhỏ (±10%)
                     variation = 1 + (hash(str(forecast_date)) % 20 - 10) / 100
-                    
-                    forecast_revenue = avg_daily_revenue * variation
-                    forecast_orders = avg_daily_orders * variation
-                    forecast_customers = avg_daily_customers * variation
+                    variation_float = float(variation)
+                    forecast_revenue = float(avg_daily_revenue) * variation_float
+                    forecast_orders = float(avg_daily_orders) * variation_float
+                    forecast_customers = float(avg_daily_customers) * variation_float
                     
                     forecast_data.append({
                         'date': forecast_date.strftime('%Y-%m-%d'),

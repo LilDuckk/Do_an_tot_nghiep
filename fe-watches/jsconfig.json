@@ -16,7 +16,11 @@
       "@/components/*": ["components/*"],
       "@/utils/*": ["utils/*"],
       "@/assets/*": ["assets/*"],
-      "@/styles/*": ["styles/*"]
+      "@/styles/*": ["styles/*"],
+      "@/orders": ["admin/pages/orders/*"],
+      "@/orders/hooks": ["admin/pages/orders/hooks/*"],
+      "@/orders/components": ["admin/pages/orders/components/*"],
+      "@/orders/utils": ["admin/pages/orders/utils/*"]
     }
   },
   "include": ["src/**/*"],

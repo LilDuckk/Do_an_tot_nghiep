@@ -1,386 +1,443 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useCallback } from 'react';
+import { Input, Button, Empty, Table, Space, Modal, Form, Select, DatePicker } from 'antd';
+import { SearchOutlined, PlusOutlined } from '@ant-design/icons';
+import dayjs from 'dayjs';
+import { CONTENT_ENDPOINTS } from '@/config/api';
+import { useListData, useCRUD, useAccessControl, useImages } from '@/admin/hooks';
+import { AccessDeniedAlert, CustomPagination, ActionButtons, ImageManager } from '@/admin/components';
 import '@/admin/static/AdminCommon.css';
 
+const { Option } = Select;
+  // const { TextArea } = Input;
+
 export default function BannerManagement() {
-  const [banners, setBanners] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [modalVisible, setModalVisible] = useState(false);
+  const [form] = Form.useForm();
   const [editingId, setEditingId] = useState(null);
-  const [editingBanner, setEditingBanner] = useState({});
-  const [newBanner, setNewBanner] = useState({
-    title: '',
-    image: null,
-    link_url: '',
-    alt_text: '',
-    start_date: '',
-    end_date: '',
-    display_order: 1,
-    is_active: true,
-    banner_location: 'homepage',
+
+  // Hook tích hợp cho danh sách banners
+  const {
+    data: banners,
+    isLoading,
+    hasAccess,
+    searchText,
+    setSearchText,
+    currentPage,
+    setCurrentPage,
+    totalPages,
+    total,
+    hasNext,
+    hasPrevious,
+    fetchData: fetchBanners
+  } = useListData({
+    module: 'content',
+    action: 'view',
+    apiEndpoint: CONTENT_ENDPOINTS.BANNERS,
+    pageSize: 20,
+    debounceDelay: 500
   });
-  const newFileInputRef = useRef();
-  const editFileInputRef = useRef();
 
-  useEffect(() => {
-    fetchBanners();
-  }, []);
+  // CRUD operations với kiểm tra quyền
+  const { createData, updateData, deleteData } = useCRUD({
+    baseUrl: CONTENT_ENDPOINTS.BANNERS,
+    entityName: 'banner',
+    canCreate: hasAccess,
+    canEdit: hasAccess,
+    canDelete: hasAccess
+  });
 
-  const fetchBanners = async () => {
-    try {
-      setLoading(true);
-      const token = localStorage.getItem('accessToken');
-      const response = await fetch('http://localhost:8000/api/content/banners/', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        }
-      });
-      if (!response.ok) throw new Error('Lỗi khi lấy danh sách banner');
-      const data = await response.json();
-      setBanners(data.results || []);
-    } catch (error) {
-      setError(error.message);
-      setBanners([]);
-    } finally {
-      setLoading(false);
+  // Access control cho các action cụ thể
+  const { checkModulePermission } = useAccessControl();
+
+  // Hook xử lý ảnh
+  const {
+    uploadingImages,
+    handleImageUpload,
+    handleDeleteImage,
+    handleUpdateImageAltText
+  } = useImages(
+    editingId,
+    editingId ? `${CONTENT_ENDPOINTS.BANNERS}${editingId}/upload_images/` : null,
+    editingId ? `${CONTENT_ENDPOINTS.BANNERS}${editingId}/delete_image/` : null,
+    (imageId) => `${CONTENT_ENDPOINTS.BANNERS}${editingId}/images/${imageId}/`,
+    fetchBanners
+  );
+
+  const handleDelete = useCallback(async (record) => {
+    const success = await deleteData(record.id);
+    if (success) {
+      fetchBanners();
     }
-  };
+  }, [deleteData, fetchBanners]);
 
-  // Tạo mới banner
-  const handleBannerCreate = async (e) => {
-    e.preventDefault();
-    try {
-      const token = localStorage.getItem('accessToken');
-      const formData = new FormData();
-      formData.append('title', newBanner.title);
-      if (newBanner.image) formData.append('image', newBanner.image);
-      formData.append('link_url', newBanner.link_url);
-      formData.append('alt_text', newBanner.alt_text);
-      // formData.append('start_date', newBanner.start_date || '');
-      // formData.append('end_date', newBanner.end_date || '');
-      formData.append('display_order', newBanner.display_order);
-      formData.append('is_active', newBanner.is_active);
-      formData.append('banner_location', newBanner.banner_location);
-      const response = await fetch('http://localhost:8000/api/content/banners/', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-        body: formData,
-      });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Lỗi khi tạo banner');
-      }
-      const result = await response.json();
-      setBanners(prev => [...prev, result]);
-      setNewBanner({
-        title: '',
-        image: null,
-        link_url: '',
-        alt_text: '',
-        // start_date: '',
-        // end_date: '',
-        display_order: 1,
-        is_active: true,
-        banner_location: 'homepage',
-      });
-      if (newFileInputRef.current) newFileInputRef.current.value = '';
-    } catch (error) {
-      alert(error.message);
-    }
-  };
-
-  // Sửa banner inline
-  const handleBannerEdit = (banner) => {
-    setEditingId(banner.id);
-    setEditingBanner({
-      ...banner,
-      image: null, // reset file input
-      start_date: banner.start_date ? banner.start_date.substring(0, 10) : '',
-      end_date: banner.end_date ? banner.end_date.substring(0, 10) : '',
+  const handleEdit = useCallback((record) => {
+    console.log('Editing banner:', record);
+    setEditingId(record.id);
+    form.setFieldsValue({
+      title: record.title,
+      link_url: record.link_url,
+      alt_text: record.alt_text,
+      start_date: record.start_date ? dayjs(record.start_date) : null,
+      end_date: record.end_date ? dayjs(record.end_date) : null,
+      display_order: record.display_order,
+      is_active: record.is_active,
+      banner_location: record.banner_location
     });
-    if (editFileInputRef.current) editFileInputRef.current.value = '';
-  };
+    setModalVisible(true);
+  }, [form]);
 
-  const handleBannerUpdate = async (e) => {
-    e.preventDefault();
-    try {
-      const token = localStorage.getItem('accessToken');
-      const formData = new FormData();
-      formData.append('title', editingBanner.title);
-      if (editingBanner.image) formData.append('image', editingBanner.image);
-      formData.append('link_url', editingBanner.link_url);
-      formData.append('alt_text', editingBanner.alt_text);
-      // formData.append('start_date', editingBanner.start_date || '');
-      // formData.append('end_date', editingBanner.end_date || '');
-      formData.append('display_order', editingBanner.display_order);
-      formData.append('is_active', editingBanner.is_active);
-      formData.append('banner_location', editingBanner.banner_location);
-      const response = await fetch(`http://localhost:8000/api/content/banners/${editingBanner.id}/`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-        body: formData,
-      });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Lỗi khi cập nhật banner');
-      }
-      const result = await response.json();
-      setBanners(prev => prev.map(b => b.id === result.id ? result : b));
+  const handleAdd = useCallback(() => {
+    setEditingId(null);
+    form.resetFields();
+    setModalVisible(true);
+  }, [form]);
+
+  const handleSubmit = useCallback(async (values) => {
+    const formattedValues = {
+      title: values.title,
+      link_url: values.link_url,
+      alt_text: values.alt_text,
+      start_date: values.start_date ? values.start_date.format('YYYY-MM-DD') : null,
+      end_date: values.end_date ? values.end_date.format('YYYY-MM-DD') : null,
+      display_order: Number(values.display_order),
+      is_active: values.is_active,
+      banner_location: values.banner_location
+    };
+
+    let success = false;
+    if (editingId) {
+      success = await updateData(editingId, formattedValues);
+    } else {
+      success = await createData(formattedValues);
+    }
+
+    if (success) {
+      setModalVisible(false);
+      form.resetFields();
       setEditingId(null);
-      setEditingBanner({});
-    } catch (error) {
-      alert(error.message);
+      fetchBanners();
     }
-  };
+  }, [editingId, updateData, createData, form, fetchBanners]);
 
-  // Xóa banner
-  const handleDelete = async (id) => {
-    if (!window.confirm('Bạn có chắc chắn muốn xóa banner này?')) return;
-    try {
-      const token = localStorage.getItem('accessToken');
-      const response = await fetch(`http://localhost:8000/api/content/banners/${id}/`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      if (!response.ok) throw new Error('Lỗi khi xóa banner');
-      setBanners(prev => prev.filter(b => b.id !== id));
-    } catch (error) {
-      alert(error.message);
-    }
-  };
-
-  if (loading) return <div className="loading">Đang tải...</div>;
-  if (error) return <div className="admin-error">{error}</div>;
+  // Định nghĩa columns cho Ant Design Table
+  const columns = [
+    {
+      title: 'ID',
+      dataIndex: 'id',
+      key: 'id',
+      width: 80,
+    },
+    {
+      title: 'Hình ảnh',
+      dataIndex: 'image_url',
+      key: 'image_url',
+      width: 120,
+      render: (imageUrl, record) => (
+        <ImageManager
+          images={[{ id: record.id, image: record.image || record.image_url, alt_text: record.alt_text }]}
+          entityId={record.id}
+          isEditing={false}
+          uploadingImages={uploadingImages}
+          onImageUpload={handleImageUpload}
+          onDeleteImage={handleDeleteImage}
+          onUpdateAltText={handleUpdateImageAltText}
+          title="Quản lý ảnh banner"
+          entityName="banner"
+          imageSize={{ width: 80, height: 60 }}
+          popupImageSize={{ width: 200, height: 150 }}
+          columnWidth={120}
+        />
+      ),
+    },
+    {
+      title: 'Tiêu đề',
+      dataIndex: 'title',
+      key: 'title',
+      width: 200,
+      render: (title, record) => (
+        <div className="banner-title">
+          <div style={{ fontWeight: 'bold' }}>{title}</div>
+          {record.link_url && (
+            <div style={{ fontSize: '12px', color: '#666' }}>
+              Link: {record.link_url}
+            </div>
+          )}
+          {record.alt_text && (
+            <div style={{ fontSize: '12px', color: '#666' }}>
+              Alt: {record.alt_text}
+            </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      title: 'Vị trí',
+      dataIndex: 'banner_location',
+      key: 'banner_location',
+      width: 120,
+      render: (location) => (
+        <div className="banner-location">
+          {location}
+        </div>
+      ),
+    },
+    {
+      title: 'Thứ tự',
+      dataIndex: 'display_order',
+      key: 'display_order',
+      width: 100,
+      render: (order) => (
+        <div className="banner-order">
+          {order}
+        </div>
+      ),
+    },
+    {
+      title: 'Ngày hiển thị',
+      key: 'date_range',
+      width: 150,
+      render: (_, record) => (
+        <div className="banner-dates">
+          {record.start_date && (
+            <div style={{ fontSize: '12px' }}>
+              Từ: {new Date(record.start_date).toLocaleDateString('vi-VN')}
+            </div>
+          )}
+          {record.end_date && (
+            <div style={{ fontSize: '12px' }}>
+              Đến: {new Date(record.end_date).toLocaleDateString('vi-VN')}
+            </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      title: 'Trạng thái',
+      dataIndex: 'is_active',
+      key: 'is_active',
+      width: 120,
+      render: (isActive) => (
+        <span className={`status-badge ${isActive ? 'active' : 'inactive'}`}>
+          {isActive ? 'Hoạt động' : 'Ẩn'}
+        </span>
+      ),
+    },
+    {
+      title: 'Thao tác',
+      key: 'action',
+      width: 200,
+      fixed: 'right',
+      render: (_, record) => (
+        <ActionButtons
+          record={record}
+          onView={() => handleEdit(record)}
+          onEdit={() => handleEdit(record)}
+          onDelete={() => handleDelete(record)}
+          hasAccess={hasAccess}
+          showView={false}
+          showEdit={checkModulePermission('content', 'edit')}
+          showDelete={checkModulePermission('content', 'delete')}
+          entityName="banner"
+        />
+      ),
+    },
+  ];
 
   return (
-    <div className="admin-users-list">
+    <div className="admin-banner-management">
+      {/* Access Denied Alert */}
+      <AccessDeniedAlert 
+        hasAccess={hasAccess} 
+        module="content"
+        action="view"
+        showUserInfo={false}
+      />
       <div className="admin-list-header">
-        <h2>Quản lý ảnh bìa</h2>
+        <div className="search-bar">
+          <Input
+            placeholder="Tìm kiếm banner..."
+            prefix={<SearchOutlined />}
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            style={{ width: 300 }}
+            allowClear
+            disabled={!hasAccess}
+          />
+          {checkModulePermission('content', 'create') && (
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={handleAdd}
+            >
+              Thêm banner mới
+            </Button>
+          )}
+        </div>
       </div>
-      <div className="table-responsive">
-        <table className="admin-table">
-          <thead>
-            <tr>
-              <th>STT</th>
-              <th>Hình ảnh</th>
-              <th>Tiêu đề</th>
-              <th>Vị trí</th>
-              <th>Trạng thái</th>
-              <th>Thao tác</th>
-            </tr>
-          </thead>
-          <tbody>
-            {/* Dòng thêm mới */}
-            <tr className="new-item-row">
-              <td>+</td>
-              <td>
-                <input
-                  type="file"
-                  accept="image/*"
-                  ref={newFileInputRef}
-                  onChange={e => setNewBanner({...newBanner, image: e.target.files[0]})}
-                  required
-                />
-              </td>
-              <td>
-                <input
-                  type="text"
-                  value={newBanner.title}
-                  onChange={e => setNewBanner({...newBanner, title: e.target.value})}
-                  placeholder="Tiêu đề"
-                  required
-                />
-                <input
-                  type="text"
-                  value={newBanner.link_url}
-                  onChange={e => setNewBanner({...newBanner, link_url: e.target.value})}
-                  placeholder="Đường dẫn liên kết"
-                />
-                <input
-                  type="text"
-                  value={newBanner.alt_text}
-                  onChange={e => setNewBanner({...newBanner, alt_text: e.target.value})}
-                  placeholder="Alt text"
-                />
-                {/* <input
-                  type="date"
-                  value={newBanner.start_date}
-                  onChange={e => setNewBanner({...newBanner, start_date: e.target.value})}
-                />
-                <input
-                  type="date"
-                  value={newBanner.end_date}
-                  onChange={e => setNewBanner({...newBanner, end_date: e.target.value})}
-                /> */}
-                <input
-                  type="number"
-                  value={newBanner.display_order}
-                  min="1"
-                  onChange={e => setNewBanner({...newBanner, display_order: Number(e.target.value)})}
-                  placeholder="Thứ tự"
-                />
-                <input
-                  type="text"
-                  value={newBanner.banner_location}
-                  onChange={e => setNewBanner({...newBanner, banner_location: e.target.value})}
-                  placeholder="Vị trí"
-                />
-                <label className="admin-checkbox">
-                  <input
-                    type="checkbox"
-                    checked={newBanner.is_active}
-                    onChange={e => setNewBanner({...newBanner, is_active: e.target.checked})}
-                  />
-                  <span>Hoạt động</span>
-                </label>
-              </td>
-              <td colSpan={3}>
-                <button
-                  className="admin-btn primary"
-                  onClick={handleBannerCreate}
-                  disabled={!newBanner.title || !newBanner.image}
-                >
-                  Thêm mới
-                </button>
-              </td>
-            </tr>
-            {/* Danh sách banner */}
-            {banners.length > 0 ? banners.map((banner, idx) => (
-              <tr key={banner.id}>
-                <td>{idx + 1}</td>
-                <td>
-                  {editingId === banner.id ? (
-                    <>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        ref={editFileInputRef}
-                        onChange={e => setEditingBanner({...editingBanner, image: e.target.files[0]})}
-                      />
-                      {banner.image_url && (
-                        <div style={{marginTop: 8}}>
-                          <img
-                            src={banner.image_url.startsWith('http') ? banner.image_url : `http://localhost:8000${banner.image_url}`}
-                            alt={banner.alt_text || banner.title}
-                            style={{maxWidth: 120, borderRadius: 4}}
-                          />
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    banner.image_url ? (
-                      <img
-                        src={banner.image_url.startsWith('http') ? banner.image_url : `http://localhost:8000${banner.image_url}`}
-                        alt={banner.alt_text || banner.title}
-                        style={{maxWidth: 120, borderRadius: 4}}
-                      />
-                    ) : 'Không có ảnh'
-                  )}
-                </td>
-                <td>
-                  {editingId === banner.id ? (
-                    <>
-                      <input
-                        type="text"
-                        value={editingBanner.title}
-                        onChange={e => setEditingBanner({...editingBanner, title: e.target.value})}
-                        required
-                      />
-                      <input
-                        type="text"
-                        value={editingBanner.link_url}
-                        onChange={e => setEditingBanner({...editingBanner, link_url: e.target.value})}
-                        placeholder="Đường dẫn liên kết"
-                      />
-                      <input
-                        type="text"
-                        value={editingBanner.alt_text}
-                        onChange={e => setEditingBanner({...editingBanner, alt_text: e.target.value})}
-                        placeholder="Alt text"
-                      />
-                      {/* <input
-                        type="date"
-                        value={editingBanner.start_date}
-                        onChange={e => setEditingBanner({...editingBanner, start_date: e.target.value})}
-                      />
-                      <input
-                        type="date"
-                        value={editingBanner.end_date}
-                        onChange={e => setEditingBanner({...editingBanner, end_date: e.target.value})}
-                      /> */}
-                      <input
-                        type="number"
-                        value={editingBanner.display_order}
-                        min="1"
-                        onChange={e => setEditingBanner({...editingBanner, display_order: Number(e.target.value)})}
-                        placeholder="Thứ tự"
-                      />
-                      <input
-                        type="text"
-                        value={editingBanner.banner_location}
-                        onChange={e => setEditingBanner({...editingBanner, banner_location: e.target.value})}
-                        placeholder="Vị trí"
-                      />
-                      <label className="admin-checkbox">
-                        <input
-                          type="checkbox"
-                          checked={editingBanner.is_active}
-                          onChange={e => setEditingBanner({...editingBanner, is_active: e.target.checked})}
-                        />
-                        <span>Hoạt động</span>
-                      </label>
-                    </>
-                  ) : (
-                    <>
-                      <div><b>{banner.title}</b></div>
-                      {banner.link_url && <div>Link: {banner.link_url}</div>}
-                      {banner.alt_text && <div>Alt: {banner.alt_text}</div>}
-                      {banner.start_date && <div>BĐ: {banner.start_date}</div>}
-                      {banner.end_date && <div>KT: {banner.end_date}</div>}
-                      <div>Thứ tự: {banner.display_order}</div>
-                      <div>Vị trí: {banner.banner_location}</div>
-                    </>
-                  )}
-                </td>
-                <td>
-                  {editingId === banner.id ? null : banner.banner_location}
-                </td>
-                <td>
-                  {editingId === banner.id ? null : (
-                    <span className={`status-badge ${banner.is_active ? 'active' : 'inactive'}`}>
-                      {banner.is_active ? 'Hoạt động' : 'Ẩn'}
-                    </span>
-                  )}
-                </td>
-                <td>
-                  <div className="admin-table-actions">
-                    {editingId === banner.id ? (
-                      <>
-                        <button className="admin-btn primary" onClick={handleBannerUpdate}>Lưu</button>
-                        <button className="admin-btn" onClick={() => { setEditingId(null); setEditingBanner({}); }}>Hủy</button>
-                      </>
-                    ) : (
-                      <>
-                        <button className="admin-btn" onClick={() => handleBannerEdit(banner)}>Sửa</button>
-                        <button className="admin-btn danger" onClick={() => handleDelete(banner.id)}>Xóa</button>
-                      </>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            )) : (
-              <tr>
-                <td colSpan="6" className="text-center">Không có dữ liệu</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+
+      <Table
+        columns={columns}
+        dataSource={banners}
+        loading={isLoading}
+        rowKey="id"
+        className="banner-table"
+        scroll={{ x: 1200 }}
+        pagination={false}
+        locale={{
+          emptyText: (
+            <Empty 
+              description="Không có dữ liệu" 
+              imageStyle={{ height: 60 }} 
+            />
+          )
+        }}
+      />
+
+      {/* Pagination */}
+      <CustomPagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        total={total}
+        onPageChange={setCurrentPage}
+        hasAccess={hasAccess}
+        hasNext={hasNext}
+        hasPrevious={hasPrevious}
+      />
+
+      {/* Modal cho thêm/sửa banner */}
+      <Modal
+        title={editingId ? 'Chỉnh sửa banner' : 'Thêm banner mới'}
+        open={modalVisible}
+        onCancel={() => {
+          setModalVisible(false);
+          form.resetFields();
+          setEditingId(null);
+        }}
+        footer={null}
+        width={600}
+      >
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={handleSubmit}
+        >
+          <Form.Item
+            name="title"
+            label="Tiêu đề"
+            rules={[{ required: true, message: 'Vui lòng nhập tiêu đề' }]}
+          >
+            <Input placeholder="Nhập tiêu đề banner" />
+          </Form.Item>
+
+          <Form.Item
+            name="link_url"
+            label="Đường dẫn liên kết"
+          >
+            <Input placeholder="Nhập URL liên kết (không bắt buộc)" />
+          </Form.Item>
+
+          <Form.Item
+            name="alt_text"
+            label="Alt text"
+          >
+            <Input placeholder="Nhập alt text cho ảnh" />
+          </Form.Item>
+
+          <Form.Item
+            name="banner_location"
+            label="Vị trí hiển thị"
+            rules={[{ required: true, message: 'Vui lòng chọn vị trí hiển thị' }]}
+          >
+            <Select placeholder="Chọn vị trí hiển thị">
+              <Option value="homepage">Trang chủ</Option>
+              <Option value="category">Trang danh mục</Option>
+              <Option value="product">Trang sản phẩm</Option>
+              <Option value="about">Trang giới thiệu</Option>
+              <Option value="contact">Trang liên hệ</Option>
+              <Option value="hot">Mục sản phẩm hot</Option>
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            name="display_order"
+            label="Thứ tự hiển thị"
+            rules={[{ required: true, message: 'Vui lòng nhập thứ tự hiển thị' }]}
+          >
+            <Input type="number" placeholder="Nhập thứ tự hiển thị" min="1" />
+          </Form.Item>
+
+          <Form.Item
+            name="start_date"
+            label="Ngày bắt đầu hiển thị"
+          >
+            <DatePicker 
+              placeholder="Chọn ngày bắt đầu" 
+              style={{ width: '100%' }}
+              format="DD/MM/YYYY"
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="end_date"
+            label="Ngày kết thúc hiển thị"
+          >
+            <DatePicker 
+              placeholder="Chọn ngày kết thúc" 
+              style={{ width: '100%' }}
+              format="DD/MM/YYYY"
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="is_active"
+            label="Trạng thái"
+            valuePropName="checked"
+          >
+            <Select placeholder="Chọn trạng thái">
+              <Option value={true}>Hoạt động</Option>
+              <Option value={false}>Ẩn</Option>
+            </Select>
+          </Form.Item>
+
+          {/* Phần quản lý ảnh cho banner đang edit */}
+          {editingId && (
+            <Form.Item label="Quản lý ảnh">
+              <ImageManager
+                images={(() => {
+                  const banner = banners.find(b => b.id === editingId);
+                  return banner ? [{ id: banner.id, image: banner.image || banner.image_url, alt_text: banner.alt_text }] : [];
+                })()}
+                entityId={editingId}
+                isEditing={true}
+                uploadingImages={uploadingImages}
+                onImageUpload={handleImageUpload}
+                onDeleteImage={handleDeleteImage}
+                onUpdateAltText={handleUpdateImageAltText}
+                title="Quản lý ảnh banner"
+                entityName="banner"
+                imageSize={{ width: 100, height: 75 }}
+                popupImageSize={{ width: 200, height: 150 }}
+                columnWidth={200}
+              />
+            </Form.Item>
+          )}
+
+          <Form.Item>
+            <Space>
+              <Button type="primary" htmlType="submit">
+                {editingId ? 'Cập nhật' : 'Thêm mới'}
+              </Button>
+              <Button onClick={() => {
+                setModalVisible(false);
+                form.resetFields();
+                setEditingId(null);
+              }}>
+                Hủy
+              </Button>
+            </Space>
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 } 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { PRODUCT_ENDPOINTS, ORDER_ENDPOINTS, CUSTOMER_ENDPOINTS } from '@/config/api';
+import { PRODUCT_ENDPOINTS, ORDER_ENDPOINTS } from '@/config/api';
 import Header from './Header';
 import Footer from './Footer';
 import { 

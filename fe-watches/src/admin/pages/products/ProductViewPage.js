@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { hasModulePermission } from '@/services/permission';
 import { PRODUCT_ENDPOINTS } from '@/config/api';
+import { useAccessControl, useApiCall } from '@/admin/hooks';
+import { AccessDeniedAlert, ActionButtons } from '@/admin/components';
 import '@/admin/static/AdminCommon.css';
 
 export default function ProductViewPage() {
@@ -11,57 +12,85 @@ export default function ProductViewPage() {
   const [attributes, setAttributes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [productAttributes, setProductAttributes] = useState([]);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const token = localStorage.getItem('accessToken');
-        
-        // Fetch product với đầy đủ thông tin
-        const productRes = await fetch(`${PRODUCT_ENDPOINTS.PRODUCT_DETAIL(id)}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (productRes.ok) {
-          const data = await productRes.json();
-          setProduct(data);
-        } else {
-          setError('Không tìm thấy sản phẩm');
-        }
+  // Chuẩn hóa kiểm tra quyền truy cập
+  const { hasAccess, checkModulePermission } = useAccessControl('product', 'view');
 
-        // Fetch variants của sản phẩm
-        const variantsRes = await fetch(PRODUCT_ENDPOINTS.PRODUCT_VARIANTS(id), {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (variantsRes.ok) {
-          const variantsData = await variantsRes.json();
-          setVariants(Array.isArray(variantsData) ? variantsData : []);
-          
-          // Lấy thông tin attributes từ variants
-          const allAttributes = [];
-          variantsData.forEach(variant => {
-            if (variant.attribute_values_detail) {
-              variant.attribute_values_detail.forEach(attr => {
-                allAttributes.push({
-                  attribute_type_name: attr.attribute_type.name,
-                  value: attr.value,
-                  variant_id: variant.id
-                });
-              });
-            }
-          });
-          setAttributes(allAttributes);
-        }
+  // Hook quản lý API calls
+  const { get } = useApiCall();
 
-      } catch (error) {
-        setError('Lỗi khi tải dữ liệu');
+  // Fetch product data
+  const fetchProduct = useCallback(async () => {
+    if (!hasAccess) return;
+
+    try {
+      setLoading(true);
+      const result = await get(
+        `${PRODUCT_ENDPOINTS.PRODUCT_DETAIL(id)}`,
+        {},
+        'Lỗi khi lấy thông tin sản phẩm'
+      );
+
+      if (result.success) {
+        setProduct(result.data);
+      } else {
+        setError('Không lấy được thông tin sản phẩm');
       }
+    } catch (error) {
+      setError('Lỗi khi tải dữ liệu');
+    } finally {
       setLoading(false);
-    };
+    }
+  }, [id, hasAccess, get]);
 
-    fetchData();
-  }, [id]);
+  // Fetch variants
+  const fetchVariants = useCallback(async () => {
+    if (!hasAccess) return;
+
+    try {
+      const result = await get(
+        PRODUCT_ENDPOINTS.PRODUCT_VARIANTS(id),
+        {},
+        'Lỗi khi lấy danh sách biến thể'
+      );
+
+      if (result.success) {
+        const variantsData = result.data;
+        setVariants(Array.isArray(variantsData) ? variantsData : []);
+        
+        // Lấy thông tin attributes từ variants
+        const allAttributes = [];
+        variantsData.forEach(variant => {
+          if (variant.attribute_values_detail) {
+            variant.attribute_values_detail.forEach(attr => {
+              allAttributes.push({
+                attribute_type_name: attr.attribute_type.name,
+                value: attr.value,
+                variant_id: variant.id
+              });
+            });
+          }
+        });
+        setAttributes(allAttributes);
+      } else {
+        setVariants([]);
+        setAttributes([]);
+      }
+    } catch (error) {
+      console.error('Error fetching variants:', error);
+      setVariants([]);
+      setAttributes([]);
+    }
+  }, [id, hasAccess, get]);
+
+  // Initialize data
+  useEffect(() => {
+    if (hasAccess) {
+      fetchProduct();
+      fetchVariants();
+    }
+  }, [hasAccess, fetchProduct, fetchVariants]);
 
   // Hàm lấy url ảnh đúng
   const getImageUrl = (img) => {
@@ -71,16 +100,58 @@ export default function ProductViewPage() {
     return `http://localhost:8000${url}`;
   };
 
-  if (!hasModulePermission('product', 'view')) {
-    return <div className="admin-error">Bạn không có quyền xem sản phẩm.</div>;
+  const handleEdit = useCallback(() => {
+    navigate(`/admin/products/${id}/edit`);
+  }, [navigate, id]);
+
+  const handleBack = useCallback(() => {
+    navigate('/admin/products');
+  }, [navigate]);
+
+  if (loading) {
+    return (
+      <div className="admin-group-view">
+        <div style={{ textAlign: 'center', padding: '40px 0' }}>
+          Đang tải...
+        </div>
+      </div>
+    );
   }
 
-  if (loading) return <div>Đang tải...</div>;
-  if (error) return <div className="admin-error">{error}</div>;
-  if (!product) return null;
+  if (error) {
+    return (
+      <div className="admin-group-view">
+        <div className="admin-error" style={{ marginBottom: 16 }}>
+          {error}
+        </div>
+        <button className="admin-btn" onClick={handleBack}>
+          Quay lại
+        </button>
+      </div>
+    );
+  }
+
+  if (!product) {
+    return (
+      <div className="admin-group-view">
+        <div className="admin-error">Không tìm thấy sản phẩm</div>
+        <button className="admin-btn" onClick={handleBack}>
+          Quay lại
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="admin-group-view">
+      {/* Access Denied Alert */}
+      <AccessDeniedAlert 
+        hasAccess={hasAccess} 
+        module="product"
+        action="view"
+        showUserInfo={true}
+      />
+
       <h2>Chi tiết sản phẩm</h2>
       
       {/* Thông tin cơ bản */}
@@ -120,31 +191,6 @@ export default function ProductViewPage() {
         </div>
       )}
 
-      {/* Thuộc tính sản phẩm */}
-      {/* {attributes.length > 0 && (
-        <div className="form-section">
-          <h3>Thuộc tính sản phẩm</h3>
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>Loại thuộc tính</th>
-                <th>Giá trị</th>
-                <th>Biến thể</th>
-              </tr>
-            </thead>
-            <tbody>
-              {attributes.map((attr, index) => (
-                <tr key={index}>
-                  <td>{attr.attribute_type_name || 'N/A'}</td>
-                  <td>{attr.value || 'N/A'}</td>
-                  <td>{variants.find(v => v.id === attr.variant_id)?.sku || 'N/A'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )} */}
-
       {/* Biến thể sản phẩm */}
       {variants.length > 0 && (
         <div className="form-section">
@@ -174,7 +220,25 @@ export default function ProductViewPage() {
         </div>
       )}
 
-      <button className="admin-btn" onClick={() => navigate('/admin/products')}>Quay lại</button>
+      <div className="admin-actions" style={{ marginTop: 20 }}>
+        <ActionButtons
+          record={product}
+          onEdit={handleEdit}
+          hasAccess={hasAccess}
+          showView={false}
+          showEdit={checkModulePermission('product', 'edit')}
+          showDelete={false}
+          additionalActions={[
+            {
+              key: 'back',
+              title: 'Quay lại',
+              onClick: handleBack,
+              type: 'default',
+              style: { borderColor: '#d9d9d9', color: '#666' }
+            }
+          ]}
+        />
+      </div>
     </div>
   );
 } 

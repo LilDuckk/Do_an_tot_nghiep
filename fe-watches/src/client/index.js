@@ -7,6 +7,8 @@ export { default as ProductDetail } from './ProductDetail';
 export { default as CartDetail } from './CartDetail';
 export { default as Maintenance } from './Maintenance';
 export { default as Contact } from './Contact';
+export { default as News } from './News';
+export { default as NewsDetail } from './NewsDetail';
 
 // Components
 export { default as Header } from './Header';

@@ -60,7 +60,7 @@ class TopProductsView(APIView):
                         p.id as product_id,
                         p.name as product_name,
                         pv.sku as sku,
-                        pv.name as variant_name,
+                        NULL as variant_name,
                         b.name as brand_name,
                         c.name as category_name,
                         COALESCE(SUM(od.quantity), 0) as total_sold,
@@ -69,10 +69,10 @@ class TopProductsView(APIView):
                         COUNT(DISTINCT o.id) as order_count,
                         COALESCE(SUM(od.quantity) / NULLIF(COUNT(DISTINCT o.id), 0), 0) as avg_quantity_per_order,
                         COALESCE(SUM(od.final_price) / NULLIF(SUM(od.quantity), 0), 0) as revenue_per_unit
-                    FROM products p
-                    JOIN productvariants pv ON p.id = pv.product_id
-                    LEFT JOIN brands b ON p.brand_id = b.id
-                    LEFT JOIN categories c ON p.category_id = c.id
+                    FROM product p
+                    JOIN productvariant pv ON p.id = pv.product_id
+                    LEFT JOIN brand b ON p.brand_id = b.id
+                    LEFT JOIN category c ON p.category_id = c.id
                     LEFT JOIN orderdetail od ON pv.id = od.product_variant_id AND od.is_deleted = FALSE
                     LEFT JOIN orders o ON od.order_id = o.id 
                         AND o.order_date >= %s 
@@ -81,8 +81,8 @@ class TopProductsView(APIView):
                         AND o.is_deleted = FALSE
                         {store_filter}
                     WHERE p.is_deleted = FALSE AND pv.is_deleted = FALSE
-                    GROUP BY pv.id, p.id, p.name, pv.sku, pv.name, b.name, c.name
-                    HAVING total_sold > 0
+                    GROUP BY pv.id, p.id, p.name, pv.sku, b.name, c.name
+                    HAVING SUM(od.quantity) > 0
                     ORDER BY total_sold DESC, total_revenue DESC
                     LIMIT %s
                 """, [start_date, end_date, limit])

@@ -6,4 +6,6 @@ export { default as AdvancedPageHeader } from './common/AdvancedPageHeader';
 export { default as AccessDeniedAlert } from './common/AccessDeniedAlert';
 export { default as CustomPagination } from './common/CustomPagination';
 export { default as SearchAndFilterBar } from './common/SearchAndFilterBar';
-export { default as ActionButtons } from './common/ActionButtons'; 
+export { default as ActionButtons } from './common/ActionButtons';
+export { default as ImageManager } from './common/ImageManager';
+export { default as StatisticsCards } from './common/StatisticsCards'; 

@@ -64,14 +64,6 @@ export function hasPermission(key) {
   return !!perms[key];
 }
 
-// Hàm mapping codename sang quyền FE
-const permissionMap = {
-  view: ['view_user', 'view_group', 'view_permission'],
-  create: ['add_user', 'add_group', 'add_permission'],
-  edit: ['change_user', 'change_group', 'change_permission'],
-  delete: ['delete_user', 'delete_group', 'delete_permission'],
-};
-
 // Hàm xử lý và lưu quyền FE vào localStorage sau khi đăng nhập
 export async function saveUserPermissionsAfterLogin(user) {
   if (user.is_superuser) {

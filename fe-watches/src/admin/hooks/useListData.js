@@ -41,7 +41,11 @@ export const useListData = ({
     debouncedSearchText,
     currentPage,
     setCurrentPage,
-    buildQueryParams
+    buildQueryParams,
+    filters,
+    handleFilterChange,
+    clearFilters,
+    hasActiveFilters
   } = useSearchAndFilter(initialFilters, debounceDelay);
 
   // Hook quản lý pagination
@@ -145,6 +149,10 @@ export const useListData = ({
     setSearchText,
     debouncedSearchText,
     buildQueryParams,
+    filters,
+    handleFilterChange,
+    clearFilters,
+    hasActiveFilters,
     
     // Pagination
     currentPage,

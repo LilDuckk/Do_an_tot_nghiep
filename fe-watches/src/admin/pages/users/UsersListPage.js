@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Table, Modal, Form, Input, Select, Space, Badge, Tag, Button, Checkbox } from 'antd';
-import { UserOutlined, ShopOutlined, IdcardOutlined, CrownOutlined } from '@ant-design/icons';
+import { Table, Modal, Form, Input, Select, Space, Badge, Tag, Button, Checkbox, message, Alert } from 'antd';
+import { UserOutlined, ShopOutlined, IdcardOutlined, CrownOutlined, KeyOutlined, CopyOutlined } from '@ant-design/icons';
 import { USER_ENDPOINTS, AUTH_ENDPOINTS } from '@/config/api';
 import '@/admin/static/AdminCommon.css';
 
@@ -17,6 +17,8 @@ const UsersListPage = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [form] = Form.useForm();
   const [editingId, setEditingId] = useState(null);
+  const [resetPasswordResult, setResetPasswordResult] = useState(null);
+  const [resetPasswordLoading, setResetPasswordLoading] = useState(false);
 
   // Hook tích hợp cho danh sách users
   const {
@@ -58,6 +60,7 @@ const UsersListPage = () => {
       is_superuser: false,
       groups_id: []
     });
+    setResetPasswordResult(null);
   };
 
   // Handle form submission
@@ -104,6 +107,61 @@ const UsersListPage = () => {
       setModalVisible(false);
       resetForm();
       fetchUsers();
+    }
+  };
+
+  // Handle reset password
+  const handleResetPassword = async (userId) => {
+    setResetPasswordLoading(true);
+    setResetPasswordResult(null);
+    
+    try {
+      const token = localStorage.getItem('accessToken');
+      const response = await fetch(AUTH_ENDPOINTS.RESET_PASSWORD, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          user_id: userId
+        })
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        setResetPasswordResult({
+          type: 'success',
+          message: result.message,
+          data: result.data
+        });
+        message.success('Reset mật khẩu thành công!');
+      } else {
+        setResetPasswordResult({
+          type: 'error',
+          message: result.message || 'Có lỗi xảy ra khi reset mật khẩu'
+        });
+        message.error(result.message || 'Có lỗi xảy ra khi reset mật khẩu');
+      }
+    } catch (error) {
+      setResetPasswordResult({
+        type: 'error',
+        message: 'Có lỗi xảy ra khi kết nối server'
+      });
+      message.error('Có lỗi xảy ra khi kết nối server');
+    } finally {
+      setResetPasswordLoading(false);
+    }
+  };
+
+  // Copy password to clipboard
+  const copyPasswordToClipboard = async (password) => {
+    try {
+      await navigator.clipboard.writeText(password);
+      message.success('Đã copy mật khẩu vào clipboard!');
+    } catch (error) {
+      message.error('Không thể copy mật khẩu');
     }
   };
 
@@ -325,6 +383,7 @@ const UsersListPage = () => {
           resetForm();
         }}
         footer={null}
+        width={600}
       >
         <Form
           form={form}
@@ -379,6 +438,56 @@ const UsersListPage = () => {
                   <strong>Cửa hàng:</strong> 
                   <Tag color="purple">{users.find(u => u.id === editingId)?.employee_details.store_name}</Tag>
                 </div>
+              </div>
+            </Form.Item>
+          )}
+
+          {/* Reset Password Section - Chỉ hiển thị khi edit và có quyền */}
+          {editingId && hasAccess && (
+            <Form.Item label="Reset mật khẩu">
+              <div style={{ padding: '12px', background: '#f8f9fa', borderRadius: '4px', border: '1px solid #e8e8e8' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                  <KeyOutlined style={{ color: '#1890ff' }} />
+                  <strong>Reset mật khẩu cho tài khoản này</strong>
+                </div>
+                <p style={{ fontSize: '12px', color: '#666', marginBottom: '12px' }}>
+                  {users.find(u => u.id === editingId)?.employee_details 
+                    ? 'Mật khẩu sẽ được reset về mã nhân viên'
+                    : 'Mật khẩu sẽ được tạo ngẫu nhiên 8 ký tự'
+                  }
+                </p>
+                
+                <Button
+                  type="primary"
+                  icon={<KeyOutlined />}
+                  loading={resetPasswordLoading}
+                  onClick={() => handleResetPassword(editingId)}
+                  style={{ marginBottom: '12px' }}
+                >
+                  Reset mật khẩu
+                </Button>
+
+                {/* Hiển thị kết quả reset password */}
+                {resetPasswordResult && (
+                  <Alert
+                    message={resetPasswordResult.message}
+                    type={resetPasswordResult.type}
+                    showIcon
+                    style={{ marginTop: '8px' }}
+                    action={
+                      resetPasswordResult.type === 'success' && 
+                      resetPasswordResult.data?.password_source === 'random_code' && (
+                        <Button
+                          size="small"
+                          icon={<CopyOutlined />}
+                          onClick={() => copyPasswordToClipboard(resetPasswordResult.data.new_password)}
+                        >
+                          Copy
+                        </Button>
+                      )
+                    }
+                  />
+                )}
               </div>
             </Form.Item>
           )}

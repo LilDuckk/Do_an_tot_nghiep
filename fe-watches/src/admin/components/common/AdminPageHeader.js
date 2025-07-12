@@ -1,6 +1,6 @@
 import React from 'react';
 import { Input, Button } from 'antd';
-import { SearchOutlined, PlusOutlined } from '@ant-design/icons';
+import { SearchOutlined, PlusOutlined, FilterOutlined } from '@ant-design/icons';
 
 /**
  * Component Header chung cho tất cả trang admin
@@ -12,6 +12,9 @@ import { SearchOutlined, PlusOutlined } from '@ant-design/icons';
  * @param {boolean} props.hasAccess - Có quyền truy cập không
  * @param {string} props.searchPlaceholder - Placeholder cho search input
  * @param {string} props.addButtonText - Text cho nút thêm mới
+ * @param {boolean} props.showFilters - Hiển thị filter panel không
+ * @param {function} props.onToggleFilters - Callback khi toggle filter
+ * @param {React.ReactNode} props.children - Các nút bổ sung
  * @returns {JSX.Element} - AdminPageHeader component
  */
 const AdminPageHeader = ({
@@ -21,7 +24,10 @@ const AdminPageHeader = ({
   onAdd,
   hasAccess = true,
   searchPlaceholder = "Tìm kiếm...",
-  addButtonText = "Thêm mới"
+  addButtonText = "Thêm mới",
+  showFilters = false,
+  onToggleFilters = null,
+  children = null
 }) => {
   if (!hasAccess) {
     return null;
@@ -46,6 +52,23 @@ const AdminPageHeader = ({
         >
           {addButtonText}
         </Button>
+        
+        {/* Các nút bổ sung */}
+        {children}
+        
+        {/* Nút hiển thị bộ lọc ngoài cùng bên phải */}
+        {onToggleFilters && (
+          <div className="header-actions">
+            <Button
+              className={`filter-toggle-btn btn-filter-toggle ${showFilters ? 'showing' : 'hiding'}`}
+              type="primary"
+              icon={<FilterOutlined />}
+              onClick={onToggleFilters}
+            >
+              {showFilters ? 'Ẩn bộ lọc' : 'Hiển thị bộ lọc'}
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );

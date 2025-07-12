@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Table, Modal, Form, Input, DatePicker, Select, Space, Checkbox, AutoComplete, Tag, Button } from 'antd';
-import { UserOutlined } from '@ant-design/icons';
+import { Table, Modal, Form, Input, DatePicker, Select, Space, Checkbox, AutoComplete, Tag, Button, Card, Row, Col } from 'antd';
+import { UserOutlined, FilterOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 import { EMPLOYEE_ENDPOINTS, USER_ENDPOINTS, STORE_ENDPOINTS } from '@/config/api';
@@ -31,7 +31,27 @@ const EmployeesPage = () => {
   // 1. Khai báo hook ở top-level
   const { hasAccess, checkModulePermission } = useAccessControl('employee', 'view');
   const { currentPage, totalPages, setCurrentPage, setTotalPages } = usePagination(ITEMS_PER_PAGE);
-  const { searchText, setSearchText, debouncedSearchText } = useSearchAndFilter();
+  const { 
+    searchText, 
+    setSearchText, 
+    debouncedSearchText,
+    filters,
+    showFilters,
+    handleFilterChange,
+    handleMultipleFilterChange,
+    clearFilters,
+    toggleFilters,
+    buildQueryParams,
+    hasActiveFilters,
+    hasAnySearchOrFilter
+  } = useSearchAndFilter({
+    position: null,
+    store: null,
+    is_manager: null
+  });
+
+  // Filter display state (local state để control UI)
+  const [showFilterPanel, setShowFilterPanel] = useState(false);
   const { loading, get } = useApiCall();
   const { createData, updateData, deleteData } = useCRUD({
     baseUrl: EMPLOYEE_ENDPOINTS.EMPLOYEES,
@@ -45,11 +65,9 @@ const EmployeesPage = () => {
   const fetchEmployees = useCallback(async () => {
     if (!hasAccess) return false;
     
-    const params = {
-      page: currentPage,
-      page_size: ITEMS_PER_PAGE,
-      search: debouncedSearchText
-    };
+    const params = buildQueryParams({
+      page_size: ITEMS_PER_PAGE
+    });
     
     const result = await get(EMPLOYEE_ENDPOINTS.EMPLOYEES, params, 'Lỗi khi tải danh sách nhân viên');
     
@@ -65,10 +83,10 @@ const EmployeesPage = () => {
       // Lỗi đã được xử lý trong useApiCall hook
       return false;
     }
-  }, [debouncedSearchText, hasAccess, currentPage, get, setTotalPages]);
+  }, [hasAccess, currentPage, get, setTotalPages, buildQueryParams]);
 
   // Fetch stores
-  const fetchStores = async () => {
+  const fetchStores = useCallback(async () => {
     if (!hasAccess) return;
     
     const result = await get(STORE_ENDPOINTS.STORES_LIST_ALL, {}, 'Lỗi khi tải danh sách cửa hàng');
@@ -84,10 +102,10 @@ const EmployeesPage = () => {
       setStoreOptions(options);
     }
     // Lỗi đã được xử lý trong useApiCall hook
-  };
+  }, [hasAccess, get]);
 
   // Search users
-  const searchUsers = async (value) => {
+  const searchUsers = useCallback(async (value) => {
     if (!hasAccess) return;
     
     const result = await get(USER_ENDPOINTS.USERS_ALL, { search: value }, 'Lỗi khi tìm kiếm người dùng');
@@ -101,7 +119,7 @@ const EmployeesPage = () => {
       setUserOptions(options);
     }
     // Lỗi đã được xử lý trong useApiCall hook
-  };
+  }, [hasAccess, get]);
 
   // 2. Khai báo useCallback, useEffect ở top-level
   useEffect(() => {
@@ -114,7 +132,7 @@ const EmployeesPage = () => {
       }
     };
     fetchAll();
-  }, [debouncedSearchText, hasAccess, currentPage, fetchEmployees]);
+  }, [hasAccess, currentPage, fetchEmployees, fetchStores, filters]);
 
   // 3. Sau khi khai báo hook, mới kiểm tra quyền
   if (!hasAccess) {
@@ -272,22 +290,139 @@ const EmployeesPage = () => {
         showUserInfo={true}
       />
       
-      <AdminPageHeader
-        title="Quản lý nhân viên"
-        searchText={searchText}
-        onSearchChange={setSearchText}
-        onAdd={() => {
-          setEditingId(null);
-          form.resetFields();
-          setSelectedUser(null);
-          setSelectedStore(null);
-          setStoreOptions(allStoreOptions);
-          setModalVisible(true);
-        }}
-        hasAccess={hasAccess}
-        searchPlaceholder="Tìm kiếm nhân viên..."
-        addButtonText="Thêm nhân viên"
-      />
+      <div className="admin-list-header">
+        <h2>Quản lý nhân viên</h2>
+        <div className="search-bar">
+          <Input.Search
+            placeholder="Tìm kiếm nhân viên..."
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            style={{ width: 300 }}
+            allowClear
+          />
+          
+          <Button
+            type="primary"
+            icon={<UserOutlined />}
+            onClick={() => {
+              setEditingId(null);
+              form.resetFields();
+              setSelectedUser(null);
+              setSelectedStore(null);
+              setStoreOptions(allStoreOptions);
+              setModalVisible(true);
+            }}
+          >
+            Thêm nhân viên
+          </Button>
+          
+          {/* Nút hiển thị bộ lọc ngoài cùng bên phải */}
+          <div className="header-actions">
+            <Button
+              className={`filter-toggle-btn btn-filter-toggle ${showFilterPanel ? 'showing' : 'hiding'}`}
+              type="primary"
+              icon={<FilterOutlined />}
+              onClick={() => setShowFilterPanel(!showFilterPanel)}
+            >
+              {showFilterPanel ? 'Ẩn bộ lọc' : 'Hiển thị bộ lọc'}
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Card bộ lọc chỉ hiện khi showFilterPanel */}
+      {showFilterPanel && (
+        <Card
+          className="filter-card"
+          title={
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <FilterOutlined />
+              <span>Tìm kiếm và bộ lọc nhân viên</span>
+            </div>
+          }
+          style={{ marginBottom: 16 }}
+        >
+          <div className={`filter-container filter-show`}>
+            <Row gutter={[16, 16]}>
+              <Col xs={24} sm={12} md={8} lg={6}>
+                <Select
+                  placeholder="Vị trí"
+                  value={filters.is_manager}
+                  onChange={(value) => handleFilterChange('is_manager', value)}
+                  allowClear
+                  style={{ width: '100%' }}
+                  showSearch
+                  filterOption={(input, option) =>
+                    (option?.children ?? '').toLowerCase().includes(input.toLowerCase())
+                  }
+                  notFoundContent="Không tìm thấy vị trí"
+                  optionFilterProp="children"
+                >
+                  <Option value={true}>Quản lý</Option>
+                  <Option value={false}>Nhân viên</Option>
+                </Select>
+              </Col>
+              
+              <Col xs={24} sm={12} md={8} lg={6}>
+                <Select
+                  placeholder="Cửa hàng"
+                  value={filters.store}
+                  onChange={(value) => handleFilterChange('store', value)}
+                  allowClear
+                  style={{ width: '100%' }}
+                  showSearch
+                  filterOption={(input, option) =>
+                    (option?.children ?? '').toLowerCase().includes(input.toLowerCase())
+                  }
+                  notFoundContent="Không tìm thấy cửa hàng"
+                  optionFilterProp="children"
+                >
+                  {stores.map(store => (
+                    <Option key={store.id} value={store.id}>
+                      {store.name} - {store.address}
+                    </Option>
+                  ))}
+                </Select>
+              </Col>
+              
+              <Col xs={24} sm={12} md={8} lg={6}>
+                <Select
+                  placeholder="Chức vụ"
+                  value={filters.position}
+                  onChange={(value) => handleFilterChange('position', value)}
+                  allowClear
+                  style={{ width: '100%' }}
+                  showSearch
+                  filterOption={(input, option) =>
+                    (option?.children ?? '').toLowerCase().includes(input.toLowerCase())
+                  }
+                  notFoundContent="Không tìm thấy chức vụ"
+                  optionFilterProp="children"
+                >
+                  <Option value="Nhân viên bán hàng">Nhân viên bán hàng</Option>
+                  <Option value="Quản lý cửa hàng">Quản lý cửa hàng</Option>
+                  <Option value="Nhân viên kho">Nhân viên kho</Option>
+                  <Option value="Nhân viên kế toán">Nhân viên kế toán</Option>
+                  <Option value="Nhân viên marketing">Nhân viên marketing</Option>
+                </Select>
+              </Col>
+              
+              <Col xs={24}>
+                <Space>
+                  <Button
+                    className="filter-clear-btn"
+                    type="primary"
+                    icon={<FilterOutlined />}
+                    onClick={clearFilters}
+                  >
+                    Xóa bộ lọc
+                  </Button>
+                </Space>
+              </Col>
+            </Row>
+          </div>
+        </Card>
+      )}
 
       <div className="table-responsive">
         <Table

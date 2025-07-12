@@ -29,7 +29,7 @@ export const useCRUD = (config = {}) => {
   const [totalPages, setTotalPages] = useState(1);
 
   const { get, post, put, del, isAccessError } = useApiCall();
-  const { hasAccess, setHasAccess, showAccessError, checkAccessPermission } = useAccessControl();
+  const { hasAccess, setHasAccess, showAccessError } = useAccessControl(null, 'view');
 
   /**
    * Lấy danh sách dữ liệu

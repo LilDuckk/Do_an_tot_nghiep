@@ -54,7 +54,6 @@ const menuConfig = [
 export default function AdminLayout() {
   const user = JSON.parse(localStorage.getItem('adminUser') || '{}');
   const userPermissions = JSON.parse(localStorage.getItem('user_permission_codenames') || '[]');
-  const isSuperUser = localStorage.getItem('is_superuser') === 'true';
   const navigate = useNavigate();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);

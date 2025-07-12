@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { hasModulePermission } from '@/services/permission';
+import { message } from 'antd';
 import { PRODUCT_ENDPOINTS } from '@/config/api';
+import { useAccessControl, useApiCall } from '@/admin/hooks';
+import { AccessDeniedAlert } from '@/admin/components';
 import '@/admin/static/AdminCommon.css';
 
 export default function ProductEditPage() {
@@ -37,102 +39,171 @@ export default function ProductEditPage() {
   const [attributeValues, setAttributeValues] = useState([]);
   const [selectedAttributeValues, setSelectedAttributeValues] = useState({});
 
+  // Chuẩn hóa kiểm tra quyền truy cập
+  const { hasAccess, checkModulePermission } = useAccessControl('product', 'edit');
+
+  // Hook quản lý API calls
+  const { get, put } = useApiCall();
+
   // Thêm các hàm tiện ích
   const formatPrice = (price) => {
     if (price === null || price === undefined) return "0.00";
     return Number(price).toFixed(2);
   };
 
-  // Fetch data khi component mount
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const token = localStorage.getItem('accessToken');
-        
-        // Fetch product với đầy đủ thông tin
-        const productRes = await fetch(`${PRODUCT_ENDPOINTS.PRODUCT_DETAIL(id)}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (productRes.ok) {
-          const data = await productRes.json();
-          setForm({
-            name: data.name || '',
-            description: data.description || '',
-            brand: data.brand || '',
-            category: data.category || '',
-            base_price: data.base_price || '',
-            warranty_period: data.warranty_period || '',
-            meta_title: data.meta_title || '',
-            meta_description: data.meta_description || '',
-            slug: data.slug || '',
-            is_featured: data.is_featured || false,
-            is_active: data.is_active !== undefined ? data.is_active : true
-          });
-          setProductImages(Array.isArray(data.images) ? data.images : []);
-        } else {
-          setError('Không tìm thấy sản phẩm');
-        }
+  // Fetch product data
+  const fetchProduct = useCallback(async () => {
+    if (!hasAccess) return;
 
-        // Fetch brands
-        const brandsRes = await fetch(PRODUCT_ENDPOINTS.BRANDS_LIST_ALL, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (brandsRes.ok) {
-          setBrands(await brandsRes.json());
-        }
+    try {
+      setLoading(true);
+      const result = await get(
+        `${PRODUCT_ENDPOINTS.PRODUCT_DETAIL(id)}`,
+        {},
+        'Lỗi khi lấy thông tin sản phẩm'
+      );
 
-        // Fetch categories
-        const categoriesRes = await fetch(PRODUCT_ENDPOINTS.CATEGORIES_LIST_ALL, {
-          headers: { 'Authorization': `Bearer ${token}` }
+      if (result.success) {
+        const data = result.data;
+        setForm({
+          name: data.name || '',
+          description: data.description || '',
+          brand: data.brand || '',
+          category: data.category || '',
+          base_price: data.base_price || '',
+          warranty_period: data.warranty_period || '',
+          meta_title: data.meta_title || '',
+          meta_description: data.meta_description || '',
+          slug: data.slug || '',
+          is_featured: data.is_featured || false,
+          is_active: data.is_active !== undefined ? data.is_active : true
         });
-        if (categoriesRes.ok) {
-          setCategories(await categoriesRes.json());
-        }
-
-        // Fetch attribute types
-        const typesRes = await fetch(PRODUCT_ENDPOINTS.ATTRIBUTE_TYPES_LIST_ALL, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (typesRes.ok) {
-          const data = await typesRes.json();
-          setAttributeTypes(Array.isArray(data) ? data : data.results || []);
-        }
-
-        // Fetch attribute values
-        const valuesRes = await fetch(PRODUCT_ENDPOINTS.ATTRIBUTE_VALUES_LIST_ALL, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (valuesRes.ok) {
-          const data = await valuesRes.json();
-          setAttributeValues(Array.isArray(data) ? data : data.results || []);
-        }
-
-        // Fetch current product attributes using new endpoint
-        const attributesRes = await fetch(`${PRODUCT_ENDPOINTS.PRODUCT_ATTRIBUTES(id)}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (attributesRes.ok) {
-          const attributesData = await attributesRes.json();
-          
-          // Chuyển đổi cấu trúc dữ liệu cho selectedAttributeValues
-          const groupedValues = {};
-          attributesData.forEach(type => {
-            groupedValues[type.id] = type.values;
-          });
-          setSelectedAttributeValues(groupedValues);
-        }
-      } catch (error) {
-        setError('Lỗi khi tải dữ liệu');
+        setProductImages(Array.isArray(data.images) ? data.images : []);
+      } else {
+        setError('Không lấy được thông tin sản phẩm');
       }
+    } catch (error) {
+      setError('Lỗi khi tải dữ liệu');
+    } finally {
       setLoading(false);
-    };
+    }
+  }, [id, hasAccess, get]);
 
-    fetchData();
-  }, [id]);
+  // Fetch brands
+  const fetchBrands = useCallback(async () => {
+    if (!hasAccess) return;
 
-  if (!hasModulePermission('product', 'edit')) {
-    return <div className="admin-error">Bạn không có quyền sửa sản phẩm.</div>;
-  }
+    try {
+      const result = await get(
+        PRODUCT_ENDPOINTS.BRANDS_LIST_ALL,
+        {},
+        'Lỗi khi tải danh sách thương hiệu'
+      );
+
+      if (result.success) {
+        setBrands(Array.isArray(result.data) ? result.data : []);
+      }
+    } catch (error) {
+      console.error('Error fetching brands:', error);
+    }
+  }, [hasAccess, get]);
+
+  // Fetch categories
+  const fetchCategories = useCallback(async () => {
+    if (!hasAccess) return;
+
+    try {
+      const result = await get(
+        PRODUCT_ENDPOINTS.CATEGORIES_LIST_ALL,
+        {},
+        'Lỗi khi tải danh sách danh mục'
+      );
+
+      if (result.success) {
+        setCategories(Array.isArray(result.data) ? result.data : []);
+      }
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  }, [hasAccess, get]);
+
+  // Fetch attribute types
+  const fetchAttributeTypes = useCallback(async () => {
+    if (!hasAccess) return;
+
+    try {
+      const result = await get(
+        PRODUCT_ENDPOINTS.ATTRIBUTE_TYPES_LIST_ALL,
+        {},
+        'Lỗi khi tải danh sách loại thuộc tính'
+      );
+
+      if (result.success) {
+        const data = result.data;
+        setAttributeTypes(Array.isArray(data) ? data : data.results || []);
+      }
+    } catch (error) {
+      console.error('Error fetching attribute types:', error);
+    }
+  }, [hasAccess, get]);
+
+  // Fetch attribute values
+  const fetchAttributeValues = useCallback(async () => {
+    if (!hasAccess) return;
+
+    try {
+      const result = await get(
+        PRODUCT_ENDPOINTS.ATTRIBUTE_VALUES_LIST_ALL,
+        {},
+        'Lỗi khi tải danh sách giá trị thuộc tính'
+      );
+
+      if (result.success) {
+        const data = result.data;
+        setAttributeValues(Array.isArray(data) ? data : data.results || []);
+      }
+    } catch (error) {
+      console.error('Error fetching attribute values:', error);
+    }
+  }, [hasAccess, get]);
+
+  // Fetch current product attributes
+  const fetchProductAttributes = useCallback(async () => {
+    if (!hasAccess) return;
+
+    try {
+      const result = await get(
+        `${PRODUCT_ENDPOINTS.PRODUCT_ATTRIBUTES(id)}`,
+        {},
+        'Lỗi khi tải thuộc tính sản phẩm'
+      );
+
+      if (result.success) {
+        const attributesData = result.data;
+        
+        // Chuyển đổi cấu trúc dữ liệu cho selectedAttributeValues
+        const groupedValues = {};
+        attributesData.forEach(type => {
+          groupedValues[type.id] = type.values;
+        });
+        setSelectedAttributeValues(groupedValues);
+      }
+    } catch (error) {
+      console.error('Error fetching product attributes:', error);
+    }
+  }, [id, hasAccess, get]);
+
+  // Initialize data
+  useEffect(() => {
+    if (hasAccess) {
+      fetchProduct();
+      fetchBrands();
+      fetchCategories();
+      fetchAttributeTypes();
+      fetchAttributeValues();
+      fetchProductAttributes();
+    }
+  }, [hasAccess, fetchProduct, fetchBrands, fetchCategories, fetchAttributeTypes, fetchAttributeValues, fetchProductAttributes]);
 
   const handleChange = e => {
     const { name, value, type, checked } = e.target;
@@ -230,65 +301,135 @@ export default function ProductEditPage() {
       return;
     }
 
-    try {
-      const token = localStorage.getItem('accessToken');
-      
-      // Tạo FormData
-      const formData = new FormData();
-      
-      // Thêm các trường cơ bản
-      formData.append('name', form.name);
-      formData.append('description', form.description);
-      formData.append('category', form.category);
-      formData.append('brand', form.brand);
-      formData.append('base_price', formatPrice(form.base_price));
-      formData.append('warranty_period', form.warranty_period || '');
-      formData.append('meta_title', form.meta_title);
-      formData.append('meta_description', form.meta_description);
-      formData.append('slug', form.slug);
-      formData.append('is_featured', form.is_featured);
-      formData.append('is_active', form.is_active);
+    // Kiểm tra quyền edit trước khi submit
+    if (!checkModulePermission('product', 'edit')) {
+      setError('Bạn không có quyền chỉnh sửa sản phẩm.');
+      return;
+    }
 
-      // Thêm ảnh mới nếu có
+    try {
+      let result;
+      
       if (imageFiles.length > 0) {
+        // Có upload ảnh, dùng FormData và fetch trực tiếp
+        const formData = new FormData();
+        
+        // Thêm các trường cơ bản
+        formData.append('name', form.name);
+        formData.append('description', form.description);
+        formData.append('category', form.category);
+        formData.append('brand', form.brand);
+        formData.append('base_price', formatPrice(form.base_price));
+        formData.append('warranty_period', form.warranty_period || '');
+        formData.append('meta_title', form.meta_title);
+        formData.append('meta_description', form.meta_description);
+        formData.append('slug', form.slug);
+        formData.append('is_featured', form.is_featured);
+        formData.append('is_active', form.is_active);
+
+        // Thêm ảnh mới
         imageFiles.forEach((file, idx) => {
           formData.append(`images`, file);
         });
         formData.append('primary_image_index', primaryImageIndex);
+
+        // Prepare payload with attribute_value_groups
+        const attributeValueGroups = Object.entries(selectedAttributeValues).map(
+          ([typeId, values]) => values.map(v => Number(v.id))
+        );
+        formData.append('attribute_value_groups', JSON.stringify(attributeValueGroups));
+
+        // Gửi request bằng fetch trực tiếp
+        const token = localStorage.getItem('accessToken');
+        const response = await fetch(`${PRODUCT_ENDPOINTS.PRODUCT_DETAIL(id)}`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`
+            // KHÔNG set Content-Type để trình duyệt tự set cho FormData
+          },
+          body: formData
+        });
+        
+        const data = await response.json();
+        result = { success: response.ok, data, error: data };
+      } else {
+        // Không upload ảnh, gửi JSON
+        const payload = {
+          name: form.name,
+          description: form.description,
+          category: form.category,
+          brand: form.brand,
+          base_price: formatPrice(form.base_price),
+          warranty_period: form.warranty_period || '',
+          meta_title: form.meta_title,
+          meta_description: form.meta_description,
+          slug: form.slug,
+          is_featured: form.is_featured,
+          is_active: form.is_active,
+          attribute_value_groups: Object.entries(selectedAttributeValues).map(
+            ([typeId, values]) => values.map(v => Number(v.id))
+          )
+        };
+
+        result = await put(
+          `${PRODUCT_ENDPOINTS.PRODUCT_DETAIL(id)}`,
+          payload,
+          'Lỗi khi cập nhật sản phẩm'
+        );
       }
 
-      // Prepare payload with attribute_value_groups
-      const attributeValueGroups = Object.entries(selectedAttributeValues).map(
-        ([typeId, values]) => values.map(v => Number(v.id)) // Đảm bảo là số
-      );
-      
-      // Convert to a JSON string that can be parsed by Python
-      formData.append('attribute_value_groups', JSON.stringify(attributeValueGroups));
-
-      const productRes = await fetch(`${PRODUCT_ENDPOINTS.PRODUCT_DETAIL(id)}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: formData,
-      });
-
-      if (!productRes.ok) {
-        const data = await productRes.json();
-        throw new Error(data.error || 'Cập nhật sản phẩm thất bại');
+      if (result.success) {
+        message.success('Cập nhật sản phẩm thành công');
+        navigate('/admin/products');
+      } else {
+        // Xử lý lỗi từ response
+        if (result.error && Array.isArray(result.error)) {
+          // Nếu lỗi là array (thường là validation errors)
+          setError(result.error.join(', '));
+        } else if (result.error && typeof result.error === 'object') {
+          // Nếu lỗi là object, lấy message đầu tiên
+          const errorMessages = Object.values(result.error).flat();
+          setError(errorMessages.join(', '));
+        } else if (result.error && typeof result.error === 'string') {
+          // Nếu lỗi là string
+          setError(result.error);
+        } else {
+          setError('Cập nhật thất bại');
+        }
       }
-
-      navigate('/admin/products');
     } catch (err) {
       setError(err.message || 'Lỗi kết nối');
     }
   };
 
-  if (loading) return <div>Đang tải...</div>;
+  if (loading) {
+    return (
+      <div className="admin-form-container">
+        <div style={{ textAlign: 'center', padding: '40px 0' }}>
+          Đang tải...
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="admin-form-container">
+      {/* Access Denied Alert */}
+      <AccessDeniedAlert 
+        hasAccess={hasAccess} 
+        module="product"
+        action="edit"
+        showUserInfo={true}
+      />
+
       <h2>Chỉnh sửa sản phẩm</h2>
+      
+      {error && (
+        <div className="admin-error" style={{ marginBottom: 16 }}>
+          {error}
+        </div>
+      )}
+
       <form className="admin-form" onSubmit={handleSubmit} encType="multipart/form-data">
         {/* Thông tin cơ bản */}
         <div className="form-section">
@@ -402,7 +543,7 @@ export default function ProductEditPage() {
                               ))}
                           </select>
                         </td>
-                                                <td>
+                        <td>
                           <button
                             type="button"
                             className="admin-btn"
@@ -460,7 +601,6 @@ export default function ProductEditPage() {
 
         <button type="submit" className="admin-btn primary">Cập nhật</button>
         <button type="button" className="admin-btn" onClick={() => navigate('/admin/products')}>Hủy</button>
-        {error && <div className="admin-error">{error}</div>}
       </form>
     </div>
   );

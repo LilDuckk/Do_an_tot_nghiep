@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { PRODUCT_ENDPOINTS } from '@/config/api';
 import Header from './Header';
 import Footer from './Footer';
-import { addToCart, formatPrice, getUserInfo, setUserInfo } from './cartUtils';
+import { addToCart, getUserInfo, setUserInfo } from './cartUtils';
 import './static/ProductDetail.css';
 
 export default function ProductDetail() {
@@ -76,27 +76,6 @@ export default function ProductDetail() {
       return [];
     }
   }, [id]);
-
-  // Hàm tìm variant phù hợp với các thuộc tính đã chọn
-  const findMatchingVariant = useCallback((selectedAttrs) => {
-    if (!Array.isArray(variants)) return null;
-    
-    return variants.find(variant => 
-      variant.is_active && 
-      variant.attribute_values.every(attrValue => {
-        const attrType = attributes.find(type => 
-          type.values.some(val => val.id === attrValue)
-        );
-        if (!attrType) return true;
-        return selectedAttrs[attrType.id] === attrValue;
-      })
-    );
-  }, [variants, attributes]);
-
-  // Hàm lấy ảnh của một variant cụ thể
-  const getVariantImages = useCallback((variantId) => {
-    return variantImages.filter(img => img.variant === variantId);
-  }, [variantImages]);
 
   // Hàm kiểm tra xem một attribute value có hợp lệ với các lựa chọn hiện tại không
   const isAttributeValueValid = useCallback((typeId, valueId) => {

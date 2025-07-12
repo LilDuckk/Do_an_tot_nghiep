@@ -9,6 +9,8 @@ export const AUTH_ENDPOINTS = {
   REFRESH_TOKEN: `${API_BASE_URL}/account/auth/refresh/`,
   LOGOUT: `${API_BASE_URL}/account/auth/logout/`,
   ME: `${API_BASE_URL}/account/auth/me/`,
+  CHANGE_PASSWORD: `${API_BASE_URL}/account/auth/change_password/`,
+  RESET_PASSWORD: `${API_BASE_URL}/account/auth/reset-password/`,
 };
 
 // User endpoints
@@ -143,6 +145,7 @@ export const INVENTORY_ENDPOINTS = {
   STORE_STATISTICS: `${API_BASE_URL}/inventory/inventories/store_statistics/`,
   PRODUCT_SEARCH: `${API_BASE_URL}/inventory/inventories/product_search/`,
   LOW_STOCK_ALERT: `${API_BASE_URL}/inventory/inventories/low_stock_alert/`,
+  STORE_VARIANTS: `${API_BASE_URL}/inventory/inventories/store_variants/`,
 };
 
 // Content endpoints
@@ -156,6 +159,19 @@ export const CONTENT_ENDPOINTS = {
   FOOTER_CATEGORIES: `${API_BASE_URL}/content/footer-categories/`,
   FOOTER_CATEGORIES_ALL: `${API_BASE_URL}/content/footer-categories/all/`,
   FOOTER_CATEGORY_DETAIL: (id) => `${API_BASE_URL}/content/footer-categories/${id}/`,
+  CONTACT_INFO: `${API_BASE_URL}/content/contact-infos/`,
+  CONTACT_INFO_ALL: `${API_BASE_URL}/content/contact-infos/all/`,
+  CONTACT_INFO_DETAIL: (id) => `${API_BASE_URL}/content/contact-infos/${id}/`,
+  
+  // News endpoints
+  NEWS: `${API_BASE_URL}/content/news/`,
+  NEWS_ALL: `${API_BASE_URL}/content/news/all/`,
+  NEWS_DETAIL: (id) => `${API_BASE_URL}/content/news/${id}/`,
+  
+  // News Categories endpoints
+  NEWS_CATEGORIES: `${API_BASE_URL}/content/news-categories/`,
+  NEWS_CATEGORIES_ALL: `${API_BASE_URL}/content/news-categories/all/`,
+  NEWS_CATEGORY_DETAIL: (id) => `${API_BASE_URL}/content/news-categories/${id}/`,
 };
 
 // Core endpoints
@@ -210,32 +226,41 @@ export const PURCHASE_ENDPOINTS = {
   GOODS_RECEIPT_DETAIL_ITEM: (id) => `${API_BASE_URL}/purchases/goods-receipt-details/${id}/`,
 };
 
-// Report endpoints - Cập nhật theo exp2.txt
+// Report endpoints - Cập nhật theo expapi.txt
 export const REPORT_ENDPOINTS = {
   // Dashboard APIs
   DASHBOARD_OVERVIEW: `${API_BASE_URL}/reports/dashboard/overview/`,
   DASHBOARD_RECENT_ACTIVITY: `${API_BASE_URL}/reports/dashboard/recent_activity/`,
   DASHBOARD_ALERTS: `${API_BASE_URL}/reports/dashboard/alerts/`,
+  DASHBOARD_COMPREHENSIVE_ANALYSIS: `${API_BASE_URL}/reports/dashboard/comprehensive_analysis/`,
   
   // Sales Analysis APIs
   SALES_BEST_SELLERS: `${API_BASE_URL}/reports/sales/best_sellers/`,
   SALES_PERFORMANCE_BY_TIME: `${API_BASE_URL}/reports/sales/sales_performance_by_time/`,
   SALES_INVENTORY_TURNOVER: `${API_BASE_URL}/reports/sales/inventory_turnover/`,
+  SALES_PRODUCT_PERFORMANCE_DETAIL: `${API_BASE_URL}/reports/sales/product_performance_detail/`,
   
-  // Revenue Report APIs
+  // Revenue APIs
   REVENUE_DAILY: `${API_BASE_URL}/reports/revenue/daily_revenue/`,
   REVENUE_MONTHLY: `${API_BASE_URL}/reports/revenue/monthly_revenue/`,
   REVENUE_PROFIT_ANALYSIS: `${API_BASE_URL}/reports/revenue/profit_analysis/`,
-  
-  // Return & Warranty Report APIs
-  RETURN_SUMMARY: `${API_BASE_URL}/reports/return-warranty-report/return_summary/`,
-  WARRANTY_SUMMARY: `${API_BASE_URL}/reports/return-warranty-report/warranty_summary/`,
-  FINANCIAL_IMPACT: `${API_BASE_URL}/reports/return-warranty-report/financial_impact/`,
   
   // Daily Revenue APIs
   DAILY_REVENUE_CALCULATE: `${API_BASE_URL}/reports/daily-revenue/calculate_daily_revenue/`,
   DAILY_REVENUE_INVENTORY_ANALYSIS: `${API_BASE_URL}/reports/daily-revenue/inventory_analysis/`,
   DAILY_REVENUE_FORECAST: `${API_BASE_URL}/reports/daily-revenue/revenue_forecast/`,
+  DAILY_REVENUE_SUMMARY: `${API_BASE_URL}/reports/daily-revenue/daily_summary/`,
+  DAILY_REVENUE_BREAKDOWN: `${API_BASE_URL}/reports/daily-revenue/daily_breakdown/`,
+  DAILY_REVENUE_TOP_PRODUCTS: `${API_BASE_URL}/reports/daily-revenue/top_products/`,
+  DAILY_REVENUE_STORE_PERFORMANCE: `${API_BASE_URL}/reports/daily-revenue/store_performance/`,
+  
+  // Return & Warranty Report APIs
+  RETURN_SUMMARY: `${API_BASE_URL}/reports/return-warranty-report/return_summary/`,
+  WARRANTY_SUMMARY: `${API_BASE_URL}/reports/return-warranty-report/warranty_summary/`,
+  FINANCIAL_IMPACT: `${API_BASE_URL}/reports/return-warranty-report/financial_impact/`,
+  RETURN_PRODUCT_ANALYSIS: `${API_BASE_URL}/reports/return-warranty-report/return_product_analysis/`,
+  WARRANTY_PRODUCT_ANALYSIS: `${API_BASE_URL}/reports/return-warranty-report/warranty_product_analysis/`,
+  PRODUCT_PROFITABILITY: `${API_BASE_URL}/reports/return-warranty-report/product_profitability/`,
   
   // Top Performance APIs
   TOP_PRODUCTS: `${API_BASE_URL}/reports/top-products/`,

@@ -3,13 +3,15 @@ import './App.css';
 import { authService } from '@/services';
 import AdminLogin from '@/admin/AdminLogin';
 import ClientHome from '@/client/ClientHome';
-import Dashboard from '@/admin/Dashboard';
+import Dashboard from '@/admin/pages/dashboard/Dashboard';
 import AdminLayout from '@/admin/AdminLayout';
 import ProductList from '@/client/ProductList';
 import ProductDetail from '@/client/ProductDetail';
 import CartDetail from '@/client/CartDetail';
 import Maintenance from '@/client/Maintenance';
 import Contact from '@/client/Contact';
+import News from '@/client/News';
+import NewsDetail from '@/client/NewsDetail';
 
 // Import tất cả admin pages từ file index tập trung
 import {
@@ -37,12 +39,8 @@ import {
   ProductCreatePage,
   ProductEditPage,
   ProductViewPage,
-  BrandCreatePage,
-  BrandEditPage,
-  BrandViewPage,
-  CategoryCreatePage,
-  CategoryEditPage,
-  CategoryViewPage,
+
+
   BannerManagement,
   ContactManagement,
   FooterManagement,
@@ -86,13 +84,7 @@ function App() {
           <Route path="logout" element={<LogoutPage />} />
           <Route path="profile" element={<ProfilePage />} />
           <Route path="categories" element={<CategoriesPage />} />
-          <Route path="categories/create" element={<CategoryCreatePage />} />
-          <Route path="categories/:id" element={<CategoryViewPage />} />
-          <Route path="categories/:id/edit" element={<CategoryEditPage />} />
           <Route path="brands" element={<BrandsPage />} />
-          <Route path="brands/create" element={<BrandCreatePage />} />
-          <Route path="brands/:id" element={<BrandViewPage />} />
-          <Route path="brands/:id/edit" element={<BrandEditPage />} />
           <Route path="variants" element={<VariantsPage />} />
           <Route path="attributes" element={<AttributesPage />} />
           <Route path="return-orders" element={<ReturnOrdersPage />} />
@@ -116,6 +108,8 @@ function App() {
         <Route path="/cart" element={<CartDetail />} />
         <Route path="/maintenance" element={<Maintenance />} />
         <Route path="/contact" element={<Contact />} />
+        <Route path="/news" element={<News />} />
+        <Route path="/news/:slug" element={<NewsDetail />} />
       </Routes>
     </Router>
   );

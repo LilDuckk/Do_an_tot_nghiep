@@ -1,658 +1,607 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { hasModulePermission } from '@/services/permission';
-import { useDebounceSearch } from '@/admin/hooks';
-import { Input, Button, Space, Empty } from 'antd';
+import { Input, Button, Empty, Table, Space, Modal, Form, Select, message, Tabs } from 'antd';
 import { SearchOutlined, PlusOutlined } from '@ant-design/icons';
 import { PRODUCT_ENDPOINTS } from '@/config/api';
+import { useListData, useCRUD, useAccessControl } from '@/admin/hooks';
+import { AccessDeniedAlert, CustomPagination, ActionButtons } from '@/admin/components';
 import '@/admin/static/AdminCommon.css';
 
-export default function AttributesPage() {
-  const [attributeTypes, setAttributeTypes] = useState([]);
-  const [attributeValues, setAttributeValues] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  
-  // Search states for types
-  const [typeSearchText, setTypeSearchText] = useState('');
+const { Option } = Select;
+
+// Component cho Attribute Types
+const AttributeTypesSection = ({ onTypeChange }) => {
+  const [modalVisible, setModalVisible] = useState(false);
+  const [form] = Form.useForm();
+  const [editingId, setEditingId] = useState(null);
+
+  // Hook tích hợp cho danh sách attribute types
   const {
-    debouncedSearchText: debouncedTypeSearchText,
-    currentPage: typeCurrentPage,
-    setCurrentPage: setTypeCurrentPage
-  } = useDebounceSearch(typeSearchText, 500);
-  
-  // Search states for values
-  const [valueSearchText, setValueSearchText] = useState('');
-  const {
-    debouncedSearchText: debouncedValueSearchText,
-    currentPage: valueCurrentPage,
-    setCurrentPage: setValueCurrentPage
-  } = useDebounceSearch(valueSearchText, 500);
-  
-  // Pagination states
-  const [typeTotalPages, setTypeTotalPages] = useState(1);
-  const [valueTotalPages, setValueTotalPages] = useState(1);
-  
-  // States for inline editing
-  const [editingType, setEditingType] = useState(null);
-  const [editingValue, setEditingValue] = useState(null);
-  const [newType, setNewType] = useState({ name: '', description: '', display_order: 0, is_active: true });
-  const [newValue, setNewValue] = useState({ value: '', attribute_type: '' });
-  const [showNewTypeForm, setShowNewTypeForm] = useState(false);
-  const [showNewValueForm, setShowNewValueForm] = useState(false);
-  
-  const navigate = useNavigate();
-  const ITEMS_PER_PAGE = 20;
+    data: attributeTypes,
+    isLoading,
+    hasAccess,
+    searchText,
+    setSearchText,
+    currentPage,
+    setCurrentPage,
+    totalPages,
+    total,
+    hasNext,
+    hasPrevious,
+    fetchData: fetchAttributeTypes
+  } = useListData({
+    module: 'attribute',
+    action: 'view',
+    apiEndpoint: PRODUCT_ENDPOINTS.ATTRIBUTE_TYPES,
+    pageSize: 20,
+    debounceDelay: 500
+  });
 
-  // Fetch data when search or page changes
-  useEffect(() => {
+  // CRUD operations với kiểm tra quyền
+  const { createData, updateData, deleteData } = useCRUD({
+    baseUrl: PRODUCT_ENDPOINTS.ATTRIBUTE_TYPES,
+    entityName: 'loại thuộc tính',
+    canCreate: hasAccess,
+    canEdit: hasAccess,
+    canDelete: hasAccess
+  });
+
+  // Access control cho các action cụ thể
+  const { checkModulePermission } = useAccessControl();
+
+  const handleDelete = useCallback(async (record) => {
+    const success = await deleteData(record.id);
+    if (success) {
     fetchAttributeTypes();
-  }, [typeCurrentPage, debouncedTypeSearchText]);
-
-  useEffect(() => {
-    fetchAttributeValues();
-  }, [valueCurrentPage, debouncedValueSearchText]);
-
-  const fetchAttributeTypes = useCallback(async () => {
-    try {
-      setLoading(true);
-      const token = localStorage.getItem('accessToken');
-      const queryParams = new URLSearchParams({
-        page: typeCurrentPage,
-        page_size: ITEMS_PER_PAGE,
-        search: debouncedTypeSearchText,
-        timestamp: new Date().getTime()
-      });
-      const res = await fetch(`${PRODUCT_ENDPOINTS.ATTRIBUTE_TYPES}?${queryParams}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.status === 403) {
-        setError('Bạn không có quyền xem danh sách này.');
-        setAttributeTypes([]);
-        setTypeTotalPages(1);
-        return;
-      }
-      if (!res.ok) throw new Error('Lỗi khi lấy danh sách loại thuộc tính');
-      const data = await res.json();
-      setAttributeTypes(data.results || data);
-      setTypeTotalPages(Math.ceil((data.count || data.length) / ITEMS_PER_PAGE));
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
+      onTypeChange(); // Refresh attribute values
     }
-  }, [typeCurrentPage, debouncedTypeSearchText]);
+  }, [deleteData, fetchAttributeTypes, onTypeChange]);
 
-  const fetchAttributeValues = useCallback(async () => {
-    try {
-      const token = localStorage.getItem('accessToken');
-      const queryParams = new URLSearchParams({
-        page: valueCurrentPage,
-        page_size: ITEMS_PER_PAGE,
-        search: debouncedValueSearchText,
-        timestamp: new Date().getTime()
-      });
-      const res = await fetch(`${PRODUCT_ENDPOINTS.ATTRIBUTE_VALUES}?${queryParams}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (!res.ok) throw new Error('Lỗi khi lấy danh sách giá trị thuộc tính');
-      const data = await res.json();
-      
-      // Lấy thông tin attribute_type cho mỗi value
-      const valuesWithTypes = await Promise.all(
-        (data.results || data).map(async (value) => {
-          try {
-            const typeRes = await fetch(`http://localhost:8000/api/products/attribute-types/${value.attribute_type}/`, {
-              headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (typeRes.ok) {
-              const typeData = await typeRes.json();
-              return {
-                ...value,
-                attribute_type_detail: typeData
-              };
-            }
-            return value;
-          } catch (err) {
-            console.error('Lỗi khi lấy thông tin loại thuộc tính:', err);
-            return value;
-          }
-        })
-      );
-      
-      setAttributeValues(valuesWithTypes);
-      setValueTotalPages(Math.ceil((data.count || data.length) / ITEMS_PER_PAGE));
-    } catch (err) {
-      console.error(err.message);
+  const handleEdit = useCallback((record) => {
+    console.log('Editing attribute type:', record);
+    setEditingId(record.id);
+    form.setFieldsValue({
+      name: record.name,
+      description: record.description
+    });
+    setModalVisible(true);
+  }, [form]);
+
+  const handleAdd = useCallback(() => {
+    setEditingId(null);
+    form.resetFields();
+    setModalVisible(true);
+  }, [form]);
+
+  const handleSubmit = useCallback(async (values) => {
+    const formattedValues = {
+      name: values.name,
+      description: values.description || ''
+    };
+
+    let success = false;
+    if (editingId) {
+      success = await updateData(editingId, formattedValues);
+    } else {
+      success = await createData(formattedValues);
     }
-  }, [valueCurrentPage, debouncedValueSearchText]);
 
-  // Initial data fetch
-  useEffect(() => {
-    fetchAttributeTypes();
-    fetchAttributeValues();
-  }, [fetchAttributeTypes, fetchAttributeValues]);
-
-  // const handleTypeSearch = (e) => {
-  //   e.preventDefault();
-  //   setTypeCurrentPage(1);
-  //   fetchAttributeTypes();
-  // };
-
-  // const handleValueSearch = (e) => {
-  //   e.preventDefault();
-  //   setValueCurrentPage(1);
-  //   fetchAttributeValues();
-  // };
-
-  const handleDeleteType = async (id) => {
-    if (!window.confirm('Bạn chắc chắn muốn xóa loại thuộc tính này?')) return;
-    try {
-      const token = localStorage.getItem('accessToken');
-      const res = await fetch(`${PRODUCT_ENDPOINTS.ATTRIBUTE_TYPES}${id}/`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.status === 403) {
-        alert('Bạn không có quyền xóa mục này.');
-        return;
-      }
-      if (res.status === 204) {
-        setAttributeTypes(prevTypes => {
-          const updatedTypes = prevTypes.filter(type => type.id !== id);
-          if (updatedTypes.length === 0 && typeCurrentPage > 1) {
-            setTypeCurrentPage(prev => prev - 1);
-          }
-          return updatedTypes;
-        });
-        fetchAttributeTypes();
-        fetchAttributeValues();
-      }
-      else throw new Error('Xóa thất bại');
-    } catch (err) {
-      alert(err.message);
-    }
-  };
-
-  const handleDeleteValue = async (id) => {
-    if (!window.confirm('Bạn chắc chắn muốn xóa giá trị thuộc tính này?')) return;
-    try {
-      const token = localStorage.getItem('accessToken');
-      const res = await fetch(`${PRODUCT_ENDPOINTS.ATTRIBUTE_VALUES}${id}/`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.status === 403) {
-        alert('Bạn không có quyền xóa mục này.');
-        return;
-      }
-      if (res.status === 204) {
-        setAttributeValues(prevValues => {
-          const updatedValues = prevValues.filter(value => value.id !== id);
-          if (updatedValues.length === 0 && valueCurrentPage > 1) {
-            setValueCurrentPage(prev => prev - 1);
-          }
-          return updatedValues;
-        });
-        fetchAttributeTypes();
-        fetchAttributeValues();
-      }
-      else throw new Error('Xóa thất bại');
-    } catch (err) {
-      alert(err.message);
-    }
-  };
-
-  const handleCreateType = async (e) => {
-    e.preventDefault();
-    try {
-      const token = localStorage.getItem('accessToken');
-      const res = await fetch(PRODUCT_ENDPOINTS.ATTRIBUTE_TYPES, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(newType)
-      });
-      if (!res.ok) throw new Error('Lỗi khi tạo loại thuộc tính');
-      setShowNewTypeForm(false);
-      setNewType({ name: '', description: '', display_order: 0, is_active: true });
-      setTypeCurrentPage(1);
+    if (success) {
+      setModalVisible(false);
+      form.resetFields();
+      setEditingId(null);
       fetchAttributeTypes();
-    } catch (err) {
-      alert(err.message);
+      onTypeChange(); // Refresh attribute values
     }
-  };
+  }, [editingId, updateData, createData, form, fetchAttributeTypes, onTypeChange]);
 
-  const handleCreateValue = async (e) => {
-    e.preventDefault();
-    try {
-      const token = localStorage.getItem('accessToken');
-      const res = await fetch(PRODUCT_ENDPOINTS.ATTRIBUTE_VALUES, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(newValue)
-      });
-      if (!res.ok) throw new Error('Lỗi khi tạo giá trị thuộc tính');
-      setShowNewValueForm(false);
-      setNewValue({ value: '', attribute_type: '' });
-      setValueCurrentPage(1);
-      fetchAttributeValues();
-    } catch (err) {
-      alert(err.message);
-    }
-  };
-
-  const handleUpdateType = async (id) => {
-    try {
-      const token = localStorage.getItem('accessToken');
-      const typeToUpdate = attributeTypes.find(t => t.id === id);
-      const res = await fetch(`${PRODUCT_ENDPOINTS.ATTRIBUTE_TYPES}${id}/`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(typeToUpdate)
-      });
-      if (!res.ok) throw new Error('Lỗi khi cập nhật loại thuộc tính');
-      setEditingType(null);
-      fetchAttributeTypes();
-    } catch (err) {
-      alert(err.message);
-    }
-  };
-
-  const handleUpdateValue = async (id) => {
-    try {
-      const token = localStorage.getItem('accessToken');
-      const valueToUpdate = attributeValues.find(v => v.id === id);
-      const res = await fetch(`${PRODUCT_ENDPOINTS.ATTRIBUTE_VALUES}${id}/`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          ...valueToUpdate,
-          attribute_type: valueToUpdate.attribute_type
-        })
-      });
-      if (!res.ok) throw new Error('Lỗi khi cập nhật giá trị thuộc tính');
-      setEditingValue(null);
-      fetchAttributeValues();
-    } catch (err) {
-      alert(err.message);
-    }
-  };
-
-  const renderTypePagination = () => {
-    const pages = [];
-    for (let i = 1; i <= typeTotalPages; i++) {
-      pages.push(
-        <button
-          key={i}
-          onClick={() => setTypeCurrentPage(i)}
-          className={typeCurrentPage === i ? 'active' : ''}
-        >
-          {i}
-        </button>
-      );
-    }
-    return (
-      <div className="admin-pagination">
-        <button onClick={() => setTypeCurrentPage(prev => Math.max(prev - 1, 1))} disabled={typeCurrentPage === 1}>Trước</button>
-        <div className="page-numbers">{pages}</div>
-        <button onClick={() => setTypeCurrentPage(prev => Math.min(prev + 1, typeTotalPages))} disabled={typeCurrentPage === typeTotalPages}>Sau</button>
-        <span className="page-info">Trang {typeCurrentPage} / {typeTotalPages}</span>
-      </div>
-    );
-  };
-
-  const renderValuePagination = () => {
-    const pages = [];
-    for (let i = 1; i <= valueTotalPages; i++) {
-      pages.push(
-        <button
-          key={i}
-          onClick={() => setValueCurrentPage(i)}
-          className={valueCurrentPage === i ? 'active' : ''}
-        >
-          {i}
-        </button>
-      );
-    }
-    return (
-      <div className="admin-pagination">
-        <button onClick={() => setValueCurrentPage(prev => Math.max(prev - 1, 1))} disabled={valueCurrentPage === 1}>Trước</button>
-        <div className="page-numbers">{pages}</div>
-        <button onClick={() => setValueCurrentPage(prev => Math.min(prev + 1, valueTotalPages))} disabled={valueCurrentPage === valueTotalPages}>Sau</button>
-        <span className="page-info">Trang {valueCurrentPage} / {valueTotalPages}</span>
-      </div>
-    );
-  };
-
-  if (loading && !attributeTypes.length) return <div>Đang tải...</div>;
-  if (error) return <div className="admin-error">{error}</div>;
+  // Định nghĩa columns cho Ant Design Table - đã bỏ cột thứ tự và trạng thái
+  const columns = [
+    {
+      title: 'ID',
+      dataIndex: 'id',
+      key: 'id',
+      width: 80,
+    },
+    {
+      title: 'Tên loại',
+      dataIndex: 'name',
+      key: 'name',
+      width: 200,
+      render: (name) => (
+        <div className="attribute-type-name">
+          {name}
+        </div>
+      ),
+    },
+    {
+      title: 'Mô tả',
+      dataIndex: 'description',
+      key: 'description',
+      width: 250,
+      render: (description) => (
+        <div className="attribute-type-desc">
+          {description ? (description.length > 50 ? `${description.substring(0, 50)}...` : description) : '-'}
+        </div>
+      ),
+    },
+    {
+      title: 'Thao tác',
+      key: 'action',
+      width: 200,
+      fixed: 'right',
+      render: (_, record) => (
+        <ActionButtons
+          record={record}
+          onView={() => handleEdit(record)}
+          onEdit={() => handleEdit(record)}
+          onDelete={() => handleDelete(record)}
+          hasAccess={hasAccess}
+          showView={false}
+          showEdit={checkModulePermission('attribute', 'edit')}
+          showDelete={checkModulePermission('attribute', 'delete')}
+          entityName="loại thuộc tính"
+        />
+      ),
+    },
+  ];
 
   return (
-    <div className="admin-attributes-list">
+    <div className="admin-attributes-section">
+      {/* Access Denied Alert */}
+      <AccessDeniedAlert 
+        hasAccess={hasAccess} 
+        module="attribute"
+        action="view"
+        showUserInfo={false}
+      />
       <div className="admin-list-header">
-        <h2>Quản lý thuộc tính</h2>
-      </div>
-
-      <div className="admin-tables-container">
-        <div className="admin-table-section">
-          <h3>Loại thuộc tính</h3>
           <div className="search-bar">
           <Input
             placeholder="Tìm kiếm loại thuộc tính..."
             prefix={<SearchOutlined />}
-            value={typeSearchText}
-            onChange={(e) => setTypeSearchText(e.target.value)}
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
             style={{ width: 300 }}
             allowClear
+            disabled={!hasAccess}
           />
-          {hasModulePermission('attribute', 'create') && (
+          {checkModulePermission('attribute', 'create') && (
             <Button
               type="primary"
               icon={<PlusOutlined />}
-              onClick={() => setShowNewTypeForm(true)}
+              onClick={handleAdd}
             >
               Thêm loại thuộc tính
             </Button>
           )}
         </div>
-          <div className="table-responsive">
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Tên loại</th>
-                  <th>Mô tả</th>
-                  <th>Thứ tự</th>
-                  <th>Trạng thái</th>
-                  <th>Hành động</th>
-                </tr>
-              </thead>
-              <tbody>
-                {showNewTypeForm && (
-                  <tr className="editing-row">
-                    <td>New</td>
-                    <td>
-                      <input
-                        type="text"
-                        value={newType.name}
-                        onChange={e => setNewType({ ...newType, name: e.target.value })}
-                        placeholder="Tên loại"
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="text"
-                        value={newType.description}
-                        onChange={e => setNewType({ ...newType, description: e.target.value })}
-                        placeholder="Mô tả"
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        value={newType.display_order}
-                        onChange={e => setNewType({ ...newType, display_order: parseInt(e.target.value) || 0 })}
-                      />
-                    </td>
-                    <td>
-                      <select
-                        value={newType.is_active}
-                        onChange={e => setNewType({ ...newType, is_active: e.target.value === 'true' })}
-                      >
-                        <option value={true}>Hoạt động</option>
-                        <option value={false}>Ẩn</option>
-                      </select>
-                    </td>
-                    <td className="admin-table-actions">
-                      <button className="admin-btn primary" onClick={handleCreateType}>Lưu</button>
-                      <button className="admin-btn" onClick={() => setShowNewTypeForm(false)}>Hủy</button>
-                    </td>
-                  </tr>
-                )}
-                {attributeTypes.length === 0 ? (
-                  <tr>
-                    <td colSpan="6" style={{ textAlign: 'center', padding: '40px 0' }}>
-                      <Empty description="No data" imageStyle={{ height: 60 }} />
-                    </td>
-                  </tr>
-                ) : (
-                  attributeTypes.map(type => (
-                    <tr key={type.id}>
-                      <td>{type.id}</td>
-                      <td>
-                        {editingType === type.id ? (
-                          <input
-                            type="text"
-                            value={type.name}
-                            onChange={(e) => {
-                              const updatedTypes = attributeTypes.map(t =>
-                                t.id === type.id ? { ...t, name: e.target.value } : t
-                              );
-                              setAttributeTypes(updatedTypes);
-                            }}
-                          />
-                        ) : (
-                          type.name
-                        )}
-                      </td>
-                      <td>
-                        {editingType === type.id ? (
-                          <input
-                            type="text"
-                            value={type.description}
-                            onChange={(e) => {
-                              const updatedTypes = attributeTypes.map(t =>
-                                t.id === type.id ? { ...t, description: e.target.value } : t
-                              );
-                              setAttributeTypes(updatedTypes);
-                            }}
-                          />
-                        ) : (
-                          type.description
-                        )}
-                      </td>
-                      <td>
-                        {editingType === type.id ? (
-                          <input
-                            type="number"
-                            value={type.display_order}
-                            onChange={(e) => {
-                              const updatedTypes = attributeTypes.map(t =>
-                                t.id === type.id ? { ...t, display_order: parseInt(e.target.value) } : t
-                              );
-                              setAttributeTypes(updatedTypes);
-                            }}
-                          />
-                        ) : (
-                          type.display_order
-                        )}
-                      </td>
-                      <td>
-                        {editingType === type.id ? (
-                          <select
-                            value={type.is_active}
-                            onChange={(e) => {
-                              const updatedTypes = attributeTypes.map(t =>
-                                t.id === type.id ? { ...t, is_active: e.target.value === 'true' } : t
-                              );
-                              setAttributeTypes(updatedTypes);
-                            }}
-                          >
-                            <option value={true}>Hoạt động</option>
-                            <option value={false}>Ẩn</option>
-                          </select>
-                        ) : (
-                          type.is_active ? 'Hoạt động' : 'Ẩn'
-                        )}
-                      </td>
-                      <td className="admin-table-actions">
-                        {editingType === type.id ? (
-                          <>
-                            <button className="admin-btn primary" onClick={() => handleUpdateType(type.id)}>Lưu</button>
-                            <button className="admin-btn" onClick={() => setEditingType(null)}>Hủy</button>
-                          </>
-                        ) : (
-                          <>
-                            {hasModulePermission('attribute', 'edit') && (
-                              <button className="admin-btn" onClick={() => setEditingType(type.id)}>Sửa</button>
-                            )}
-                            {hasModulePermission('attribute', 'delete') && (
-                              <button className="admin-btn danger" onClick={() => handleDeleteType(type.id)}>Xóa</button>
-                            )}
-                          </>
-                        )}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-          {renderTypePagination()}
-        </div>
+      </div>
 
-        <div className="admin-table-section">
-          <h3>Giá trị thuộc tính</h3>
+      <Table
+        columns={columns}
+        dataSource={attributeTypes}
+        loading={isLoading}
+        rowKey="id"
+        className="attribute-types-table"
+        scroll={{ x: 800 }}
+        pagination={false}
+        locale={{
+          emptyText: (
+            <Empty 
+              description="Không có dữ liệu" 
+              imageStyle={{ height: 60 }} 
+            />
+          )
+        }}
+      />
+
+      {/* Pagination */}
+      <CustomPagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        total={total}
+        onPageChange={setCurrentPage}
+        hasAccess={hasAccess}
+        hasNext={hasNext}
+        hasPrevious={hasPrevious}
+      />
+
+      {/* Modal cho thêm/sửa loại thuộc tính */}
+      <Modal
+        title={editingId ? 'Chỉnh sửa loại thuộc tính' : 'Thêm loại thuộc tính mới'}
+        open={modalVisible}
+        onCancel={() => {
+          setModalVisible(false);
+          form.resetFields();
+          setEditingId(null);
+        }}
+        footer={null}
+        width={500}
+      >
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={handleSubmit}
+        >
+          <Form.Item
+            name="name"
+            label="Tên loại thuộc tính"
+            rules={[{ required: true, message: 'Vui lòng nhập tên loại thuộc tính' }]}
+          >
+            <Input placeholder="Nhập tên loại thuộc tính" />
+          </Form.Item>
+
+          <Form.Item
+            name="description"
+            label="Mô tả"
+          >
+            <Input.TextArea 
+              rows={3} 
+              placeholder="Nhập mô tả (không bắt buộc)" 
+            />
+          </Form.Item>
+
+          <Form.Item>
+            <Space>
+              <Button type="primary" htmlType="submit">
+                {editingId ? 'Cập nhật' : 'Thêm mới'}
+              </Button>
+              <Button onClick={() => {
+                setModalVisible(false);
+                form.resetFields();
+                setEditingId(null);
+              }}>
+                Hủy
+              </Button>
+            </Space>
+          </Form.Item>
+        </Form>
+      </Modal>
+    </div>
+  );
+};
+
+// Component cho Attribute Values
+const AttributeValuesSection = ({ attributeTypes }) => {
+  const [modalVisible, setModalVisible] = useState(false);
+  const [form] = Form.useForm();
+  const [editingId, setEditingId] = useState(null);
+  const [selectedAttributeType, setSelectedAttributeType] = useState(null);
+
+  // Hook tích hợp cho danh sách attribute values
+  const {
+    data: attributeValues,
+    isLoading,
+    hasAccess,
+    searchText,
+    setSearchText,
+    currentPage,
+    setCurrentPage,
+    totalPages,
+    total,
+    hasNext,
+    hasPrevious,
+    fetchData: fetchAttributeValues
+  } = useListData({
+    module: 'attribute',
+    action: 'view',
+    apiEndpoint: PRODUCT_ENDPOINTS.ATTRIBUTE_VALUES,
+    pageSize: 20,
+    debounceDelay: 500,
+    initialFilters: { attribute_type: null }
+  });
+
+  // CRUD operations với kiểm tra quyền
+  const { createData, updateData, deleteData } = useCRUD({
+    baseUrl: PRODUCT_ENDPOINTS.ATTRIBUTE_VALUES,
+    entityName: 'giá trị thuộc tính',
+    canCreate: hasAccess,
+    canEdit: hasAccess,
+    canDelete: hasAccess
+  });
+
+  // Access control cho các action cụ thể
+  const { checkModulePermission } = useAccessControl();
+
+  const handleDelete = useCallback(async (record) => {
+    const success = await deleteData(record.id);
+    if (success) {
+      fetchAttributeValues();
+    }
+  }, [deleteData, fetchAttributeValues]);
+
+  const handleEdit = useCallback((record) => {
+    console.log('Editing attribute value:', record);
+    setEditingId(record.id);
+    form.setFieldsValue({
+      value: record.value,
+      attribute_type: record.attribute_type
+    });
+    setModalVisible(true);
+  }, [form]);
+
+  const handleAdd = useCallback(() => {
+    setEditingId(null);
+    form.resetFields();
+    setModalVisible(true);
+  }, [form]);
+
+  const handleSubmit = useCallback(async (values) => {
+    const formattedValues = {
+      value: values.value,
+      attribute_type: values.attribute_type
+    };
+
+    let success = false;
+    if (editingId) {
+      success = await updateData(editingId, formattedValues);
+    } else {
+      success = await createData(formattedValues);
+    }
+
+    if (success) {
+      setModalVisible(false);
+      form.resetFields();
+      setEditingId(null);
+      fetchAttributeValues();
+    }
+  }, [editingId, updateData, createData, form, fetchAttributeValues]);
+
+  // Xử lý thay đổi filter loại thuộc tính
+  const handleAttributeTypeFilter = useCallback((value) => {
+    setSelectedAttributeType(value);
+    setCurrentPage(1); // Reset về trang 1 khi filter thay đổi
+  }, [setCurrentPage]);
+
+  // Lọc dữ liệu theo loại thuộc tính được chọn
+  const filteredAttributeValues = selectedAttributeType 
+    ? attributeValues.filter(item => item.attribute_type === selectedAttributeType)
+    : attributeValues;
+
+  // Định nghĩa columns cho Ant Design Table
+  const columns = [
+    {
+      title: 'ID',
+      dataIndex: 'id',
+      key: 'id',
+      width: 80,
+    },
+    {
+      title: 'Giá trị',
+      dataIndex: 'value',
+      key: 'value',
+      width: 200,
+      render: (value) => (
+        <div className="attribute-value-name">
+          {value}
+        </div>
+      ),
+    },
+    {
+      title: 'Loại thuộc tính',
+      dataIndex: 'attribute_type',
+      key: 'attribute_type',
+      width: 200,
+      render: (attributeTypeId) => {
+        const attributeType = attributeTypes.find(type => type.id === attributeTypeId);
+        return attributeType ? attributeType.name : 'N/A';
+      },
+    },
+    {
+      title: 'Thao tác',
+      key: 'action',
+      width: 200,
+      fixed: 'right',
+      render: (_, record) => (
+        <ActionButtons
+          record={record}
+          onView={() => handleEdit(record)}
+          onEdit={() => handleEdit(record)}
+          onDelete={() => handleDelete(record)}
+          hasAccess={hasAccess}
+          showView={false}
+          showEdit={checkModulePermission('attribute', 'edit')}
+          showDelete={checkModulePermission('attribute', 'delete')}
+          entityName="giá trị thuộc tính"
+        />
+      ),
+    },
+  ];
+
+  return (
+    <div className="admin-attributes-section">
+      {/* Access Denied Alert */}
+      <AccessDeniedAlert 
+        hasAccess={hasAccess} 
+        module="attribute"
+        action="view"
+        showUserInfo={false}
+      />
+      <div className="admin-list-header">
             <div className="search-bar">
               <Input
                 placeholder="Tìm kiếm giá trị thuộc tính..."
                 prefix={<SearchOutlined />}
-                value={valueSearchText}
-                onChange={(e) => setValueSearchText(e.target.value)}
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
                 style={{ width: 300 }}
                 allowClear
-              />
-              {hasModulePermission('attribute', 'create') && (
+            disabled={!hasAccess}
+          />
+          <Select
+            placeholder="Lọc theo loại thuộc tính"
+            value={selectedAttributeType}
+            onChange={handleAttributeTypeFilter}
+            style={{ width: 200 }}
+            allowClear
+            disabled={!hasAccess}
+          >
+            {attributeTypes.map(type => (
+              <Option key={type.id} value={type.id}>
+                {type.name}
+              </Option>
+            ))}
+          </Select>
+          {checkModulePermission('attribute', 'create') && (
                 <Button
                   type="primary"
                   icon={<PlusOutlined />}
-                  onClick={() => setShowNewValueForm(true)}
+              onClick={handleAdd}
                 >
                   Thêm giá trị thuộc tính
                 </Button>
               )}
             </div>
-          <div className="table-responsive">
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Giá trị</th>
-                  <th>Loại thuộc tính</th>
-                  <th>Hành động</th>
-                </tr>
-              </thead>
-              <tbody>
-                {showNewValueForm && (
-                  <tr className="editing-row">
-                    <td>New</td>
-                    <td>
-                      <input
-                        type="text"
-                        value={newValue.value}
-                        onChange={e => setNewValue({ ...newValue, value: e.target.value })}
-                        placeholder="Giá trị"
-                      />
-                    </td>
-                    <td>
-                      <select
-                        value={newValue.attribute_type}
-                        onChange={e => setNewValue({ ...newValue, attribute_type: e.target.value })}
-                      >
-                        <option value="">Chọn loại thuộc tính</option>
-                        {attributeTypes.map(type => (
-                          <option key={type.id} value={type.id}>{type.name}</option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="admin-table-actions">
-                      <button className="admin-btn primary" onClick={handleCreateValue}>Lưu</button>
-                      <button className="admin-btn" onClick={() => setShowNewValueForm(false)}>Hủy</button>
-                    </td>
-                  </tr>
-                )}
-                {attributeValues.length === 0 ? (
-                  <tr>
-                    <td colSpan="4" style={{ textAlign: 'center', padding: '40px 0' }}>
-                      <Empty description="No data" imageStyle={{ height: 60 }} />
-                    </td>
-                  </tr>
-                ) : (
-                  attributeValues.map(value => (
-                    <tr key={value.id}>
-                      <td>{value.id}</td>
-                      <td>
-                        {editingValue === value.id ? (
-                          <input
-                            type="text"
-                            value={value.value}
-                            onChange={(e) => {
-                              const updatedValues = attributeValues.map(v =>
-                                v.id === value.id ? { ...v, value: e.target.value } : v
-                              );
-                              setAttributeValues(updatedValues);
-                            }}
-                          />
-                        ) : (
-                          value.value
-                        )}
-                      </td>
-                      <td>
-                        {editingValue === value.id ? (
-                          <select
-                            value={value.attribute_type}
-                            onChange={(e) => {
-                              const updatedValues = attributeValues.map(v =>
-                                v.id === value.id ? { ...v, attribute_type: e.target.value } : v
-                              );
-                              setAttributeValues(updatedValues);
-                            }}
-                          >
+      </div>
+
+      <Table
+        columns={columns}
+        dataSource={filteredAttributeValues}
+        loading={isLoading}
+        rowKey="id"
+        className="attribute-values-table"
+        scroll={{ x: 800 }}
+        pagination={false}
+        locale={{
+          emptyText: (
+            <Empty 
+              description="Không có dữ liệu" 
+              imageStyle={{ height: 60 }} 
+            />
+          )
+        }}
+      />
+
+      {/* Pagination */}
+      <CustomPagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        total={total}
+        onPageChange={setCurrentPage}
+        hasAccess={hasAccess}
+        hasNext={hasNext}
+        hasPrevious={hasPrevious}
+      />
+
+      {/* Modal cho thêm/sửa giá trị thuộc tính */}
+      <Modal
+        title={editingId ? 'Chỉnh sửa giá trị thuộc tính' : 'Thêm giá trị thuộc tính mới'}
+        open={modalVisible}
+        onCancel={() => {
+          setModalVisible(false);
+          form.resetFields();
+          setEditingId(null);
+        }}
+        footer={null}
+        width={500}
+      >
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={handleSubmit}
+        >
+          <Form.Item
+            name="value"
+            label="Giá trị"
+            rules={[{ required: true, message: 'Vui lòng nhập giá trị' }]}
+          >
+            <Input placeholder="Nhập giá trị thuộc tính" />
+          </Form.Item>
+
+          <Form.Item
+            name="attribute_type"
+            label="Loại thuộc tính"
+            rules={[{ required: true, message: 'Vui lòng chọn loại thuộc tính' }]}
+          >
+            <Select placeholder="Chọn loại thuộc tính">
                             {attributeTypes.map(type => (
-                              <option key={type.id} value={type.id}>{type.name}</option>
-                            ))}
-                          </select>
-                        ) : (
-                          value.attribute_type_detail ? value.attribute_type_detail.name : 'N/A'
-                        )}
-                      </td>
-                      <td className="admin-table-actions">
-                        {editingValue === value.id ? (
-                          <>
-                            <button className="admin-btn primary" onClick={() => handleUpdateValue(value.id)}>Lưu</button>
-                            <button className="admin-btn" onClick={() => setEditingValue(null)}>Hủy</button>
-                          </>
-                        ) : (
-                          <>
-                            {hasModulePermission('attribute', 'edit') && (
-                              <button className="admin-btn" onClick={() => setEditingValue(value.id)}>Sửa</button>
-                            )}
-                            {hasModulePermission('attribute', 'delete') && (
-                              <button className="admin-btn danger" onClick={() => handleDeleteValue(value.id)}>Xóa</button>
-                            )}
-                          </>
-                        )}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                <Option key={type.id} value={type.id}>
+                  {type.name}
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+
+          <Form.Item>
+            <Space>
+              <Button type="primary" htmlType="submit">
+                {editingId ? 'Cập nhật' : 'Thêm mới'}
+              </Button>
+              <Button onClick={() => {
+                setModalVisible(false);
+                form.resetFields();
+                setEditingId(null);
+              }}>
+                Hủy
+              </Button>
+            </Space>
+          </Form.Item>
+        </Form>
+      </Modal>
           </div>
-          {renderValuePagination()}
+  );
+};
+
+export default function AttributesPage() {
+  const navigate = useNavigate();
+  const [attributeTypes, setAttributeTypes] = useState([]);
+
+  // Hook để lấy danh sách attribute types cho dropdown
+  const {
+    data: typesData,
+    fetchData: fetchTypes
+  } = useListData({
+    module: 'attribute',
+    action: 'view',
+    apiEndpoint: PRODUCT_ENDPOINTS.ATTRIBUTE_TYPES,
+    pageSize: 1000, // Lấy tất cả để làm dropdown
+    debounceDelay: 0
+  });
+
+  // Cập nhật attribute types khi data thay đổi
+  React.useEffect(() => {
+    if (typesData) {
+      setAttributeTypes(typesData);
+    }
+  }, [typesData]);
+
+  // Callback để refresh attribute values khi types thay đổi
+  const handleTypeChange = useCallback(() => {
+    fetchTypes();
+  }, [fetchTypes]);
+
+  // Định nghĩa các tab items
+  const tabItems = [
+    {
+      key: 'types',
+      label: 'Loại thuộc tính',
+      children: <AttributeTypesSection onTypeChange={handleTypeChange} />
+    },
+    {
+      key: 'values',
+      label: 'Giá trị thuộc tính',
+      children: <AttributeValuesSection attributeTypes={attributeTypes} />
+    }
+  ];
+
+  return (
+    <div className="admin-attributes-list">
+      <div className="admin-list-header">
+        <h2>Quản lý thuộc tính</h2>
         </div>
+
+      <div className="admin-tables-container">
+        <Tabs 
+          defaultActiveKey="types" 
+          items={tabItems}
+          size="large"
+          tabBarStyle={{ 
+            marginBottom: 24,
+            borderBottom: '1px solid #f0f0f0'
+          }}
+          tabBarGutter={16}
+        />
       </div>
     </div>
   );

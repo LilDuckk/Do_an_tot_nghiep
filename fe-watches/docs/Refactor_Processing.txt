@@ -1,0 +1,27 @@
+- Add Hooks, Components. Chú ý các components nâng cao với các trang có filter, có thống kê.
+- Refactored with hooks and component: 
+  + Người dùng (PermissionPage, UserPage, GroupPage)
+  + Sản phẩm (ProductPage, CategoryPage, BrandPage, VariantPage, AttributePage)
+  + Đơn hàng (OrderPage, Return_OrderPage, CouponPage, )
+  + Cửa hàng (StorePage, EmployeesPage)
+  + Hệ thống (BannerPage, FooterPage, )
+- Với AccessControl, đặt dòng này ở sau các hook và useCallBack, useEffect:
+ // Sau khi khai báo hook, mới kiểm tra quyền
+  if (!hasAccess) {
+    return (
+      <div className="admin-stores-list">
+        <AccessDeniedAlert 
+          hasAccess={hasAccess} 
+          module="store"
+          action="view"
+          showUserInfo={true}
+        />
+      </div>
+    );
+  }
+
+
+RẤT NHIỀU TRANG ĐANG BỊ LỖI API ENDPOINT VÌ ĐÃ CẤU HÌNH LẠI CÁC API TRONG API.JS . TIẾN HÀNH SỬA KHI REFACTOR CÁC TRANG ĐÓ.
+
+LỖI PHÁT HIỆN TRONG QUÁ TRÌNH REFACTOR:
+- CÓ LỖI KHI TẠO ĐƠN HÀNG MỚI, HOÀN THÀNH ĐƠN, CÓ 1 GIÁ TRỊ -0 WARRANTY Ở LỊCH SỬ GIAO DỊCH KHO CÙNG VỚI ĐƠN HÀNG HOÀN THÀNH.

@@ -1,25 +1,12 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from django_filters import rest_framework as filters
-from django.db import transaction, connection
-from django.db.models import Sum, Count, Avg, Q, F, DecimalField
+from django.db import connection
 from django.utils import timezone
-from datetime import datetime, timedelta
+from datetime import timedelta
 from decimal import Decimal
 from rest_framework.permissions import OR
 
-from apps.orders.models.order import Orders
-from apps.orders.models.order_detail import OrderDetail
-from apps.orders.models.return_order import ReturnOrder
-from apps.orders.models.return_order_detail import ReturnOrderDetail
-from apps.warranty.models.warranty import Warranty
-from apps.warranty.models.warranty_claim import WarrantyClaim
-from apps.inventory.models.inventory import Inventory
-from apps.inventory.models.inventory_transaction import InventoryTransaction
-from apps.purchases.models.goods_receipt import GoodsReceipt
-from apps.purchases.models.purchase_order import PurchaseOrder
-from apps.stores.models.store import Store
 from apps.stores.models.employee import Employee
 from apps.core.utils.permissions import IsSuperUser, ViewReportsPermission
 
@@ -172,7 +159,7 @@ class DashboardViewSet(viewsets.ViewSet):
             prev_revenue = prev_revenue or Decimal('0')
             
             revenue_growth = 0
-            if prev_revenue > 0:
+            if prev_revenue and prev_revenue > 0:
                 revenue_growth = float(((gross_revenue - prev_revenue) / prev_revenue) * 100)
             
             order_growth = 0
@@ -189,7 +176,7 @@ class DashboardViewSet(viewsets.ViewSet):
                     'gross_revenue': float(gross_revenue),
                     'net_revenue': float(net_revenue),
                     'total_discounts': float(total_discounts),
-                    'discount_rate': float((total_discounts / gross_revenue * 100) if gross_revenue else 0),
+                    'discount_rate': float((total_discounts / gross_revenue * 100) if gross_revenue and gross_revenue > 0 else 0),
                     'revenue_growth': revenue_growth
                 },
                 'orders': {
@@ -629,8 +616,23 @@ class DashboardViewSet(viewsets.ViewSet):
                 product_profit_results = cursor.fetchall()
             
             # Xử lý kết quả Return Orders
-            (total_return_orders, total_returned_items, total_returned_quantity, total_refund_amount, 
-             pending_returns, approved_returns, completed_returns, rejected_returns, average_refund_amount) = return_stats
+            if return_stats:
+                (total_return_orders, total_returned_items, total_returned_quantity, total_refund_amount, 
+                 pending_returns, approved_returns, completed_returns, rejected_returns, average_refund_amount) = return_stats
+            else:
+                total_return_orders = total_returned_items = total_returned_quantity = total_refund_amount = 0
+                pending_returns = approved_returns = completed_returns = rejected_returns = average_refund_amount = 0
+            
+            # Đảm bảo tất cả giá trị không bị None
+            total_return_orders = total_return_orders or 0
+            total_returned_items = total_returned_items or 0
+            total_returned_quantity = total_returned_quantity or 0
+            total_refund_amount = total_refund_amount or 0
+            pending_returns = pending_returns or 0
+            approved_returns = approved_returns or 0
+            completed_returns = completed_returns or 0
+            rejected_returns = rejected_returns or 0
+            average_refund_amount = average_refund_amount or 0
             
             return_analysis = {
                 'total_return_orders': total_return_orders or 0,
@@ -648,8 +650,23 @@ class DashboardViewSet(viewsets.ViewSet):
             }
             
             # Xử lý kết quả Warranty
-            (total_warranties, total_warranty_claims, active_warranties, expired_warranties, 
-             claimed_warranties, pending_claims, completed_claims, total_repair_cost, average_repair_cost) = warranty_stats
+            if warranty_stats:
+                (total_warranties, total_warranty_claims, active_warranties, expired_warranties, 
+                 claimed_warranties, pending_claims, completed_claims, total_repair_cost, average_repair_cost) = warranty_stats
+            else:
+                total_warranties = total_warranty_claims = active_warranties = expired_warranties = 0
+                claimed_warranties = pending_claims = completed_claims = total_repair_cost = average_repair_cost = 0
+            
+            # Đảm bảo tất cả giá trị không bị None
+            total_warranties = total_warranties or 0
+            total_warranty_claims = total_warranty_claims or 0
+            active_warranties = active_warranties or 0
+            expired_warranties = expired_warranties or 0
+            claimed_warranties = claimed_warranties or 0
+            pending_claims = pending_claims or 0
+            completed_claims = completed_claims or 0
+            total_repair_cost = total_repair_cost or 0
+            average_repair_cost = average_repair_cost or 0
             
             warranty_analysis = {
                 'total_warranties': total_warranties or 0,
@@ -665,25 +682,37 @@ class DashboardViewSet(viewsets.ViewSet):
                     'pending': pending_claims or 0,
                     'completed': completed_claims or 0
                 },
-                'claim_rate': (total_warranty_claims / total_warranties * 100) if total_warranties else 0
+                'claim_rate': (total_warranty_claims / total_warranties * 100) if total_warranties and total_warranties > 0 else 0
             }
             
             # Xử lý kết quả doanh thu
-            total_revenue, total_orders, total_items_sold, total_discounts = revenue_stats
+            if revenue_stats:
+                total_revenue, total_orders, total_items_sold, total_discounts = revenue_stats
+            else:
+                total_revenue = total_orders = total_items_sold = total_discounts = 0
+            
             total_revenue = total_revenue or Decimal('0')
+            total_orders = total_orders or 0
+            total_items_sold = total_items_sold or 0
             total_discounts = total_discounts or Decimal('0')
             net_revenue = total_revenue - total_discounts
             
             # Xử lý kết quả chi phí nhập hàng
-            total_purchase_cost, total_purchase_orders, total_items_purchased = purchase_stats
+            if purchase_stats:
+                total_purchase_cost, total_purchase_orders, total_items_purchased = purchase_stats
+            else:
+                total_purchase_cost = total_purchase_orders = total_items_purchased = 0
+            
             total_purchase_cost = total_purchase_cost or Decimal('0')
+            total_purchase_orders = total_purchase_orders or 0
+            total_items_purchased = total_items_purchased or 0
             
             # Tính toán các chỉ số tài chính
             gross_profit = net_revenue - total_purchase_cost
-            gross_profit_margin = (gross_profit / net_revenue * 100) if net_revenue else 0
+            gross_profit_margin = (gross_profit / net_revenue * 100) if net_revenue and net_revenue > 0 else 0
             
             # Tính return rate
-            return_rate = (total_returned_quantity / total_items_sold * 100) if total_items_sold else 0
+            return_rate = (total_returned_quantity / total_items_sold * 100) if total_items_sold and total_items_sold > 0 else 0
             return_analysis['return_rate'] = return_rate
             
             # Xử lý kết quả lợi nhuận theo sản phẩm
@@ -692,8 +721,15 @@ class DashboardViewSet(viewsets.ViewSet):
                 (product_variant_id, sku, product_name, sold_quantity, sold_revenue, 
                  returned_quantity, refund_amount, warranty_claims, repair_cost) = row
                 
+                # Đảm bảo tất cả giá trị không bị None
+                product_variant_id = product_variant_id or 0
+                sku = sku or ''
+                product_name = product_name or ''
+                sold_quantity = sold_quantity or 0
                 sold_revenue = sold_revenue or Decimal('0')
+                returned_quantity = returned_quantity or 0
                 refund_amount = refund_amount or Decimal('0')
+                warranty_claims = warranty_claims or 0
                 repair_cost = repair_cost or Decimal('0')
                 
                 # Ước tính chi phí nhập hàng (cần cải thiện bằng cách join với purchase data)
@@ -712,7 +748,7 @@ class DashboardViewSet(viewsets.ViewSet):
                     'repair_cost': float(repair_cost),
                     'estimated_cost': float(estimated_cost),
                     'net_profit': float(net_profit),
-                    'profit_margin': float((net_profit / sold_revenue * 100) if sold_revenue else 0)
+                    'profit_margin': float((net_profit / sold_revenue * 100) if sold_revenue and sold_revenue > 0 else 0)
                 })
             
             comprehensive_data = {
@@ -739,7 +775,7 @@ class DashboardViewSet(viewsets.ViewSet):
                     'total_items_purchased': total_items_purchased or 0,
                     'total_purchase_orders': total_purchase_orders or 0,
                     'return_rate': return_rate,
-                    'average_order_value': float(total_revenue / total_orders) if total_orders else 0
+                    'average_order_value': float(total_revenue / total_orders) if total_orders and total_orders > 0 else 0
                 },
                 'product_profit_analysis': product_profit_analysis
             }

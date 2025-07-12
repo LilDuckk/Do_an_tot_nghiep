@@ -439,7 +439,7 @@ class SalesAnalysisViewSet(viewsets.ViewSet):
                         pv.sku,
                         p.name as product_name,
                         COALESCE(b.name, '') as brand_name,
-                        pv.price as current_price,
+                        NULL as current_price,
                         COALESCE(inv.quantity, 0) as current_stock,
                         pv.is_active
                     FROM productvariant pv
@@ -507,7 +507,7 @@ class SalesAnalysisViewSet(viewsets.ViewSet):
                 cursor.execute(f"""
                     SELECT 
                         c.id as customer_id,
-                        c.name as customer_name,
+                        CONCAT(c.first_name, ' ', c.last_name) as customer_name,
                         c.phone as customer_phone,
                         SUM(od.quantity) as total_quantity,
                         SUM(od.final_price) as total_spent,
@@ -522,7 +522,7 @@ class SalesAnalysisViewSet(viewsets.ViewSet):
                         AND o.is_deleted = FALSE
                         AND od.is_deleted = FALSE
                         {store_filter}
-                    GROUP BY c.id, c.name, c.phone
+                    GROUP BY c.id, c.first_name, c.last_name, c.phone
                     ORDER BY total_spent DESC
                     LIMIT 10
                 """, [product_variant_id, start_date, end_date])
@@ -572,14 +572,14 @@ class SalesAnalysisViewSet(viewsets.ViewSet):
                 last_sale_date = sales_stats[7]
                 
                 net_revenue = total_revenue - total_discount
-                discount_rate = (total_discount / total_revenue * 100) if total_revenue else 0
-                average_quantity_per_order = total_quantity / total_orders if total_orders else 0
-                average_revenue_per_order = float(total_revenue / total_orders) if total_orders else 0
+                discount_rate = (total_discount / total_revenue * 100) if total_revenue and total_revenue > 0 else 0
+                average_quantity_per_order = total_quantity / total_orders if total_orders and total_orders > 0 else 0
+                average_revenue_per_order = float(total_revenue / total_orders) if total_orders and total_orders > 0 else 0
                 
                 # Tính tỷ lệ luân chuyển tồn kho
-                current_stock = product_data['current_stock']
-                turnover_rate = (total_quantity / current_stock * 100) if current_stock > 0 else 0
-                days_of_inventory = (current_stock / total_quantity * 365) if total_quantity > 0 else 0
+                current_stock = product_data['current_stock'] or 0
+                turnover_rate = (total_quantity / current_stock * 100) if current_stock and current_stock > 0 else 0
+                days_of_inventory = (current_stock / total_quantity * 365) if total_quantity and total_quantity > 0 else 0
             else:
                 total_orders = total_quantity = 0
                 total_revenue = total_discount = net_revenue = Decimal('0')
@@ -593,9 +593,9 @@ class SalesAnalysisViewSet(viewsets.ViewSet):
             for row in daily_performance:
                 daily_data.append({
                     'date': row[0].strftime('%Y-%m-%d'),
-                    'quantity': row[1],
+                    'quantity': row[1] or 0,
                     'revenue': float(row[2] or 0),
-                    'orders': row[3]
+                    'orders': row[3] or 0
                 })
             
             # Xử lý top customers
@@ -603,17 +603,19 @@ class SalesAnalysisViewSet(viewsets.ViewSet):
             for row in top_customers:
                 customers_data.append({
                     'customer_id': row[0],
-                    'customer_name': row[1],
-                    'customer_phone': row[2],
-                    'total_quantity': row[3],
+                    'customer_name': row[1] or '',
+                    'customer_phone': row[2] or '',
+                    'total_quantity': row[3] or 0,
                     'total_spent': float(row[4] or 0),
-                    'total_orders': row[5]
+                    'total_orders': row[5] or 0
                 })
             
             # Xử lý thống kê trả hàng và bảo hành
             if return_warranty_stats:
-                return_rate = (return_warranty_stats[1] / total_quantity * 100) if total_quantity else 0
-                warranty_rate = (return_warranty_stats[3] / total_quantity * 100) if total_quantity else 0
+                returned_quantity = return_warranty_stats[1] or 0
+                total_warranties = return_warranty_stats[3] or 0
+                return_rate = (returned_quantity / total_quantity * 100) if total_quantity and total_quantity > 0 else 0
+                warranty_rate = (total_warranties / total_quantity * 100) if total_quantity and total_quantity > 0 else 0
             else:
                 return_rate = warranty_rate = 0
             
@@ -641,10 +643,10 @@ class SalesAnalysisViewSet(viewsets.ViewSet):
                 },
                 'return_warranty_analysis': {
                     'total_returns': return_warranty_stats[0] or 0,
-                    'returned_quantity': return_warranty_stats[1] or 0,
+                    'returned_quantity': returned_quantity,
                     'total_refund': float(return_warranty_stats[2] or 0),
                     'return_rate': float(return_rate),
-                    'total_warranties': return_warranty_stats[3] or 0,
+                    'total_warranties': total_warranties,
                     'warranty_claims': return_warranty_stats[4] or 0,
                     'total_repair_cost': float(return_warranty_stats[5] or 0),
                     'warranty_rate': float(warranty_rate)

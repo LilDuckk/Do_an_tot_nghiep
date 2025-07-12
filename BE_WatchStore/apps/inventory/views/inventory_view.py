@@ -389,6 +389,109 @@ class InventoryViewSet(viewsets.ModelViewSet):
             'out_of_stock_items': out_of_stock_serializer.data
         })
 
+    @action(detail=False, methods=['get'], url_path='store_variants', url_name='store_variants')
+    def store_variants(self, request):
+        """
+        Lấy danh sách các biến thể sản phẩm tồn kho của một cửa hàng
+        """
+        store_id = request.query_params.get('store_id')
+        in_stock_only = request.query_params.get('in_stock_only', 'false').lower() == 'true'
+        search_query = request.query_params.get('search', None)
+        ordering = request.query_params.get('ordering', 'product_variant__product__name')
+        
+        if not store_id:
+            return Response({
+                'error': 'store_id là bắt buộc'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Lấy queryset cơ bản
+        queryset = self.get_queryset().filter(store_id=store_id)
+        
+        # Lọc chỉ các inventory items có product_variant hợp lệ
+        queryset = queryset.filter(product_variant__isnull=False)
+        
+        # Lọc chỉ sản phẩm còn hàng nếu được yêu cầu
+        if in_stock_only:
+            queryset = queryset.filter(quantity__gt=0)
+        
+        # Lọc theo tìm kiếm
+        if search_query:
+            queryset = queryset.filter(
+                Q(product_variant__product__name__icontains=search_query) |
+                Q(product_variant__sku__icontains=search_query) |
+                Q(product_variant__product__description__icontains=search_query)
+            )
+        
+        # Sắp xếp
+        if ordering:
+            queryset = queryset.order_by(ordering)
+        
+        # Lấy danh sách các biến thể sản phẩm
+        variants_data = []
+        for inventory_item in queryset:
+            variant = inventory_item.product_variant
+            
+            # Kiểm tra nếu variant là None
+            if variant is None:
+                continue
+            
+            # Lấy attribute values
+            attribute_values = []
+            attribute_values_detail = []
+            
+            try:
+                for attr_value in variant.attribute_values.select_related('attribute_type').all():
+                    attribute_values.append(attr_value.id)
+                    attribute_values_detail.append({
+                        'id': attr_value.id,
+                        'value': attr_value.value,
+                        'attribute_type': {
+                            'id': attr_value.attribute_type.id,
+                            'name': attr_value.attribute_type.name
+                        }
+                    })
+            except Exception as e:
+                # Log lỗi và tiếp tục với attribute_values rỗng
+                print(f"Error getting attribute values for variant {variant.id}: {e}")
+                attribute_values = []
+                attribute_values_detail = []
+            
+            # Tạo dữ liệu biến thể
+            try:
+                variant_data = {
+                    'id': variant.id,
+                    'product': variant.product.id if variant.product else None,
+                    'product_name': variant.product.name if variant.product else None,
+                    'sku': variant.sku,
+                    'price_adjustment': str(variant.price_adjustment) if variant.price_adjustment else None,
+                    'barcode': variant.barcode,
+                    'is_active': variant.is_active,
+                    'attribute_values': attribute_values,
+                    'attribute_values_detail': attribute_values_detail,
+                    'warranty_period': variant.warranty_period,
+                    'effective_warranty_period': variant.get_warranty_period() if hasattr(variant, 'get_warranty_period') else None,
+                    'quantity': inventory_item.quantity,
+                    'last_updated': inventory_item.last_updated
+                }
+            except Exception as e:
+                # Log lỗi và bỏ qua variant này
+                print(f"Error creating variant data for variant {variant.id}: {e}")
+                continue
+            
+            variants_data.append(variant_data)
+        
+        return Response({
+            'store_id': store_id,
+            'filters': {
+                'in_stock_only': in_stock_only,
+                'search': search_query,
+                'ordering': ordering
+            },
+            'total_variants': len(variants_data),
+            'total_inventory_items': queryset.count(),
+            'variants': variants_data
+        })
+
     def update(self, request, *args, **kwargs):
         # Chỉ cho phép cập nhật trường quantity
         allowed_fields = {'quantity'}

@@ -101,24 +101,46 @@ class ReturnOrder(BaseModel):
         return self.status == 'APPROVED'
 
     def calculate_refund_amount(self):
-        """Tính toán số tiền hoàn trả"""
-        if not self.order:
-            return 0
-        
+        """Tính toán số tiền hoàn trả dựa trên return order details"""
         from decimal import Decimal
-        total_return_amount = Decimal('0')
-        for return_detail in self.returnorderdetail_set.all():
-            if return_detail.order_detail:
-                # Tính theo tỷ lệ số lượng trả
-                original_quantity = return_detail.order_detail.quantity
+        total_refund_amount = Decimal('0')
+        
+        # Lấy tất cả return order details
+        return_details = self.returnorderdetail_set.all()
+        
+        for return_detail in return_details:
+            # Tính toán dựa trên product_variant và quantity
+            if return_detail.product_variant and return_detail.quantity > 0:
+                # Lấy giá cuối cùng của product variant
+                variant_price = return_detail.product_variant.get_final_price()
+                
+                # Tính số tiền hoàn trả cho item này
+                item_refund = Decimal(str(variant_price)) * Decimal(str(return_detail.quantity))
+                total_refund_amount += item_refund
+                
+            # Nếu có order_detail, tính toán dựa trên giá đã mua (bao gồm discount)
+            elif return_detail.order_detail and return_detail.quantity > 0:
+                order_detail = return_detail.order_detail
+                
+                # Tính tỷ lệ số lượng trả so với số lượng đã mua
+                original_quantity = order_detail.quantity
                 return_quantity = return_detail.quantity
-                original_price = return_detail.order_detail.final_price
                 
                 if original_quantity > 0:
+                    # Tính tỷ lệ hoàn trả
                     return_ratio = Decimal(str(return_quantity)) / Decimal(str(original_quantity))
-                    total_return_amount += original_price * return_ratio
+                    
+                    # Tính số tiền hoàn trả dựa trên final_price của order_detail
+                    item_refund = order_detail.final_price * return_ratio
+                    total_refund_amount += item_refund
         
-        return total_return_amount
+        return total_refund_amount
+
+    def update_refund_amount(self):
+        """Cập nhật refund_amount dựa trên return order details hiện tại"""
+        self.refund_amount = self.calculate_refund_amount()
+        self.save(update_fields=['refund_amount'])
+        return self.refund_amount
 
     def approve_return(self, approved_by_user, **kwargs):
         """Duyệt đơn trả hàng"""
@@ -177,9 +199,11 @@ class ReturnOrder(BaseModel):
             # Nếu đã có id, chỉ cập nhật return_number nếu chưa có
             if not self.return_number:
                 self.return_number = self.generate_return_number()
-            # Tự động tính refund_amount nếu chưa có
-            if not self.refund_amount and self.status == 'APPROVED':
+            
+            # Tự động tính refund_amount nếu chưa có hoặc khi status thay đổi
+            if not self.refund_amount or self.status in ['APPROVED', 'COMPLETED']:
                 self.refund_amount = self.calculate_refund_amount()
+            
             super().save(*args, **kwargs)
 
     @classmethod

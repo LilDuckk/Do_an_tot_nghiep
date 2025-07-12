@@ -27,6 +27,8 @@ import { useDebounceSearch } from '@/admin/hooks/useDebounce';
 import '@/admin/static/AdminCommon.css';
 import '@/admin/static/AdminLayout.css';
 import { INVENTORY_ENDPOINTS } from '@/config/api';
+import StatisticsCards from '@/admin/components/common/StatisticsCards';
+import { getInventoryTransactionStatisticsConfig, getInventoryTransactionStatisticsConfigWithPage } from '@/admin/utils/statisticsConfigs';
 
 const { Title } = Typography;
 
@@ -48,6 +50,12 @@ const InventoryTransactionsPage = () => {
 
   // Sử dụng useDebounceSearch hook với pagination
   const { debouncedSearchText, currentPage, setCurrentPage } = useDebounceSearch(searchTerm, 500);
+
+  // Loại bỏ useStatistics hook vì thống kê có trong response của API danh sách
+  // const { statistics: inventoryStats, fetchStatistics: fetchInventoryStats, loading: inventoryStatsLoading } = useStatistics(
+  //   INVENTORY_ENDPOINTS.INVENTORY_TRANSACTION_STATISTICS || INVENTORY_ENDPOINTS.INVENTORY_TRANSACTIONS,
+  //   defaultInventoryStats
+  // );
 
   // Fetch transactions
   const fetchTransactions = useCallback(async () => {
@@ -98,7 +106,7 @@ const InventoryTransactionsPage = () => {
       const count = data.count || 0;
       setTotalPages(Math.max(1, Math.ceil(count / pageSize)));
       if (count === 0 && currentPage !== 1) setCurrentPage(1);
-      setSummary(data.summary || null);
+      setSummary(data.summary || null); // Lưu summary từ response
     } catch (error) {
       console.error('Error fetching transactions:', error);
       message.error('Lỗi khi tải dữ liệu giao dịch kho');
@@ -122,6 +130,7 @@ const InventoryTransactionsPage = () => {
 
   useEffect(() => {
     fetchTransactions();
+    // Loại bỏ fetchInventoryStats vì thống kê có trong response của fetchTransactions
   }, [fetchTransactions]);
 
   // Handle table change
@@ -686,48 +695,10 @@ const InventoryTransactionsPage = () => {
       <Card>
         <Title level={2}>Lịch sử giao dịch kho</Title>
         
-        {/* Statistics Cards */}
-        <Row gutter={[16, 16]} className="admin-statistics-section">
-          <Col xs={24} sm={6}>
-            <Card className="admin-statistics-card info">
-              <Statistic
-                title="Tổng giao dịch"
-                value={summary?.total_transactions ?? total}
-                suffix="giao dịch"
-              />
-              <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
-                Trang {currentPage} / {totalPages}
-              </div>
-            </Card>
-          </Col>
-          <Col xs={24} sm={6}>
-            <Card className="admin-statistics-card success">
-              <Statistic
-                title="Tổng nhập kho"
-                value={summary?.total_in ?? 0}
-                suffix="sản phẩm"
-              />
-            </Card>
-          </Col>
-          <Col xs={24} sm={6}>
-            <Card className="admin-statistics-card danger">
-              <Statistic
-                title="Tổng xuất kho"
-                value={summary?.total_out ?? 0}
-                suffix="sản phẩm"
-              />
-            </Card>
-          </Col>
-          <Col xs={24} sm={6}>
-            <Card className="admin-statistics-card info">
-              <Statistic
-                title="Chênh lệch"
-                value={summary?.net_change ?? 0}
-                suffix="sản phẩm"
-              />
-            </Card>
-          </Col>
-        </Row>
+        <StatisticsCards 
+          config={getInventoryTransactionStatisticsConfigWithPage(summary || {}, currentPage, totalPages)} 
+          loading={loading} 
+        />
 
         {/* Search and Filter Section */}
         <Card size="small" style={{ marginBottom: 16 }}>
