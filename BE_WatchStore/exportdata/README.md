@@ -61,16 +61,16 @@ python exportdata/import_database_data.py --input complete_database_export.json
 python exportdata/import_database_data.py --input backup.json --dry-run
 
 # Import và xóa dữ liệu cũ
-python exportdata/import_database_data.py --input backup.json --clear-existing
+python exportdata/import_database_data.py --input complete_database_export_20250716_022117.json --clear-existing
 
 # Import và bỏ qua lỗi
-python exportdata/import_database_data.py --input backup.json --skip-errors
+python exportdata/import_database_data.py --input complete_database_export_20250716_022117.json --skip-errors
 ```
 
 #### Import app cụ thể:
 ```bash
 # Import chỉ app products
-python exportdata/import_database_data.py --input products_backup.json --app products
+python exportdata/import_database_data.py --input complete_database_export_20250716_022117.json --app orders
 ```
 
 ### 3. Tool Backup/Restore tương tác

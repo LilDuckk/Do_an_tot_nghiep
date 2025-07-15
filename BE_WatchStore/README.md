@@ -35,6 +35,8 @@ sudo service redis-server start
 # Tạo môi trường ảo
 python -m venv venv
 
+py -m venv venv
+
 # Kích hoạt môi trường ảo
 # Windows
 .\venv\Scripts\activate
@@ -69,14 +71,43 @@ AWS_S3_REGION_NAME=your-region
 # Tạo migrations
 python manage.py makemigrations
 
+py manage.py makemigrations
+
 # Áp dụng migrations
 python manage.py migrate
 
+py manage.py migrate
+
 # Tạo superuser
 python manage.py createsuperuser
+
+py manage.py createsuperuser
+
 ```
 
-### 2.2. Chạy Celery (cho background tasks)
+### 2.2. Import dữ liệu từ file JSON
+```bash
+# Import toàn bộ database (xóa dữ liệu cũ trước)
+python exportdata/import_database_data.py --input complete_database_export_20250716_022117.json --clear-existing --skip-errors
+
+# Import app cụ thể
+python exportdata/import_database_data.py --input complete_database_export_20250716_022117.json --app products --clear-existing --skip-errors
+
+# Dry run để xem sẽ import gì
+python exportdata/import_database_data.py --input complete_database_export_20250716_022117.json --dry-run
+
+# Import không xóa dữ liệu cũ
+python exportdata/import_database_data.py --input complete_database_export_20250716_022117.json --skip-errors
+```
+
+**Lưu ý quan trọng về import dữ liệu:**
+- Script sẽ tự động xử lý foreign key constraints
+- Sắp xếp thứ tự import theo dependencies
+- Tự động thử lại các bảng bị lỗi
+- Sử dụng `--clear-existing` để xóa dữ liệu cũ trước khi import
+- Sử dụng `--skip-errors` để bỏ qua lỗi và tiếp tục import
+
+### 2.3. Chạy Celery (cho background tasks)
 ```bash
 # Terminal 1 - Celery worker
 celery -A watchstore worker -l info
@@ -85,7 +116,7 @@ celery -A watchstore worker -l info
 celery -A watchstore beat -l info
 ```
 
-### 2.3. Chạy server
+### 2.4. Chạy server
 ```bash
 # Development
 python manage.py runserver
@@ -184,6 +215,9 @@ BE_WatchStore/
 ├── orders/                # Order management
 ├── customers/            # Customer management
 ├── reports/             # Reporting and analytics
+├── exportdata/          # Database export/import tools
+│   ├── import_database_data.py
+│   └── export_database_data.py
 └── static/              # Static files
     └── media/          # Uploaded files
 ```
