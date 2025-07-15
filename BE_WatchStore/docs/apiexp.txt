@@ -1,0 +1,1076 @@
+# API REPORTS - RESPONSE FORM DATA
+
+## 1. TOP PRODUCTS API
+### Endpoint: GET /api/reports/top-products/
+### Parameters: days (int), limit (int), store_id (int, optional)
+### Response:
+```json
+{
+  "summary": {
+    "period_days": 30,
+    "limit": 10,
+    "total_products": 5,
+    "total_sold": 150,
+    "total_revenue": 15000000.0,
+    "total_orders": 45,
+    "average_revenue_per_product": 3000000.0,
+    "average_sold_per_product": 30.0
+  },
+  "top_products": [
+    {
+      "variant_id": 1,
+      "product_id": 1,
+      "product_name": "Đồng hồ Casio G-Shock",
+      "sku": "CASIO-GSHOCK-001",
+      "variant_name": null,
+      "brand_name": "Casio",
+      "category_name": "Đồng hồ nam",
+      "total_sold": 50,
+      "total_revenue": 5000000.0,
+      "avg_price": 100000.0,
+      "order_count": 15,
+      "avg_quantity_per_order": 3.33,
+      "revenue_per_unit": 100000.0,
+      "performance_score": 250000000.0
+    }
+  ]
+}
+```
+
+## 2. BEST SELLING API
+### Endpoint: GET /api/reports/best-selling/
+### Parameters: limit (int, default: 10)
+### Response:
+```json
+[
+  {
+    "product_id": 1,
+    "product_name": "Đồng hồ Casio G-Shock",
+    "brand_name": "Casio",
+    "category_name": "Đồng hồ nam",
+    "total_orders": 25,
+    "total_quantity": 75,
+    "total_revenue": 7500000.0
+  }
+]
+```
+
+## 3. TOP CUSTOMERS API
+### Endpoint: GET /api/reports/top-customers/
+### Response:
+```json
+[
+  {
+    "customer_id": 1,
+    "first_name": "Nguyễn",
+    "last_name": "Văn A",
+    "email": "nguyenvana@email.com",
+    "phone": "0123456789",
+    "total_orders": 15,
+    "total_spent": 25000000.0,
+    "last_order_date": "2024-01-15T10:30:00Z"
+  }
+]
+```
+
+## 4. DASHBOARD OVERVIEW API
+### Endpoint: GET /api/reports/dashboard/overview/
+### Parameters: period (string: today/week/month/year), store_id (int, optional)
+### Response:
+```json
+{
+  "period": {
+    "type": "month",
+    "start_date": "2024-01-01T00:00:00Z",
+    "end_date": "2024-01-31T23:59:59Z"
+  },
+  "revenue": {
+    "gross_revenue": 50000000.0,
+    "net_revenue": 47500000.0,
+    "total_discounts": 2500000.0,
+    "discount_rate": 5.0,
+    "revenue_growth": 15.5
+  },
+  "orders": {
+    "total_orders": 250,
+    "total_items": 750,
+    "total_customers": 180,
+    "average_order_value": 200000.0,
+    "order_growth": 12.0,
+    "status_breakdown": {
+      "delivered": {
+        "count": 200,
+        "total_amount": 40000000.0
+      },
+      "completed": {
+        "count": 50,
+        "total_amount": 10000000.0
+      }
+    }
+  },
+  "inventory": {
+    "total_products": 500,
+    "total_stock": 2500,
+    "out_of_stock_count": 10,
+    "low_stock_count": 25
+  },
+  "performance_metrics": {
+    "conversion_rate": 0.0,
+    "customer_satisfaction": 0.0,
+    "inventory_turnover": 0.0
+  }
+}
+```
+
+## 5. DASHBOARD RECENT ACTIVITY API
+### Endpoint: GET /api/reports/dashboard/recent_activity/
+### Parameters: limit (int, default: 20), store_id (int, optional)
+### Response:
+```json
+{
+  "recent_activities": [
+    {
+      "id": 1,
+      "type": "order",
+      "date": "2024-01-15T14:30:00Z",
+      "status": "delivered",
+      "total_amount": 500000.0,
+      "customer_name": "Nguyễn Văn A",
+      "customer_email": "nguyenvana@email.com",
+      "item_count": 3,
+      "description": "Đơn hàng #1 - 3 sản phẩm"
+    },
+    {
+      "id": 1,
+      "type": "inventory",
+      "date": "2024-01-15T13:00:00Z",
+      "transaction_type": "IN",
+      "quantity": 50,
+      "reference_type": "goods_receipt",
+      "reference_id": 1,
+      "sku": "CASIO-GSHOCK-001",
+      "product_name": "Đồng hồ Casio G-Shock",
+      "store_name": "Cửa hàng Hà Nội",
+      "description": "IN 50 Đồng hồ Casio G-Shock (CASIO-GSHOCK-001)"
+    }
+  ],
+  "order_activities": [...],
+  "inventory_activities": [...]
+}
+```
+
+## 6. DASHBOARD ALERTS API
+### Endpoint: GET /api/reports/dashboard/alerts/
+### Parameters: store_id (int, optional)
+### Response:
+```json
+{
+  "alerts": [
+    {
+      "type": "low_stock",
+      "severity": "warning",
+      "title": "Tồn kho thấp",
+      "message": "Sản phẩm Đồng hồ Casio G-Shock (CASIO-GSHOCK-001) chỉ còn 3 trong kho",
+      "data": {
+        "product_variant_id": 1,
+        "sku": "CASIO-GSHOCK-001",
+        "product_name": "Đồng hồ Casio G-Shock",
+        "quantity": 3,
+        "store_name": "Cửa hàng Hà Nội"
+      }
+    },
+    {
+      "type": "out_of_stock",
+      "severity": "error",
+      "title": "Hết hàng",
+      "message": "Sản phẩm Đồng hồ Seiko (SEIKO-001) đã hết hàng",
+      "data": {
+        "product_variant_id": 2,
+        "sku": "SEIKO-001",
+        "product_name": "Đồng hồ Seiko",
+        "store_name": "Cửa hàng Hà Nội"
+      }
+    },
+    {
+      "type": "pending_order",
+      "severity": "info",
+      "title": "Đơn hàng chờ xử lý",
+      "message": "Đơn hàng #123 của Nguyễn Văn B chờ xử lý",
+      "data": {
+        "order_id": 123,
+        "order_date": "2024-01-15T10:00:00Z",
+        "total_amount": 800000.0,
+        "customer_name": "Nguyễn Văn B",
+        "customer_email": "nguyenvanb@email.com"
+      }
+    }
+  ],
+  "alert_count": 3
+}
+```
+
+## 7. DASHBOARD COMPREHENSIVE ANALYSIS API
+### Endpoint: GET /api/reports/dashboard/comprehensive_analysis/
+### Parameters: start_date (string), end_date (string), store_id (int, optional)
+### Response:
+```json
+{
+  "period": {
+    "start_date": "2024-01-01",
+    "end_date": "2024-01-31"
+  },
+  "financial_summary": {
+    "total_revenue": 50000000.0,
+    "net_revenue": 47500000.0,
+    "total_discounts": 2500000.0,
+    "total_purchase_cost": 30000000.0,
+    "gross_profit": 17500000.0,
+    "gross_profit_margin": 36.84,
+    "total_refund_amount": 500000.0,
+    "total_repair_cost": 200000.0,
+    "net_profit": 16800000.0
+  },
+  "return_analysis": {
+    "total_return_orders": 10,
+    "total_returned_items": 15,
+    "total_returned_quantity": 20,
+    "total_refund_amount": 500000.0,
+    "average_refund_amount": 50000.0,
+    "cross_store_returns": 2,
+    "status_breakdown": {
+      "pending": 3,
+      "approved": 5,
+      "completed": 2,
+      "rejected": 0
+    },
+    "return_rate": 2.67
+  },
+  "warranty_analysis": {
+    "total_warranties": 100,
+    "total_warranty_claims": 8,
+    "total_repair_cost": 200000.0,
+    "average_repair_cost": 25000.0,
+    "warranty_status": {
+      "active": 80,
+      "expired": 15,
+      "claimed": 5
+    },
+    "claim_status": {
+      "pending": 2,
+      "completed": 6
+    },
+    "claim_rate": 8.0
+  },
+  "operational_metrics": {
+    "total_orders": 250,
+    "total_items_sold": 750,
+    "total_items_purchased": 800,
+    "total_purchase_orders": 15,
+    "return_rate": 2.67,
+    "average_order_value": 200000.0
+  },
+  "product_profit_analysis": [
+    {
+      "product_variant_id": 1,
+      "sku": "CASIO-GSHOCK-001",
+      "product_name": "Đồng hồ Casio G-Shock",
+      "brand_name": "Casio",
+      "sold_quantity": 50,
+      "sold_revenue": 5000000.0,
+      "returned_quantity": 2,
+      "refund_amount": 200000.0,
+      "warranty_claims": 1,
+      "repair_cost": 50000.0,
+      "estimated_cost": 3000000.0,
+      "gross_profit": 2000000.0,
+      "net_profit": 1750000.0,
+      "return_rate": 4.0,
+      "profit_margin": 35.0
+    }
+  ]
+}
+```
+
+## 8. REVENUE DAILY REVENUE API
+### Endpoint: GET /api/reports/revenue/daily_revenue/
+### Parameters: start_date (string), end_date (string), store_id (int, optional)
+### Response:
+```json
+{
+  "summary": {
+    "period": {
+      "start_date": "2024-01-01",
+      "end_date": "2024-01-31"
+    },
+    "total_orders": 250,
+    "total_gross_revenue": 50000000.0,
+    "total_net_revenue": 47500000.0,
+    "total_discounts": 2500000.0,
+    "total_coupon_discounts": 1000000.0,
+    "total_items": 750,
+    "total_customers": 180,
+    "average_order_value": 200000.0,
+    "average_discount_rate": 5.0
+  },
+  "daily_data": [
+    {
+      "date": "2024-01-01",
+      "total_orders": 8,
+      "gross_revenue": 1600000.0,
+      "net_revenue": 1520000.0,
+      "total_discounts": 80000.0,
+      "coupon_discounts": 30000.0,
+      "total_items": 24,
+      "total_customers": 8,
+      "average_order_value": 200000.0,
+      "discount_rate": 5.0
+    }
+  ]
+}
+```
+
+## 9. REVENUE MONTHLY REVENUE API
+### Endpoint: GET /api/reports/revenue/monthly_revenue/
+### Parameters: year (int), store_id (int, optional)
+### Response:
+```json
+{
+  "summary": {
+    "year": 2024,
+    "total_orders": 3000,
+    "total_gross_revenue": 600000000.0,
+    "total_net_revenue": 570000000.0,
+    "total_discounts": 30000000.0,
+    "total_coupon_discounts": 12000000.0,
+    "total_items": 9000,
+    "total_customers": 2160,
+    "average_order_value": 200000.0,
+    "average_discount_rate": 5.0
+  },
+  "monthly_data": [
+    {
+      "month": 1,
+      "month_name": "January",
+      "total_orders": 250,
+      "gross_revenue": 50000000.0,
+      "net_revenue": 47500000.0,
+      "total_discounts": 2500000.0,
+      "coupon_discounts": 1000000.0,
+      "total_items": 750,
+      "total_customers": 180,
+      "average_order_value": 200000.0,
+      "discount_rate": 5.0
+    }
+  ]
+}
+```
+
+## 10. REVENUE PROFIT ANALYSIS API
+### Endpoint: GET /api/reports/revenue/profit_analysis/
+### Parameters: start_date (string), end_date (string), store_id (int, optional)
+### Response:
+```json
+{
+  "period": {
+    "start_date": "2024-01-01",
+    "end_date": "2024-01-31"
+  },
+  "revenue": {
+    "gross_revenue": 50000000.0,
+    "total_discounts": 2500000.0,
+    "net_revenue": 47500000.0,
+    "discount_rate": 5.0
+  },
+  "costs": {
+    "cost_of_goods_sold": 30000000.0,
+    "cost_percentage": 63.16
+  },
+  "profit": {
+    "gross_profit": 17500000.0,
+    "gross_profit_margin": 36.84,
+    "profit_per_order": 70000.0
+  },
+  "volume": {
+    "total_orders": 250,
+    "total_items": 750,
+    "average_order_value": 200000.0
+  }
+}
+```
+
+## 11. REVENUE CALCULATE DAILY REVENUE API
+### Endpoint: GET /api/reports/daily-revenue/calculate_daily_revenue/
+### Parameters: start_date (string), end_date (string), store_id (int, optional)
+### Response:
+```json
+{
+  "summary": {
+    "period": {
+      "start_date": "2024-01-01",
+      "end_date": "2024-01-31"
+    },
+    "total_orders": 250,
+    "total_gross_revenue": 50000000.0,
+    "total_net_revenue": 47500000.0,
+    "total_discounts": 2500000.0,
+    "total_coupon_discounts": 1000000.0,
+    "total_items": 750,
+    "total_customers": 180,
+    "total_unique_products": 50,
+    "average_order_value": 200000.0,
+    "average_discount_rate": 5.0,
+    "average_items_per_order": 3.0
+  },
+  "daily_data": [
+    {
+      "date": "2024-01-01",
+      "total_orders": 8,
+      "gross_revenue": 1600000.0,
+      "net_revenue": 1520000.0,
+      "total_discounts": 80000.0,
+      "coupon_discounts": 30000.0,
+      "total_items": 24,
+      "total_customers": 8,
+      "unique_products": 8,
+      "average_order_value": 200000.0,
+      "discount_rate": 5.0,
+      "items_per_order": 3.0
+    }
+  ]
+}
+```
+
+## 12. REVENUE INVENTORY ANALYSIS API
+### Endpoint: GET /api/reports/daily-revenue/inventory_analysis/
+### Parameters: days (int, default: 30), store_id (int, optional)
+### Response:
+```json
+{
+  "summary": {
+    "period_days": 30,
+    "total_products": 50,
+    "total_sold": 750,
+    "total_revenue": 50000000.0,
+    "total_value": 50000000.0,
+    "total_orders": 250,
+    "average_revenue_per_product": 1000000.0,
+    "average_sold_per_product": 15.0
+  },
+  "inventory_data": [
+    {
+      "variant_id": 1,
+      "product_name": "Đồng hồ Casio G-Shock",
+      "sku": "CASIO-GSHOCK-001",
+      "variant_name": null,
+      "total_sold": 50,
+      "total_revenue": 5000000.0,
+      "avg_price": 100000.0,
+      "total_value": 5000000.0,
+      "order_count": 15,
+      "avg_quantity_per_order": 3.33,
+      "revenue_per_unit": 100000.0
+    }
+  ]
+}
+```
+
+## 13. REVENUE FORECAST API
+### Endpoint: GET /api/reports/daily-revenue/revenue_forecast/
+### Parameters: days (int, default: 7), store_id (int, optional)
+### Response:
+```json
+{
+  "summary": {
+    "forecast_period_days": 7,
+    "total_predicted_revenue": 14000000.0,
+    "total_predicted_orders": 56,
+    "total_predicted_customers": 42,
+    "average_daily_predicted_revenue": 2000000.0,
+    "average_daily_predicted_orders": 8.0,
+    "average_daily_predicted_customers": 6.0,
+    "confidence_level": 0.85,
+    "method": "Simple moving average with seasonal variation"
+  },
+  "forecast_data": [
+    {
+      "date": "2024-02-01",
+      "predicted_revenue": 2100000.0,
+      "predicted_orders": 9,
+      "predicted_customers": 7,
+      "predicted_order_value": 200000.0,
+      "confidence_level": 0.85
+    }
+  ]
+}
+```
+
+## 14. REVENUE DAILY SUMMARY API
+### Endpoint: GET /api/reports/daily-revenue/daily_summary/
+### Parameters: start_date (string), end_date (string), store_id (int, optional)
+### Response:
+```json
+{
+  "period": {
+    "start_date": "2024-01-01",
+    "end_date": "2024-01-31"
+  },
+  "total_orders": 250,
+  "gross_revenue": 50000000.0,
+  "net_revenue": 47500000.0,
+  "total_discounts": 2500000.0,
+  "total_items": 750,
+  "total_customers": 180,
+  "average_order_value": 200000.0,
+  "discount_rate": 5.0,
+  "items_per_order": 3.0
+}
+```
+
+## 15. REVENUE DAILY BREAKDOWN API
+### Endpoint: GET /api/reports/daily-revenue/daily_breakdown/
+### Parameters: start_date (string), end_date (string), store_id (int, optional)
+### Response:
+```json
+{
+  "period": {
+    "start_date": "2024-01-01",
+    "end_date": "2024-01-31"
+  },
+  "daily_breakdown": [
+    {
+      "date": "2024-01-01",
+      "day_of_week": "Thứ 2",
+      "total_orders": 8,
+      "gross_revenue": 1600000.0,
+      "net_revenue": 1520000.0,
+      "total_discounts": 80000.0,
+      "total_items": 24,
+      "total_customers": 8,
+      "unique_products": 8,
+      "average_order_value": 200000.0,
+      "discount_rate": 5.0,
+      "items_per_order": 3.0
+    }
+  ]
+}
+```
+
+## 16. REVENUE TOP PRODUCTS API
+### Endpoint: GET /api/reports/daily-revenue/top_products/
+### Parameters: days (int, default: 30), limit (int, default: 10), store_id (int, optional)
+### Response:
+```json
+{
+  "period_days": 30,
+  "limit": 10,
+  "top_products": [
+    {
+      "variant_id": 1,
+      "product_name": "Đồng hồ Casio G-Shock",
+      "sku": "CASIO-GSHOCK-001",
+      "variant_name": null,
+      "total_sold": 50,
+      "total_revenue": 5000000.0,
+      "order_count": 15,
+      "revenue_per_unit": 100000.0
+    }
+  ]
+}
+```
+
+## 17. REVENUE STORE PERFORMANCE API
+### Endpoint: GET /api/reports/daily-revenue/store_performance/
+### Parameters: days (int, default: 30), store_id (int, optional)
+### Response:
+```json
+{
+  "summary": {
+    "period_days": 30,
+    "total_stores": 3,
+    "total_orders": 250,
+    "total_revenue": 50000000.0,
+    "total_items": 750,
+    "total_customers": 180,
+    "average_revenue_per_store": 16666666.67,
+    "average_orders_per_store": 83.33
+  },
+  "store_performance": [
+    {
+      "store_id": 1,
+      "store_name": "Cửa hàng Hà Nội",
+      "store_address": "123 Đường ABC, Hà Nội",
+      "total_orders": 100,
+      "gross_revenue": 20000000.0,
+      "net_revenue": 19000000.0,
+      "total_discounts": 1000000.0,
+      "total_items": 300,
+      "total_customers": 80,
+      "average_order_value": 200000.0,
+      "discount_rate": 5.0
+    }
+  ]
+}
+```
+
+## 18. SALES BEST SELLERS API
+### Endpoint: GET /api/reports/sales/best_sellers/
+### Parameters: start_date (string), end_date (string), store_id (int, optional), limit (int, default: 10)
+### Response:
+```json
+{
+  "summary": {
+    "period": {
+      "start_date": "2024-01-01",
+      "end_date": "2024-01-31"
+    },
+    "total_products": 10,
+    "total_quantity_sold": 750,
+    "total_revenue": 50000000.0,
+    "total_net_revenue": 47500000.0,
+    "total_discounts": 2500000.0,
+    "average_revenue_per_product": 5000000.0
+  },
+  "best_sellers": [
+    {
+      "product_variant_id": 1,
+      "sku": "CASIO-GSHOCK-001",
+      "product_name": "Đồng hồ Casio G-Shock",
+      "brand_name": "Casio",
+      "total_quantity": 50,
+      "total_revenue": 5000000.0,
+      "total_orders": 15,
+      "average_price": 100000.0,
+      "total_discount": 250000.0,
+      "net_revenue": 4750000.0,
+      "current_stock": 20,
+      "gross_profit_margin": 0.0,
+      "revenue_per_order": 333333.33
+    }
+  ]
+}
+```
+
+## 19. SALES PERFORMANCE BY TIME API
+### Endpoint: GET /api/reports/sales/sales_performance_by_time/
+### Parameters: start_date (string), end_date (string), store_id (int, optional), product_variant_id (int, optional), period_type (string: daily/weekly/monthly)
+### Response:
+```json
+{
+  "summary": {
+    "period": {
+      "start_date": "2024-01-01",
+      "end_date": "2024-01-31",
+      "period_type": "daily"
+    },
+    "total_quantity": 750,
+    "total_revenue": 50000000.0,
+    "total_net_revenue": 47500000.0,
+    "total_orders": 250,
+    "total_discounts": 2500000.0,
+    "average_quantity_per_period": 24.19,
+    "average_revenue_per_period": 1612903.23
+  },
+  "performance_data": [
+    {
+      "period": "2024-01-01",
+      "period_label": "2024-01-01",
+      "total_quantity": 24,
+      "total_revenue": 1600000.0,
+      "total_orders": 8,
+      "total_discount": 80000.0,
+      "net_revenue": 1520000.0,
+      "average_quantity_per_order": 3.0,
+      "average_revenue_per_order": 200000.0,
+      "discount_rate": 5.0
+    }
+  ]
+}
+```
+
+## 20. SALES INVENTORY TURNOVER API
+### Endpoint: GET /api/reports/sales/inventory_turnover/
+### Parameters: store_id (int, optional), limit (int, default: 20)
+### Response:
+```json
+{
+  "summary": {
+    "total_products": 20,
+    "total_quantity_sold": 750,
+    "total_revenue": 50000000.0,
+    "total_current_stock": 2500,
+    "average_turnover_rate": 30.0,
+    "average_days_of_inventory": 12.17
+  },
+  "inventory_turnover": [
+    {
+      "product_variant_id": 1,
+      "sku": "CASIO-GSHOCK-001",
+      "product_name": "Đồng hồ Casio G-Shock",
+      "total_sold": 50,
+      "total_revenue": 5000000.0,
+      "total_orders": 15,
+      "current_stock": 20,
+      "turnover_rate": 250.0,
+      "days_of_inventory": 146,
+      "average_quantity_per_order": 3.33,
+      "revenue_per_unit": 100000.0
+    }
+  ]
+}
+```
+
+## 21. SALES PRODUCT PERFORMANCE DETAIL API
+### Endpoint: GET /api/reports/sales/product_performance_detail/
+### Parameters: product_variant_id (int, required), start_date (string), end_date (string), store_id (int, optional)
+### Response:
+```json
+{
+  "period": {
+    "start_date": "2024-01-01",
+    "end_date": "2024-01-31"
+  },
+  "product_info": {
+    "product_variant_id": 1,
+    "sku": "CASIO-GSHOCK-001",
+    "product_name": "Đồng hồ Casio G-Shock",
+    "brand_name": "Casio",
+    "current_price": 100000.0,
+    "current_stock": 20,
+    "is_active": true
+  },
+  "sales_performance": {
+    "total_orders": 15,
+    "total_quantity_sold": 50,
+    "total_revenue": 5000000.0,
+    "total_discount": 250000.0,
+    "net_revenue": 4750000.0,
+    "average_unit_price": 100000.0,
+    "average_selling_price": 95000.0,
+    "discount_rate": 5.0,
+    "average_quantity_per_order": 3.33,
+    "average_revenue_per_order": 333333.33,
+    "first_sale_date": "2024-01-01",
+    "last_sale_date": "2024-01-31",
+    "turnover_rate": 250.0,
+    "days_of_inventory": 146
+  },
+  "return_warranty_analysis": {
+    "total_returns": 2,
+    "returned_quantity": 3,
+    "total_refund": 300000.0,
+    "return_rate": 6.0,
+    "total_warranties": 50,
+    "warranty_claims": 1,
+    "total_repair_cost": 50000.0,
+    "warranty_rate": 2.0
+  },
+  "daily_performance": [
+    {
+      "date": "2024-01-01",
+      "quantity": 5,
+      "revenue": 500000.0,
+      "orders": 2
+    }
+  ],
+  "top_customers": [
+    {
+      "customer_id": 1,
+      "customer_name": "Nguyễn Văn A",
+      "customer_phone": "0123456789",
+      "total_quantity": 10,
+      "total_spent": 1000000.0,
+      "total_orders": 3
+    }
+  ]
+}
+```
+
+## 22. RETURN WARRANTY RETURN SUMMARY API
+### Endpoint: GET /api/reports/return-warranty-report/return_summary/
+### Parameters: start_date (string), end_date (string), store_id (int, optional)
+### Response:
+```json
+{
+  "period": {
+    "start_date": "2024-01-01",
+    "end_date": "2024-01-31"
+  },
+  "summary": {
+    "total_return_orders": 10,
+    "total_returned_items": 15,
+    "total_returned_quantity": 20,
+    "total_refund_amount": 500000.0,
+    "average_refund_amount": 50000.0,
+    "cross_store_returns": 2
+  },
+  "status_breakdown": {
+    "pending": 3,
+    "approved": 5,
+    "completed": 2,
+    "rejected": 0
+  },
+  "product_analysis": [
+    {
+      "product_variant_id": 1,
+      "sku": "CASIO-GSHOCK-001",
+      "product_name": "Đồng hồ Casio G-Shock",
+      "brand_name": "Casio",
+      "return_orders_count": 3,
+      "total_returned_quantity": 5,
+      "total_refund_amount": 500000.0,
+      "total_orders_count": 15,
+      "total_sold_quantity": 50,
+      "return_rate": 10.0
+    }
+  ],
+  "reason_analysis": [
+    {
+      "reason": "Sản phẩm bị lỗi",
+      "return_orders_count": 5,
+      "total_returned_quantity": 10,
+      "total_refund_amount": 300000.0
+    }
+  ]
+}
+```
+
+## 23. RETURN WARRANTY WARRANTY SUMMARY API
+### Endpoint: GET /api/reports/return-warranty-report/warranty_summary/
+### Parameters: start_date (string), end_date (string), store_id (int, optional)
+### Response:
+```json
+{
+  "period": {
+    "start_date": "2024-01-01",
+    "end_date": "2024-01-31"
+  },
+  "summary": {
+    "total_warranties": 100,
+    "total_warranty_claims": 8,
+    "total_repair_cost": 200000.0,
+    "average_repair_cost": 25000.0,
+    "claim_rate": 8.0
+  },
+  "warranty_status": {
+    "active": 80,
+    "expired": 15,
+    "claimed": 5
+  },
+  "claim_status": {
+    "pending": 2,
+    "in_progress": 1,
+    "completed": 5,
+    "rejected": 0
+  },
+  "product_analysis": [
+    {
+      "product_variant_id": 1,
+      "sku": "CASIO-GSHOCK-001",
+      "product_name": "Đồng hồ Casio G-Shock",
+      "brand_name": "Casio",
+      "total_warranties": 50,
+      "total_claims": 3,
+      "total_repair_cost": 75000.0,
+      "total_orders": 15,
+      "total_sold_quantity": 50,
+      "claim_rate": 6.0
+    }
+  ],
+  "claim_details": [
+    {
+      "claim_id": 1,
+      "claim_date": "2024-01-15",
+      "completed_date": "2024-01-20",
+      "processing_days": 5,
+      "repair_cost": 25000.0,
+      "status": "COMPLETED",
+      "product_name": "Đồng hồ Casio G-Shock",
+      "sku": "CASIO-GSHOCK-001"
+    }
+  ]
+}
+```
+
+## 24. RETURN WARRANTY FINANCIAL IMPACT API
+### Endpoint: GET /api/reports/return-warranty-report/financial_impact/
+### Parameters: start_date (string), end_date (string), store_id (int, optional)
+### Response:
+```json
+{
+  "period": {
+    "start_date": "2024-01-01",
+    "end_date": "2024-01-31"
+  },
+  "financial_summary": {
+    "total_revenue": 50000000.0,
+    "estimated_purchase_cost": 30000000.0,
+    "gross_profit": 20000000.0,
+    "total_refund_amount": 500000.0,
+    "total_repair_cost": 200000.0,
+    "net_profit": 19300000.0,
+    "gross_profit_margin": 40.0,
+    "net_profit_margin": 38.6
+  },
+  "operational_metrics": {
+    "total_orders": 250,
+    "total_items_sold": 750,
+    "total_return_orders": 10,
+    "total_returned_quantity": 20,
+    "total_warranty_claims": 8,
+    "return_rate": 2.67,
+    "warranty_claim_rate": 3.2
+  },
+  "product_analysis": [
+    {
+      "product_variant_id": 1,
+      "sku": "CASIO-GSHOCK-001",
+      "product_name": "Đồng hồ Casio G-Shock",
+      "brand_name": "Casio",
+      "sold_quantity": 50,
+      "sold_revenue": 5000000.0,
+      "returned_quantity": 5,
+      "refund_amount": 500000.0,
+      "warranty_claims": 3,
+      "repair_cost": 75000.0,
+      "estimated_cost": 3000000.0,
+      "gross_profit": 2000000.0,
+      "net_profit": 1425000.0,
+      "return_rate": 10.0,
+      "profit_margin": 28.5
+    }
+  ]
+}
+```
+
+## 25. RETURN WARRANTY RETURN PRODUCT ANALYSIS API
+### Endpoint: GET /api/reports/return-warranty-report/return_product_analysis/
+### Parameters: start_date (string), end_date (string), store_id (int, optional), limit (int, default: 10)
+### Response:
+```json
+{
+  "period": {
+    "start_date": "2024-01-01",
+    "end_date": "2024-01-31"
+  },
+  "product_analysis": [
+    {
+      "product_variant_id": 1,
+      "sku": "CASIO-GSHOCK-001",
+      "product_name": "Đồng hồ Casio G-Shock",
+      "brand_name": "Casio",
+      "return_orders_count": 3,
+      "total_returned_quantity": 5,
+      "total_refund_amount": 500000.0,
+      "total_orders_count": 15,
+      "total_sold_quantity": 50,
+      "average_refund_amount": 166666.67,
+      "return_rate": 10.0
+    }
+  ]
+}
+```
+
+## 26. RETURN WARRANTY WARRANTY PRODUCT ANALYSIS API
+### Endpoint: GET /api/reports/return-warranty-report/warranty_product_analysis/
+### Parameters: start_date (string), end_date (string), store_id (int, optional), limit (int, default: 10)
+### Response:
+```json
+{
+  "period": {
+    "start_date": "2024-01-01",
+    "end_date": "2024-01-31"
+  },
+  "product_analysis": [
+    {
+      "product_variant_id": 1,
+      "sku": "CASIO-GSHOCK-001",
+      "product_name": "Đồng hồ Casio G-Shock",
+      "brand_name": "Casio",
+      "total_warranties": 50,
+      "warranty_claims": 3,
+      "total_repair_cost": 75000.0,
+      "average_repair_cost": 25000.0,
+      "total_orders_count": 15,
+      "total_sold_quantity": 50,
+      "claim_rate": 6.0
+    }
+  ]
+}
+```
+
+## 27. RETURN WARRANTY PRODUCT PROFITABILITY API
+### Endpoint: GET /api/reports/return-warranty-report/product_profitability/
+### Parameters: start_date (string), end_date (string), store_id (int, optional), limit (int, default: 10)
+### Response:
+```json
+{
+  "period": {
+    "start_date": "2024-01-01",
+    "end_date": "2024-01-31"
+  },
+  "product_analysis": [
+    {
+      "product_variant_id": 1,
+      "sku": "CASIO-GSHOCK-001",
+      "product_name": "Đồng hồ Casio G-Shock",
+      "brand_name": "Casio",
+      "sold_quantity": 50,
+      "sold_revenue": 5000000.0,
+      "returned_quantity": 5,
+      "refund_amount": 500000.0,
+      "warranty_claims": 3,
+      "repair_cost": 75000.0,
+      "estimated_cost": 3000000.0,
+      "gross_profit": 2000000.0,
+      "net_profit": 1425000.0,
+      "return_rate": 10.0,
+      "profit_margin": 28.5
+    }
+  ]
+}
+```
+
+## COMMON ERROR RESPONSES
+
+### 400 Bad Request
+```json
+{
+  "detail": "Invalid parameter value"
+}
+```
+
+### 401 Unauthorized
+```json
+{
+  "detail": "Authentication credentials were not provided."
+}
+```
+
+### 403 Forbidden
+```json
+{
+  "detail": "You do not have permission to perform this action."
+}
+```
+
+### 404 Not Found
+```json
+{
+  "detail": "Not found."
+}
+```
+
+### 500 Internal Server Error
+```json
+{
+  "detail": "Internal server error occurred."
+}
+```
+
+## NOTES:
+- All monetary values are in VND (Vietnamese Dong)
+- Dates are in ISO 8601 format (YYYY-MM-DDTHH:MM:SSZ)
+- Decimal values are returned as floats for JSON compatibility
+- Optional parameters can be omitted from requests
+- Store filtering is applied based on user permissions
+- All APIs require authentication and appropriate permissions

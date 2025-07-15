@@ -1,0 +1,28 @@
+{
+  "compilerOptions": {
+    "baseUrl": "src",
+    "paths": {
+      "@/*": ["*"],
+      "@/admin/*": ["admin/*"],
+      "@/admin/pages/*": ["admin/pages/*"],
+      "@/admin/components/*": ["admin/components/*"],
+      "@/admin/hooks/*": ["admin/hooks/*"],
+      "@/admin/static/*": ["admin/static/*"],
+      "@/admin/utils/*": ["admin/utils/*"],
+      "@/client/*": ["client/*"],
+      "@/client/static/*": ["client/static/*"],
+      "@/services/*": ["services/*"],
+      "@/config/*": ["config/*"],
+      "@/components/*": ["components/*"],
+      "@/utils/*": ["utils/*"],
+      "@/assets/*": ["assets/*"],
+      "@/styles/*": ["styles/*"],
+      "@/orders": ["admin/pages/orders/*"],
+      "@/orders/hooks": ["admin/pages/orders/hooks/*"],
+      "@/orders/components": ["admin/pages/orders/components/*"],
+      "@/orders/utils": ["admin/pages/orders/utils/*"]
+    }
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "build", "dist"]
+} 

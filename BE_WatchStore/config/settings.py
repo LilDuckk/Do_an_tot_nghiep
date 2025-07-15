@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'apps.inventory',
     'apps.stores',
     'apps.reports',
+    'apps.purchases',
 ]
 
 MIDDLEWARE = [
@@ -89,7 +90,7 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
     'DEFAULT_PAGINATION_CLASS': 'config.pagination.CustomPagination',
-    'PAGE_SIZE': 10,
+    'PAGE_SIZE': 20,
     'DEFAULT_FILTER_BACKENDS': [
         'django_filters.rest_framework.DjangoFilterBackend',
         'rest_framework.filters.SearchFilter',

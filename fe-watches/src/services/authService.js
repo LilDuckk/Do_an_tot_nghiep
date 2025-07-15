@@ -2,16 +2,12 @@ import axiosInstance from './axiosConfig';
 
 const TOKEN_KEY = 'accessToken';
 const REFRESH_TOKEN_KEY = 'refreshToken';
-const TOKEN_EXPIRY_KEY = 'tokenExpiry';
-const REFRESH_THRESHOLD = 60; // Refresh token 60 giây trước khi hết hạn
 
 export const authService = {
-  // Lưu token và thời gian hết hạn
+  // Lưu token
   setTokens(accessToken, refreshToken) {
-    const expiryTime = Date.now() + 600 * 1000; // 600 giây = 10 phút
     localStorage.setItem(TOKEN_KEY, accessToken);
     localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
-    localStorage.setItem(TOKEN_EXPIRY_KEY, expiryTime.toString());
   },
 
   // Lấy access token
@@ -25,17 +21,33 @@ export const authService = {
   },
 
   // Kiểm tra token còn hiệu lực không
-  isTokenValid() {
-    const expiryTime = localStorage.getItem(TOKEN_EXPIRY_KEY);
-    if (!expiryTime) return false;
-    return Date.now() < parseInt(expiryTime);
+  async isTokenValid() {
+    try {
+      const token = this.getAccessToken();
+      if (!token) return false;
+
+      // Gọi API để verify token
+      await axiosInstance.post('/account/auth/token/verify/', {
+        token: token
+      });
+      return true;
+    } catch (error) {
+      return false;
+    }
   },
 
-  // Kiểm tra token sắp hết hạn
-  isTokenExpiringSoon() {
-    const expiryTime = localStorage.getItem(TOKEN_EXPIRY_KEY);
-    if (!expiryTime) return true;
-    return Date.now() + (REFRESH_THRESHOLD * 1000) > parseInt(expiryTime);
+  // Kiểm tra và refresh token nếu cần
+  async checkAndRefreshToken() {
+    try {
+      const isValid = await this.isTokenValid();
+      if (!isValid) {
+        return await this.refreshToken();
+      }
+      return this.getAccessToken();
+    } catch (error) {
+      this.clearTokens();
+      throw error;
+    }
   },
 
   // Refresh token
@@ -64,6 +76,5 @@ export const authService = {
   clearTokens() {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(REFRESH_TOKEN_KEY);
-    localStorage.removeItem(TOKEN_EXPIRY_KEY);
   }
 }; 

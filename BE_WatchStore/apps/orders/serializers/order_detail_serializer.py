@@ -9,6 +9,7 @@ class OrderDetailSerializer(serializers.ModelSerializer):
     product = ProductSerializer(source='product_variant.product', read_only=True)
     variant = ProductVariantSerializer(source='product_variant', read_only=True)
     coupon = CouponSerializer(read_only=True)
+    warranty_info = serializers.SerializerMethodField()
     coupon_id = serializers.PrimaryKeyRelatedField(
         queryset=Coupon.objects.filter(is_active=True),
         source='coupon',
@@ -16,13 +17,50 @@ class OrderDetailSerializer(serializers.ModelSerializer):
         required=False,
         allow_null=True
     )
+    unit_price = serializers.DecimalField(max_digits=25, decimal_places=2, read_only=True)
+    discount = serializers.DecimalField(max_digits=25, decimal_places=2, read_only=True)
+    final_price = serializers.DecimalField(max_digits=25, decimal_places=2, read_only=True)
+    quantity = serializers.IntegerField(required=False, allow_null=True, min_value=0)
     
     class Meta:
         model = OrderDetail
         fields = ['id', 'order', 'product_variant', 'product', 'variant', 'quantity',
                  'unit_price', 'discount', 'final_price', 'coupon', 'coupon_id',
-                 'created_at', 'updated_at']
+                 'warranty_info', 'created_at', 'updated_at']
         read_only_fields = ('created_at', 'updated_at', 'unit_price', 'discount', 'final_price')
+
+    def get_warranty_info(self, obj):
+        """Lấy thông tin bảo hành của sản phẩm"""
+        if not obj.product_variant:
+            return None
+            
+        variant = obj.product_variant
+        warranty_period = variant.get_warranty_period()
+        
+        # Kiểm tra xem đã có warranty được tạo cho order detail này chưa
+        from apps.warranty.models.warranty import Warranty
+        existing_warranty = Warranty.objects.filter(
+            order_detail=obj,
+            is_deleted=False
+        ).first()
+        
+        warranty_info = {
+            'has_warranty': warranty_period is not None and warranty_period > 0,
+            'warranty_period': warranty_period,
+            'warranty_period_unit': 'months',
+            'warranty_number': existing_warranty.warranty_number if existing_warranty else None,
+            'warranty_status': existing_warranty.status if existing_warranty else None,
+            'warranty_created': existing_warranty is not None
+        }
+        
+        if not warranty_period:
+            warranty_info['message'] = 'Sản phẩm không có bảo hành'
+        elif existing_warranty:
+            warranty_info['message'] = f'Bảo hành {warranty_period} tháng - Mã: {existing_warranty.warranty_number}'
+        else:
+            warranty_info['message'] = f'Bảo hành {warranty_period} tháng (chưa tạo warranty)'
+        
+        return warranty_info
 
     def validate(self, data):
         # Kiểm tra coupon có hợp lệ không
@@ -40,7 +78,8 @@ class OrderDetailSerializer(serializers.ModelSerializer):
                     raise serializers.ValidationError({
                         'product_variant': 'Vui lòng chọn sản phẩm'
                     })
-                total_amount = product_variant.product.base_price * data['quantity']
+                quantity = data.get('quantity', 0) or 0  # Mặc định là 0 nếu quantity là null
+                total_amount = product_variant.product.base_price * quantity
                 if total_amount < coupon.minimum_order_amount:
                     raise serializers.ValidationError({
                         'coupon': f'Đơn hàng phải có giá trị tối thiểu {coupon.minimum_order_amount}'
@@ -67,7 +106,7 @@ class OrderDetailSerializer(serializers.ModelSerializer):
             validated_data['discount'] = Decimal('0')
 
         # Tính toán final_price
-        quantity = validated_data['quantity']
+        quantity = validated_data.get('quantity', 0) or 0  # Mặc định là 0 nếu quantity là null
         unit_price = validated_data['unit_price']
         discount = validated_data['discount']
         validated_data['final_price'] = (unit_price - discount) * quantity
@@ -92,7 +131,7 @@ class OrderDetailSerializer(serializers.ModelSerializer):
             validated_data['discount'] = Decimal('0')
 
         # Tính toán lại final_price
-        quantity = validated_data.get('quantity', instance.quantity)
+        quantity = validated_data.get('quantity', instance.quantity) or 0  # Mặc định là 0 nếu quantity là null
         unit_price = validated_data.get('unit_price', instance.unit_price)
         discount = validated_data.get('discount', instance.discount)
         validated_data['final_price'] = (unit_price - discount) * quantity

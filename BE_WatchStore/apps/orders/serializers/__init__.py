@@ -2,4 +2,5 @@ from .order_serializer import OrderSerializer
 from .order_detail_serializer import OrderDetailSerializer
 from .return_order_serializer import ReturnOrderSerializer
 from .return_order_detail_serializer import ReturnOrderDetailSerializer
-from .coupon_serializer import CouponSerializer 
+from .coupon_serializer import CouponSerializer
+from .complete_order_serializer import CompleteOrderSerializer 

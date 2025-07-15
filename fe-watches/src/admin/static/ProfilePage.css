@@ -1,0 +1,388 @@
+.profile-page {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 2rem;
+  background: var(--sidebar-bg);
+  border-radius: 12px;
+  box-shadow: 0 2px 16px var(--shadow);
+}
+
+.profile-header {
+  text-align: center;
+  margin-bottom: 3rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.profile-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.5rem;
+  font-size: 2rem;
+  color: white;
+  font-weight: 600;
+  box-shadow: 0 4px 20px rgba(102, 126, 234, 0.25);
+}
+
+.profile-header h2 {
+  color: var(--text);
+  font-size: 1.8rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.profile-header .subtitle {
+  color: var(--text);
+  opacity: 0.7;
+  font-size: 0.95rem;
+}
+
+.profile-section {
+  margin-bottom: 2.5rem;
+}
+
+.profile-section h3 {
+  color: var(--text);
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--border);
+}
+
+.info-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.info-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  background: var(--bg);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  transition: all 0.2s ease;
+}
+
+.info-item:hover {
+  background: var(--hover);
+  border-color: var(--border);
+}
+
+.info-label {
+  font-weight: 500;
+  color: var(--text);
+  opacity: 0.8;
+  font-size: 0.9rem;
+}
+
+.info-value {
+  color: var(--text);
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+.status-badge {
+  padding: 0.3rem 0.8rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.status-active {
+  background: #e6f4ea;
+  color: #137333;
+}
+
+.status-inactive {
+  background: #fce8e6;
+  color: #c5221f;
+}
+
+.role-badge {
+  padding: 0.3rem 0.8rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.role-superuser {
+  background: #fef7e0;
+  color: #b06000;
+}
+
+.role-staff {
+  background: #e8f0fe;
+  color: #1a73e8;
+}
+
+.role-user {
+  background: #f3e8ff;
+  color: #6200ee;
+}
+
+.groups-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.group-badge {
+  background: var(--hover);
+  color: var(--text);
+  padding: 0.3rem 0.8rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.no-groups {
+  color: var(--text);
+  opacity: 0.6;
+  font-style: italic;
+  font-size: 0.9rem;
+}
+
+.change-password-section {
+  background: var(--bg);
+  padding: 2rem;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  box-shadow: 0 2px 8px var(--shadow);
+}
+
+.change-password-section h3 {
+  color: var(--text);
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.password-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  font-weight: 500;
+  color: var(--text);
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--input-bg);
+  color: var(--input-text);
+  font-size: 14px;
+  transition: all 0.3s;
+  box-sizing: border-box;
+  height: auto;
+  min-height: auto;
+  flex-grow: 0;
+  flex-shrink: 0;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #2186eb;
+  box-shadow: 0 0 0 2px rgba(33, 134, 235, 0.2);
+}
+
+.password-toggle {
+  position: relative;
+}
+
+.password-toggle input {
+  padding-right: 3rem;
+}
+
+.toggle-btn {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--icon);
+  font-size: 1.1rem;
+  transition: color 0.2s ease;
+  padding: 0.2rem;
+}
+
+.toggle-btn:hover {
+  color: #2186eb;
+}
+
+.btn {
+  padding: 8px 16px;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.3s;
+  font-size: 14px;
+  margin: 0;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.btn-primary {
+  background: #1890ff;
+  border-color: #1890ff;
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #40a9ff;
+  border-color: #40a9ff;
+  color: white;
+}
+
+.btn-secondary {
+  background: var(--bg);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.btn-secondary:hover {
+  background: var(--hover);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.btn:disabled {
+  background: var(--hover);
+  color: var(--text);
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.btn-group {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.alert {
+  padding: 12px 16px;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  font-size: 14px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.alert::before {
+  content: "!";
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background: currentColor;
+  color: white;
+  border-radius: 50%;
+  font-weight: bold;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.alert-success {
+  background: #e6f4ea;
+  color: #137333;
+  border: 1px solid #c6e7c6;
+}
+
+.alert-error {
+  background: #fce8e6;
+  color: #c5221f;
+  border: 1px solid #fad2cf;
+}
+
+.loading-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-container {
+  text-align: center;
+  padding: 3rem 2rem;
+  color: var(--text);
+}
+
+.loading-container .loading-spinner {
+  border-color: var(--border);
+  border-top-color: #2186eb;
+  margin: 0 auto 1rem;
+  width: 24px;
+  height: 24px;
+}
+
+@media (max-width: 768px) {
+  .profile-page {
+    padding: 1.5rem;
+    margin: 1rem;
+  }
+  
+  .profile-header h2 {
+    font-size: 1.5rem;
+  }
+  
+  .profile-avatar {
+    width: 70px;
+    height: 70px;
+    font-size: 1.8rem;
+  }
+  
+  .info-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  
+  .btn-group {
+    flex-direction: column;
+  }
+} 

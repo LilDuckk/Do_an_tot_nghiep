@@ -1,10 +1,27 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.permissions import OR
 from django.db import connection
+from django.utils import timezone
+from datetime import timedelta
+from decimal import Decimal
+
+from apps.core.utils.permissions import IsSuperUser, ViewReportsPermission
+from apps.stores.models.employee import Employee
 from apps.reports.serializers.top_customers_serializer import TopCustomersSerializer
 
 class TopCustomersView(APIView):
+
+    def get_permissions(self):
+        """
+        Tùy chỉnh permission cho từng action
+        """
+        if self.request.method == 'GET':
+            # Cho phép user đã đăng nhập xem báo cáo khách hàng hàng đầu
+            return [OR(IsSuperUser(), ViewReportsPermission())]
+        return super().get_permissions()
+
     def get(self, request):
         try:
             with connection.cursor() as cursor:

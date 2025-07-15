@@ -9,11 +9,12 @@ urlpatterns = [
     path('api/account/', include('apps.users.urls')),
     path('api/products/', include('apps.products.urls')),
     path('api/orders/', include('apps.orders.urls')),
-    path('api/warranty/', include('apps.warranty.urls')),
+    path('api/warranties/', include('apps.warranty.urls')),
     path('api/content/', include('apps.content.urls')),
     path('api/inventory/', include('apps.inventory.urls')),
     path('api/reports/', include('apps.reports.urls')),
     path('api/stores/', include('apps.stores.urls')),
+    path('api/purchases/', include('apps.purchases.urls')),
     path('api/core/', include('apps.core.urls')),
 ]
 

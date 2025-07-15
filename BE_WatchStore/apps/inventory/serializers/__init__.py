@@ -1,4 +1,4 @@
 from .inventory_serializer import InventorySerializer
-from .inventory_transaction_serializer import InventoryTransactionSerializer
+from .inventory_transaction_serializer import InventoryTransactionSerializer, InventoryTransactionCreateSerializer
 from .stock_take_serializer import StockTakeSerializer
 from .stock_transfer_serializer import StockTransferSerializer 

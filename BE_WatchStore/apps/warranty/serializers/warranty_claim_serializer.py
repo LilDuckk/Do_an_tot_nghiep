@@ -12,6 +12,8 @@ class WarrantyClaimSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = WarrantyClaim
-        fields = ['id', 'warranty', 'claim_number', 'issue_description',
-                 'status', 'resolution', 'created_at', 'updated_at']
+        fields = ['id', 'warranty', 'claim_number', 'claim_date', 'description',
+                 'resolution', 'status', 'completed_date', 'technician', 
+                 'repair_cost', 'estimated_completion_date', 'customer_contact',
+                 'created_by', 'updated_by', 'created_at', 'updated_at']
         read_only_fields = ('created_at', 'updated_at') 

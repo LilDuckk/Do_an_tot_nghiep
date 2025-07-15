@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { PRODUCT_ENDPOINTS } from '@/config/api';
 import Header from './Header';
 import Footer from './Footer';
 import './static/ProductList.css';
@@ -23,7 +24,9 @@ export default function ProductList() {
   });
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
+  const [isInitialized, setIsInitialized] = useState(false);
   const pageSize = 20;
+  const isInitialMount = useRef(true);
 
   // Xây dựng cây danh mục từ dữ liệu phẳng
   const buildCategoryTree = (categories) => {
@@ -60,8 +63,8 @@ export default function ProductList() {
     const fetchBrandsAndCategories = async () => {
       try {
         const [brandsRes, categoriesRes] = await Promise.all([
-          fetch('http://localhost:8000/api/products/brands/list_all/'),
-          fetch('http://localhost:8000/api/products/categories/list_all/')
+          fetch(PRODUCT_ENDPOINTS.BRANDS_LIST_ALL),
+          fetch(PRODUCT_ENDPOINTS.CATEGORIES_LIST_ALL)
         ]);
         const brandsData = await brandsRes.json();
         const categoriesData = await categoriesRes.json();
@@ -96,7 +99,7 @@ export default function ProductList() {
       queryParams.append('page', page);
       queryParams.append('page_size', pageSize);
 
-      const response = await fetch(`http://localhost:8000/api/products/products/?${queryParams}`);
+      const response = await fetch(`${PRODUCT_ENDPOINTS.PRODUCTS}?${queryParams}`);
       if (!response.ok) {
         throw new Error('Lỗi khi tải dữ liệu sản phẩm');
       }
@@ -120,26 +123,7 @@ export default function ProductList() {
     } finally {
       setLoading(false);
     }
-  }, [filters, page]);
-
-  // Gọi API khi component mount và khi filters/page thay đổi
-  useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
-
-  // Cập nhật URL khi filters thay đổi
-  useEffect(() => {
-    const searchParams = new URLSearchParams();
-    
-    if (filters.search) searchParams.append('search', filters.search);
-    if (filters.brand) searchParams.append('brand', filters.brand);
-    if (filters.category) searchParams.append('category', filters.category);
-    if (filters.min_price) searchParams.append('min_price', filters.min_price);
-    if (filters.max_price) searchParams.append('max_price', filters.max_price);
-    if (page > 1) searchParams.append('page', page);
-
-    navigate(`/products?${searchParams.toString()}`);
-  }, [filters, page, navigate]);
+  }, [filters, page, pageSize]);
 
   // Cập nhật filters từ URL parameters khi component mount hoặc URL thay đổi
   useEffect(() => {
@@ -155,20 +139,65 @@ export default function ProductList() {
     const categoryParam = category ? category.split(',') : [];
     setSelectedCategories(new Set(categoryParam));
     
-    setFilters({
+    const newFilters = {
       search: search || '',
       brand: brand || '',
       category: category || '',
       min_price: min_price || '',
       max_price: max_price || ''
-    });
+    };
+    
+    setFilters(newFilters);
     
     if (pageParam) {
-      setPage(parseInt(pageParam, 10));
+      const newPage = parseInt(pageParam, 10);
+      setPage(newPage);
     } else {
       setPage(1);
     }
+    
+    setIsInitialized(true);
   }, [location.search]);
+
+  // Gọi API lần đầu khi đã khởi tạo
+  useEffect(() => {
+    if (isInitialized) {
+      fetchProducts();
+    }
+  }, [isInitialized, fetchProducts]);
+
+  // Gọi API khi filters hoặc page thay đổi (trừ lần đầu)
+  useEffect(() => {
+    if (isInitialized && !isInitialMount.current) {
+      fetchProducts();
+    }
+  }, [filters, page, fetchProducts]);
+
+  // Đánh dấu đã mount xong
+  useEffect(() => {
+    if (isInitialized) {
+      isInitialMount.current = false;
+    }
+  }, [isInitialized]);
+
+  // Cập nhật URL khi filters/page thay đổi (chỉ sau khi đã khởi tạo)
+  useEffect(() => {
+    if (!isInitialized) return;
+    
+    const searchParams = new URLSearchParams();
+    
+    if (filters.search) searchParams.append('search', filters.search);
+    if (filters.brand) searchParams.append('brand', filters.brand);
+    if (filters.category) searchParams.append('category', filters.category);
+    if (filters.min_price) searchParams.append('min_price', filters.min_price);
+    if (filters.max_price) searchParams.append('max_price', filters.max_price);
+    if (page > 1) searchParams.append('page', page);
+
+    const newUrl = `/products?${searchParams.toString()}`;
+    if (location.pathname + location.search !== newUrl) {
+      navigate(newUrl, { replace: true });
+    }
+  }, [filters, page, navigate, location.pathname, location.search, isInitialized]);
 
   const handleFilterChange = (type, value) => {
     const newFilters = {
@@ -177,17 +206,12 @@ export default function ProductList() {
     };
     setFilters(newFilters);
     setPage(1);
-
-    const searchParams = new URLSearchParams();
     
-    // Chỉ thêm các tham số có giá trị
-    if (newFilters.search) searchParams.append('search', newFilters.search);
-    if (newFilters.brand) searchParams.append('brand', newFilters.brand);
-    if (newFilters.category) searchParams.append('category', newFilters.category);
-    if (newFilters.min_price) searchParams.append('min_price', newFilters.min_price);
-    if (newFilters.max_price) searchParams.append('max_price', newFilters.max_price);
-
-    navigate(`/products?${searchParams.toString()}`);
+    // Cuộn lên đầu trang khi thay đổi filter
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
   };
 
   const handleCategoryChange = (categoryId, isParent = false) => {
@@ -241,21 +265,25 @@ export default function ProductList() {
     };
     setFilters(newFilters);
     setPage(1);
-
-    const searchParams = new URLSearchParams();
     
-    // Chỉ thêm các tham số có giá trị
-    if (newFilters.search) searchParams.append('search', newFilters.search);
-    if (newFilters.brand) searchParams.append('brand', newFilters.brand);
-    if (newFilters.category) searchParams.append('category', newFilters.category);
-    if (newFilters.min_price) searchParams.append('min_price', newFilters.min_price);
-    if (newFilters.max_price) searchParams.append('max_price', newFilters.max_price);
-
-    navigate(`/products?${searchParams.toString()}`);
+    // Cuộn lên đầu trang khi thay đổi price filter
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
   };
 
   const handleProductClick = (productId) => {
     navigate(`/products/${productId}`);
+  };
+
+  const handlePageChange = (newPage) => {
+    setPage(newPage);
+    // Cuộn lên đầu trang
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
   };
 
   const totalPages = Math.ceil(totalCount / pageSize);
@@ -372,6 +400,16 @@ export default function ProductList() {
 
         <main className="product-list-main">
           <h2>Danh sách sản phẩm</h2>
+          {filters.search && (
+            <div className="search-results-info">
+              <p>
+                Kết quả tìm kiếm cho: <strong>"{filters.search}"</strong>
+                {!loading && (
+                  <span> - Tìm thấy {totalCount} sản phẩm</span>
+                )}
+              </p>
+            </div>
+          )}
           {loading ? (
             <div className="loading">Đang tải...</div>
           ) : (
@@ -407,7 +445,7 @@ export default function ProductList() {
                 <div className="pagination">
                   <button 
                     className="pagination-btn" 
-                    onClick={() => setPage(page - 1)} 
+                    onClick={() => handlePageChange(page - 1)} 
                     disabled={page === 1}
                   >
                     &lt;
@@ -416,14 +454,14 @@ export default function ProductList() {
                     <button
                       key={p}
                       className={`pagination-btn${p === page ? ' active' : ''}`}
-                      onClick={() => setPage(p)}
+                      onClick={() => handlePageChange(p)}
                     >
                       {p}
                     </button>
                   ))}
                   <button 
                     className="pagination-btn" 
-                    onClick={() => setPage(page + 1)} 
+                    onClick={() => handlePageChange(page + 1)} 
                     disabled={page === totalPages}
                   >
                     &gt;

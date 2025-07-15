@@ -2,45 +2,58 @@ import React, { useState, useEffect } from 'react';
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import './static/AdminLayout.css';
 
+function hasAnyPermission(userPermissions, requiredPermissions) {
+  if (localStorage.getItem('is_superuser') === 'true') return true;
+  if (!requiredPermissions || requiredPermissions.length === 0) return true;
+  return requiredPermissions.some(p => userPermissions.includes(p));
+}
+
 const menuConfig = [
   { label: 'Dashboard', to: '/admin/dashboard', icon: '🏠' },
-  { label: 'Người dùng', icon: '👤', children: [
-    { label: 'Quản lý người dùng', to: '/admin/users' },
-    { label: 'Nhóm quyền', to: '/admin/groups' },
-    { label: 'Quyền', to: '/admin/permissions' },
+  { label: 'Người dùng', icon: '👤', requiredPermissions: ['view_useraccount', 'view_group', 'view_permission'], children: [
+    { label: 'Quản lý người dùng', to: '/admin/users', requiredPermissions: ['view_useraccount'] },
+    { label: 'Nhóm quyền', to: '/admin/groups', requiredPermissions: ['view_group'] },
+    { label: 'Quyền', to: '/admin/permissions', requiredPermissions: ['view_permission'] },
   ]},
-  { label: 'Sản phẩm', icon: '⌚', children: [
-    { label: 'Quản lý sản phẩm', to: '/admin/products' },
-    { label: 'Danh mục', to: '/admin/categories' },
-    { label: 'Thương hiệu', to: '/admin/brands' },
-    { label: 'Biến thể', to: '/admin/variants' },
-    { label: 'Thuộc tính', to: '/admin/attributes' },
+  { label: 'Sản phẩm', icon: '⌚', requiredPermissions: ['view_product', 'view_category', 'view_brand', 'view_productvariant', 'view_attributetype', 'view_attributevalue'], children: [
+    { label: 'Quản lý sản phẩm', to: '/admin/products', requiredPermissions: ['view_product'] },
+    { label: 'Danh mục', to: '/admin/categories', requiredPermissions: ['view_category'] },
+    { label: 'Thương hiệu', to: '/admin/brands', requiredPermissions: ['view_brand'] },
+    { label: 'Biến thể', to: '/admin/variants', requiredPermissions: ['view_productvariant'] },
+    { label: 'Thuộc tính', to: '/admin/attributes', requiredPermissions: ['view_attributetype', 'view_attributevalue'] },
   ]},
-  { label: 'Đơn hàng', icon: '🧾', children: [
-    { label: 'Quản lý đơn hàng', to: '/admin/orders' },
-    { label: 'Trả hàng', to: '/admin/return-orders' },
-    { label: 'Quản lý khuyến mãi', to: '/admin/coupons' },
-    { label: 'Quản lý khách hàng', to: '/admin/customers' },
+  { label: 'Đơn hàng', icon: '🧾', requiredPermissions: ['view_orders', 'view_returnorder', 'view_coupon', 'view_customer', 'view_warranty'], children: [
+    { label: 'Quản lý đơn hàng', to: '/admin/orders', requiredPermissions: ['view_orders'] },
+    { label: 'Trả hàng', to: '/admin/return-orders', requiredPermissions: ['view_returnorder'] },
+    { label: 'Quản lý khuyến mãi', to: '/admin/coupons', requiredPermissions: ['view_coupon'] },
+    { label: 'Quản lý khách hàng', to: '/admin/customers', requiredPermissions: ['view_customer'] },
+    { label: 'Quản lý bảo hành', to: '/admin/warranties', requiredPermissions: ['view_warranty'] },
   ]},
-  { label: 'Cửa hàng', icon: '🏬', children: [
-    { label: 'Quản lý cửa hàng', to: '/admin/stores' },
-    { label: 'Tồn kho', to: '/admin/inventories' },
-    { label: 'Kiểm kê', to: '/admin/stock-takes' },
-    { label: 'Chuyển kho', to: '/admin/stock-transfers' },
+  { label: 'Cửa hàng', icon: '🏬', requiredPermissions: ['view_store', 'view_employee', 'view_inventory','view_inventorytransaction', 'view_stocktake', 'view_stocktransfer', 'view_supplier'], children: [
+    { label: 'Quản lý cửa hàng', to: '/admin/stores', requiredPermissions: ['view_store'] },
+    { label: 'Quản lý nhân viên', to: '/admin/employees', requiredPermissions: ['view_employee'] },
+    { label: 'Tồn kho', to: '/admin/inventories', requiredPermissions: ['view_inventory'] },
+    { label: 'Lịch sử giao dịch kho', to: '/admin/inventory-transactions', requiredPermissions: ['view_inventorytransaction'] },
+    // { label: 'Kiểm kê', to: '/admin/stock-takes', requiredPermissions: ['view_stocktake'] },
+    { label: 'Chuyển kho', to: '/admin/stock-transfers', requiredPermissions: ['view_stocktransfer'] },
+    { label: 'Nhà cung cấp', to: '/admin/suppliers', icon: '🏢', requiredPermissions: ['view_supplier'] },
+    { label: 'Đơn đặt hàng mua', to: '/admin/purchase-orders', icon: '📝', requiredPermissions: ['view_purchaseorder'] },
+    { label: 'Phiếu nhập hàng', to: '/admin/goods-receipts', icon: '📥', requiredPermissions: ['view_goodsreceipt'] },
   ]},
-  { label: 'Hệ thống', icon: '⚙️', children: [
-    { label: 'Quản lý ảnh bìa', to: '/admin/system/banners' },
-    { label: 'Thông tin liên hệ', to: '/admin/system/contact' },
-    { label: 'Thông tin chân trang', to: '/admin/system/footer' },
-    { label: 'Quản lý tin tức', to: '/admin/system/news' },
+  { label: 'Hệ thống', icon: '⚙️', requiredPermissions: ['view_banner', 'view_contactinfo', 'view_footercategory', 'view_footerlink', 'view_news'], children: [
+    { label: 'Quản lý ảnh bìa', to: '/admin/system/banners', requiredPermissions: ['view_banner'] },
+    { label: 'Thông tin liên hệ', to: '/admin/system/contact', requiredPermissions: ['view_contactinfo'] },
+    { label: 'Thông tin chân trang', to: '/admin/system/footer', requiredPermissions: ['view_footercategory', 'view_footerlink'] },
+    { label: 'Quản lý tin tức', to: '/admin/system/news', requiredPermissions: ['view_news'] },
   ]},
-  { label: 'Bảo hành', icon: '🛡️', to: '/admin/warranties' },
-  { label: 'Lịch sử thao tác', icon: '📜', to: '/admin/audit-logs' },
+
+  { label: 'Lịch sử thao tác', icon: '📜', to: '/admin/audit-logs', requiredPermissions: ['view_auditlog'] },
   { label: 'Đăng xuất', icon: '🚪', to: '/admin/logout' },
 ];
 
 export default function AdminLayout() {
   const user = JSON.parse(localStorage.getItem('adminUser') || '{}');
+  const userPermissions = JSON.parse(localStorage.getItem('user_permission_codenames') || '[]');
   const navigate = useNavigate();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
@@ -75,36 +88,47 @@ export default function AdminLayout() {
         </div>
         <nav>
           <ul>
-            {menuConfig.map((item, idx) => (
-              <li key={item.label} className={item.children ? 'has-dropdown' : ''}>
-                {item.children ? (
-                  <>
-                    <div
-                      className={`dropdown-label${openDropdown === item.label ? ' open' : ''}`}
-                      onClick={() => !collapsed && handleDropdown(item.label)}
-                    >
+            {menuConfig.map((item, idx) => {
+              // Ẩn mục nếu không có quyền
+              if (!hasAnyPermission(userPermissions, item.requiredPermissions)) return null;
+              if (item.children) {
+                // Lọc các mục con theo quyền
+                const visibleChildren = item.children.filter(child => hasAnyPermission(userPermissions, child.requiredPermissions));
+                if (visibleChildren.length === 0) return null;
+                return (
+                  <li key={item.label} className={item.children ? 'has-dropdown' : ''}>
+                    <>
+                      <div
+                        className={`dropdown-label${openDropdown === item.label ? ' open' : ''}`}
+                        onClick={() => !collapsed && handleDropdown(item.label)}
+                      >
+                        <span className="sidebar-icon">{item.icon}</span>
+                        {!collapsed && <span>{item.label}</span>}
+                        {!collapsed && <span className="dropdown-arrow">{openDropdown === item.label ? '▲' : '▼'}</span>}
+                      </div>
+                      {!collapsed && (
+                        <ul className={`dropdown-menu${openDropdown === item.label ? ' show' : ''}`}>
+                          {visibleChildren.map(child => (
+                            <li key={child.to}>
+                              <Link to={child.to} className={location.pathname === child.to ? 'active' : ''}>{child.label}</Link>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </>
+                  </li>
+                );
+              } else {
+                return (
+                  <li key={item.label}>
+                    <Link to={item.to} className={location.pathname === item.to ? 'active' : ''}>
                       <span className="sidebar-icon">{item.icon}</span>
                       {!collapsed && <span>{item.label}</span>}
-                      {!collapsed && <span className="dropdown-arrow">{openDropdown === item.label ? '▲' : '▼'}</span>}
-                    </div>
-                    {!collapsed && (
-                      <ul className={`dropdown-menu${openDropdown === item.label ? ' show' : ''}`}>
-                        {item.children.map(child => (
-                          <li key={child.to}>
-                            <Link to={child.to} className={location.pathname === child.to ? 'active' : ''}>{child.label}</Link>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </>
-                ) : (
-                  <Link to={item.to} className={location.pathname === item.to ? 'active' : ''}>
-                    <span className="sidebar-icon">{item.icon}</span>
-                    {!collapsed && <span>{item.label}</span>}
-                  </Link>
-                )}
-              </li>
-            ))}
+                    </Link>
+                  </li>
+                );
+              }
+            })}
           </ul>
         </nav>
       </aside>

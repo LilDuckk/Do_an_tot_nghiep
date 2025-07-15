@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { CONTENT_ENDPOINTS } from '@/config/api';
 import './static/Footer.css';
 
 export default function Footer() {
@@ -11,8 +12,8 @@ export default function Footer() {
     const fetchData = async () => {
       try {
         const [linkRes, catRes] = await Promise.all([
-          fetch('http://localhost:8000/api/content/footer-links/all/'),
-          fetch('http://localhost:8000/api/content/footer-categories/all/')
+          fetch(CONTENT_ENDPOINTS.FOOTER_LINKS_ALL),
+          fetch(CONTENT_ENDPOINTS.FOOTER_CATEGORIES_ALL)
         ]);
         if (!linkRes.ok || !catRes.ok) throw new Error('API trả về lỗi');
         const linkData = await linkRes.json();

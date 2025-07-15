@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
+import { CONTENT_ENDPOINTS } from '@/config/api';
 import './static/HomeHero.css';
 
 export default function HomeHero() {
   const [banner, setBanner] = useState(null);
 
   useEffect(() => {
-    fetch('http://localhost:8000/api/content/banners/all/')
+    fetch(CONTENT_ENDPOINTS.BANNERS_ALL)
       .then(res => res.json())
       .then(data => {
         const homeBanner = data.find(

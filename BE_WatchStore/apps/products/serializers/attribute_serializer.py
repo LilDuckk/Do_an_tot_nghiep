@@ -6,7 +6,7 @@ class AttributeValueSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = AttributeValue
-        fields = ['id', 'attribute_type', 'value', 'price_adjustments', 'created_at', 'updated_at']
+        fields = ['id', 'attribute_type', 'value', 'created_at', 'updated_at']
         read_only_fields = ('created_at', 'updated_at')
 
 class AttributeTypeSerializer(serializers.ModelSerializer):

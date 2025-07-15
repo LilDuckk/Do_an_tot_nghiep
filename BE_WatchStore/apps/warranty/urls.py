@@ -4,7 +4,7 @@ from apps.warranty.views.warranty_view import WarrantyViewSet
 from apps.warranty.views.warranty_claim_view import WarrantyClaimViewSet
 
 router = DefaultRouter()
-router.register(r'warranties', WarrantyViewSet, basename='warranty')
+router.register(r'', WarrantyViewSet, basename='warranty')
 router.register(r'claims', WarrantyClaimViewSet, basename='warranty-claim')
 
 urlpatterns = [

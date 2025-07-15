@@ -7,8 +7,9 @@ class Store(BaseModel):
     address = models.TextField()
     phone = models.CharField(max_length=20, blank=True, null=True)
     store_code = models.CharField(unique=True, max_length=50)
-    opening_date = models.DateField(blank=True, null=True)
-    is_active = models.BooleanField(blank=True, null=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     # ❗ Dùng string để tránh vòng lặp
     manager = models.ForeignKey('stores.Employee', models.DO_NOTHING, blank=True, null=True, related_name='managed_stores')
@@ -19,3 +20,16 @@ class Store(BaseModel):
     class Meta:
         managed = True
         db_table = 'store'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.name
+
+    def delete(self, *args, **kwargs):
+        # Xóa mềm tất cả nhân viên của cửa hàng
+        for employee in self.employees.all():
+            employee.delete()
+        
+        # Xóa mềm cửa hàng
+        self.is_deleted = True
+        self.save()

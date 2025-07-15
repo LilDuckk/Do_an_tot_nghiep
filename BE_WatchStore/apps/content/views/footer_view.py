@@ -1,7 +1,8 @@
 from rest_framework import viewsets
 from apps.content.models.footer import FooterCategory, FooterLink
 from apps.content.serializers.footer_serializer import FooterCategorySerializer, FooterLinkSerializer
-from rest_framework.permissions import DjangoModelPermissions, AllowAny
+from apps.core.utils.permissions import IsSuperUser, IsStoreEmployee
+from rest_framework.permissions import IsAuthenticated, AllowAny, OR
 from rest_framework.response import Response
 from rest_framework.decorators import action
 
@@ -11,12 +12,15 @@ class FooterCategoryViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         """
-        Cho phép truy cập public cho các action GET
-        Yêu cầu quyền admin cho các action thay đổi dữ liệu
+        Tùy chỉnh permission cho từng action
         """
-        if self.action in ['list', 'retrieve', 'list_all']:
+        if self.action in ['list', 'retrieve']:
+            # Cho phép tất cả người dùng xem danh sách và chi tiết danh mục footer
             return [AllowAny()]
-        return [DjangoModelPermissions()]
+        elif self.action in ['create', 'update', 'partial_update', 'destroy']:
+            # Cho phép superuser hoặc nhân viên cửa hàng có quyền tương ứng
+            return [OR(IsSuperUser(), IsStoreEmployee())]
+        return super().get_permissions()
     
     @action(detail=False, methods=['get'], url_path='all', url_name='all')
     def list_all(self, request):
@@ -34,12 +38,15 @@ class FooterLinkViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         """
-        Cho phép truy cập public cho các action GET
-        Yêu cầu quyền admin cho các action thay đổi dữ liệu
+        Tùy chỉnh permission cho từng action
         """
-        if self.action in ['list', 'retrieve', 'list_all']:
+        if self.action in ['list', 'retrieve']:
+            # Cho phép tất cả người dùng xem danh sách và chi tiết liên kết footer
             return [AllowAny()]
-        return [DjangoModelPermissions()]
+        elif self.action in ['create', 'update', 'partial_update', 'destroy']:
+            # Cho phép superuser hoặc nhân viên cửa hàng có quyền tương ứng
+            return [OR(IsSuperUser(), IsStoreEmployee())]
+        return super().get_permissions()
     
     @action(detail=False, methods=['get'], url_path='all', url_name='all')
     def list_all(self, request):

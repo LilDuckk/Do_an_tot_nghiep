@@ -50,6 +50,8 @@ def serialize_fields(instance, exclude_fields=None):
             data[field.name] = value.url if hasattr(value, 'url') and value.url else value.name
         elif isinstance(value, models.Model):
             data[field.name] = value.pk if hasattr(value, 'pk') else str(value)
+        elif isinstance(value, (datetime, date)):
+            data[field.name] = value.isoformat()
         elif isinstance(value, Decimal):
             data[field.name] = float(value)
         else:

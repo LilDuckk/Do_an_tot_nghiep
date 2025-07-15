@@ -1,9 +1,10 @@
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import DjangoModelPermissions, AllowAny
 from apps.products.models.category import Category
 from apps.products.serializers.category_serializer import CategorySerializer
+from apps.core.utils.permissions import IsSuperUser, IsStoreEmployee
+from rest_framework.permissions import IsAuthenticated, AllowAny, OR
 
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
@@ -15,12 +16,15 @@ class CategoryViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         """
-        Cho phép truy cập public cho các action GET
-        Yêu cầu quyền admin cho các action thay đổi dữ liệu
+        Tùy chỉnh permission cho từng action
         """
-        if self.action in ['list', 'retrieve', 'list_all']:
+        if self.action in ['list', 'retrieve']:
+            # Cho phép tất cả người dùng xem danh sách và chi tiết danh mục
             return [AllowAny()]
-        return [DjangoModelPermissions()]
+        elif self.action in ['create', 'update', 'partial_update', 'destroy']:
+            # Cho phép superuser hoặc nhân viên cửa hàng có quyền tương ứng
+            return [OR(IsSuperUser(), IsStoreEmployee())]
+        return super().get_permissions()
 
     @action(detail=False, methods=['get'])
     def list_all(self, request):

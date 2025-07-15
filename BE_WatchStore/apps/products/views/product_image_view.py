@@ -1,7 +1,8 @@
 from rest_framework import viewsets
-from rest_framework.permissions import DjangoModelPermissions, AllowAny
 from apps.products.models.product import ProductImage
 from apps.products.serializers.product_image_serializer import ProductImageSerializer
+from apps.core.utils.permissions import IsSuperUser, IsStoreEmployee
+from rest_framework.permissions import IsAuthenticated, AllowAny, OR
 
 class ProductImageViewSet(viewsets.ModelViewSet):
     queryset = ProductImage.objects.all()
@@ -13,9 +14,12 @@ class ProductImageViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         """
-        Cho phép truy cập public cho các action GET
-        Yêu cầu quyền admin cho các action thay đổi dữ liệu
+        Tùy chỉnh permission cho từng action
         """
-        if self.action in ['list', 'retrieve']:
+        if self.action in ['list', 'retrieve', 'list_all']:
+            # Cho phép tất cả người dùng xem danh sách và chi tiết biến thể
             return [AllowAny()]
-        return [DjangoModelPermissions()] 
+        elif self.action in ['create', 'update', 'partial_update', 'destroy']:
+            # Cho phép superuser hoặc nhân viên cửa hàng có quyền tương ứng
+            return [OR(IsSuperUser(), IsStoreEmployee())]
+        return super().get_permissions()

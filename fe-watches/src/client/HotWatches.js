@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { CONTENT_ENDPOINTS } from '@/config/api';
 import './static/HotWatches.css';
 
 export default function HotWatches() {
@@ -9,7 +10,7 @@ export default function HotWatches() {
   useEffect(() => {
     const fetchBanners = async () => {
       try {
-        const response = await fetch('http://localhost:8000/api/content/banners/all/');
+        const response = await fetch(CONTENT_ENDPOINTS.BANNERS_ALL);
         if (!response.ok) {
           throw new Error('Không thể tải dữ liệu banner');
         }

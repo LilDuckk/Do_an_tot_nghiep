@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from apps.users.models.user import UserAccount
 from django.contrib.auth.models import Group
+from django.db import IntegrityError
 
 
 class GroupInfoSerializer(serializers.ModelSerializer):
@@ -18,6 +19,7 @@ class UserSerializer(serializers.ModelSerializer):
         required=False,
         write_only=True
     )
+    employee_details = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = UserAccount
@@ -31,6 +33,7 @@ class UserSerializer(serializers.ModelSerializer):
             'password',
             'groups',      # Trả về thông tin group (id, name)
             'groups_id',   # Nhận danh sách id group khi tạo/cập nhật
+            'employee_details',
         ]
         read_only_fields = ['is_staff', 'is_superuser']
 
@@ -41,7 +44,13 @@ class UserSerializer(serializers.ModelSerializer):
         user = UserAccount(**validated_data)
         if password:
             user.set_password(password)
-        user.save()
+        try:
+            user.save()
+        except IntegrityError as e:
+            if 'useraccount_email_key' in str(e):
+                raise serializers.ValidationError({'email': 'Email đã tồn tại.'})
+            raise e # Re-raise other integrity errors
+
         if groups_data:
             user.groups.set(groups_data)
         return user
@@ -69,3 +78,16 @@ class UserSerializer(serializers.ModelSerializer):
                     'groups_id': 'Tài khoản phải thuộc ít nhất 1 group, trừ khi là tài khoản superuser.'
                 })
         return attrs
+
+    def get_employee_details(self, obj):
+        if hasattr(obj, 'employee_user_set') and obj.employee_user_set.filter(is_deleted=False).exists():
+            employee = obj.employee_user_set.filter(is_deleted=False).first()
+            return {
+                'id': employee.id,
+                'name': employee.name,
+                'employee_code': employee.employee_code,
+                'position': employee.position,
+                'store': employee.store.id if employee.store and not employee.store.is_deleted else None,
+                'store_name': employee.store.name if employee.store and not employee.store.is_deleted else None
+            }
+        return None

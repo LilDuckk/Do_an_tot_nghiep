@@ -72,9 +72,13 @@ class Product(BaseModel):
     def delete(self, *args, **kwargs):
         # Xóa mềm tất cả các biến thể liên quan trước
         from apps.products.models.variant import ProductVariant
+        from apps.inventory.models import Inventory
         ProductVariant.objects.filter(product=self).update(is_deleted=True)
         # Xóa mềm tất cả các ảnh liên quan
         self.images.update(is_deleted=True)
+        # Xóa mềm inventory của các variant liên quan
+        variant_ids = ProductVariant.objects.filter(product=self).values_list('id', flat=True)
+        Inventory.objects.filter(product_variant_id__in=list(variant_ids)).update(is_deleted=True)
         # Gọi phương thức delete của lớp cha (soft delete chính product)
         super().delete(*args, **kwargs)
 
@@ -82,7 +86,7 @@ class Product(BaseModel):
     description = models.TextField(blank=True, null=True)
     category = models.ForeignKey(Category, models.DO_NOTHING, blank=True, null=True)
     brand = models.ForeignKey(Brand, models.DO_NOTHING, blank=True, null=True)
-    base_price = models.DecimalField(max_digits=10, decimal_places=2)
+    base_price = models.DecimalField(max_digits=25, decimal_places=2)
     warranty_period = models.IntegerField(blank=True, null=True)
     slug = models.CharField(unique=True, max_length=255, blank=True, null=True)
     meta_title = models.CharField(max_length=255, blank=True, null=True)

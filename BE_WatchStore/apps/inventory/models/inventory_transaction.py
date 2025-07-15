@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 from apps.core.models.base import BaseModel
 from apps.users.models.user import UserAccount
 from apps.inventory.models.inventory import Inventory
@@ -7,7 +8,7 @@ class InventoryTransaction(BaseModel):
     inventory = models.ForeignKey(Inventory, models.DO_NOTHING, blank=True, null=True)
     transaction_type = models.CharField(max_length=20)
     quantity = models.IntegerField()
-    unit_price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    unit_price = models.DecimalField(max_digits=25, decimal_places=2, blank=True, null=True)
     reference_id = models.IntegerField(blank=True, null=True)
     reference_type = models.CharField(max_length=50, blank=True, null=True)
     note = models.TextField(blank=True, null=True)
@@ -17,4 +18,10 @@ class InventoryTransaction(BaseModel):
 
     class Meta:
         managed = True
-        db_table = 'inventorytransaction' 
+        db_table = 'inventorytransaction'
+    
+    def save(self, *args, **kwargs):
+        # Tự động tạo transaction_date nếu chưa có
+        if not self.transaction_date:
+            self.transaction_date = timezone.now()
+        super().save(*args, **kwargs) 
