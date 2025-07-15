@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { PRODUCT_ENDPOINTS } from '@/config/api';
 import './static/Header.css';
 import DropdownMenu from './DropdownMenu';
 import DropdownCart from './DropdownCart';
@@ -20,13 +19,12 @@ export default function Header() {
   const searchInputRef = useRef();
   
   // Sử dụng shared data hook
-  const { data, loading, fetchBrands, fetchCategories } = useSharedData();
+  const { data, fetchCategoriesAndBrands } = useSharedData();
 
   // Fetch data khi component mount
   useEffect(() => {
-    fetchBrands();
-    fetchCategories();
-  }, [fetchBrands, fetchCategories]);
+    fetchCategoriesAndBrands();
+  }, [fetchCategoriesAndBrands]);
 
   // Update cart count
   useEffect(() => {

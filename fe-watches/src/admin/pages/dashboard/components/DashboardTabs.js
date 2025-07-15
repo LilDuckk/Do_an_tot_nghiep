@@ -8,7 +8,6 @@ import {
   bestSellersColumns, 
   turnoverColumns, 
   returnOrdersColumns, 
-  warrantyColumns 
 } from '../utils/tableColumns';
 
 const DashboardTabs = ({
@@ -21,8 +20,6 @@ const DashboardTabs = ({
   profitDistributionData,
   returnProductChartData,
   warrantyProductChartData,
-  financialChartData,
-  profitChartData,
   topProductsChartData,
   topCustomersChartData,
   bestSellingChartData,
@@ -80,6 +77,33 @@ const DashboardTabs = ({
           label: 'Biểu đồ doanh thu',
           children: (
             <>
+              {/* Filters Section */}
+              <Row gutter={[16, 16]} style={{marginBottom: 24}}>
+                <Col xs={24}>
+                  <div className="product-performance-filters-container">
+                    <div className="product-performance-filters-content">
+                      <div className="product-performance-period-badge">
+                        <strong>📊 Bộ lọc đang áp dụng:</strong>
+                      </div>
+                      {dailyRevenue?.summary?.period && (
+                        <div className="product-performance-period-badge" style={{marginTop: 8}}>
+                          <strong>📅 Kỳ báo cáo:</strong> {dailyRevenue.summary.period.start_date} - {dailyRevenue.summary.period.end_date}
+                        </div>
+                      )}
+                      {dailyRevenue?.summary?.store_name ? (
+                        <div className="product-performance-period-badge" style={{marginTop: 8}}>
+                          <strong>🏪 Cửa hàng:</strong> {dailyRevenue.summary.store_name}
+                        </div>
+                      ) : (
+                        <div className="product-performance-period-badge" style={{marginTop: 8}}>
+                          <strong>🏪 Cửa hàng:</strong> Tất cả cửa hàng
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </Col>
+              </Row>
+
               {/* Summary Cards */}
               <Row gutter={[16, 16]} style={{marginBottom: 24}}>
                 <Col xs={24} sm={12} md={6}>
@@ -764,8 +788,20 @@ const DashboardTabs = ({
                   <Col xs={24}>
                     <div className="product-performance-filters-container">
                       <div className="product-performance-period-badge">
-                        <strong>📅 Kỳ phân tích lợi nhuận:</strong> {profitAnalysis.period.start_date} - {profitAnalysis.period.end_date}
+                        <strong>📊 Bộ lọc đang áp dụng:</strong>
                       </div>
+                      <div className="product-performance-period-badge" style={{marginTop: 8}}>
+                        <strong>📅 Kỳ phân tích:</strong> {profitAnalysis.period.start_date} - {profitAnalysis.period.end_date}
+                      </div>
+                      {profitAnalysis?.store_name ? (
+                        <div className="product-performance-period-badge" style={{marginTop: 8}}>
+                          <strong>🏪 Cửa hàng:</strong> {profitAnalysis.store_name}
+                        </div>
+                      ) : (
+                        <div className="product-performance-period-badge" style={{marginTop: 8}}>
+                          <strong>🏪 Cửa hàng:</strong> Tất cả cửa hàng
+                        </div>
+                      )}
                     </div>
                   </Col>
                 </Row>

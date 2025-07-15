@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import { PRODUCT_ENDPOINTS, CONTENT_ENDPOINTS } from '@/config/api';
 
 // Global state để lưu trữ dữ liệu đã fetch
@@ -15,7 +15,8 @@ let fetchPromises = {
   categories: null,
   footerLinks: null,
   footerCategories: null,
-  banners: null
+  banners: null,
+  categoriesAndBrands: null
 };
 
 export const useSharedData = () => {
@@ -35,72 +36,32 @@ export const useSharedData = () => {
     banners: null
   });
 
-  // Fetch brands
-  const fetchBrands = async () => {
-    if (globalData.brands !== null) {
-      return globalData.brands;
+  // Fetch categories and brands từ API mới
+  const fetchCategoriesAndBrands = async () => {
+    if (globalData.brands !== null && globalData.categories !== null) {
+      return { brands: globalData.brands, categories: globalData.categories };
     }
     
-    if (fetchPromises.brands) {
-      return fetchPromises.brands;
+    if (fetchPromises.categoriesAndBrands) {
+      return fetchPromises.categoriesAndBrands;
     }
 
-    setLoading(prev => ({ ...prev, brands: true }));
-    setError(prev => ({ ...prev, brands: null }));
+    setLoading(prev => ({ ...prev, brands: true, categories: true }));
+    setError(prev => ({ ...prev, brands: null, categories: null }));
 
-    fetchPromises.brands = fetch(PRODUCT_ENDPOINTS.BRANDS_LIST_ALL)
+    fetchPromises.categoriesAndBrands = fetch(PRODUCT_ENDPOINTS.CATEGORIES_AND_BRANDS)
       .then(res => res.json())
-      .then(brandsData => {
-        const processedBrands = Array.isArray(brandsData) 
-          ? brandsData 
-          : (brandsData && brandsData.data && Array.isArray(brandsData.data) 
-            ? brandsData.data 
-            : []);
-        
-        globalData.brands = processedBrands;
-        setData(prev => ({ ...prev, brands: processedBrands }));
-        setLoading(prev => ({ ...prev, brands: false }));
-        return processedBrands;
-      })
-      .catch(err => {
-        console.error('Error fetching brands:', err);
-        setError(prev => ({ ...prev, brands: err.message }));
-        setLoading(prev => ({ ...prev, brands: false }));
-        throw err;
-      });
-
-    return fetchPromises.brands;
-  };
-
-  // Fetch categories
-  const fetchCategories = async () => {
-    if (globalData.categories !== null) {
-      return globalData.categories;
-    }
-    
-    if (fetchPromises.categories) {
-      return fetchPromises.categories;
-    }
-
-    setLoading(prev => ({ ...prev, categories: true }));
-    setError(prev => ({ ...prev, categories: null }));
-
-    fetchPromises.categories = fetch(PRODUCT_ENDPOINTS.CATEGORIES_LIST_ALL)
-      .then(res => res.json())
-      .then(categoriesData => {
-        const processedCategories = Array.isArray(categoriesData) 
-          ? categoriesData 
-          : (categoriesData && categoriesData.data && Array.isArray(categoriesData.data) 
-            ? categoriesData.data 
-            : []);
+      .then(data => {
+        const brands = Array.isArray(data.brands) ? data.brands : [];
+        const categories = Array.isArray(data.categories) ? data.categories : [];
         
         // Xây dựng cây danh mục
         const categoryMap = new Map();
         const rootCategories = [];
-        processedCategories.forEach(category => {
+        categories.forEach(category => {
           categoryMap.set(category.id, { ...category, children: [] });
         });
-        processedCategories.forEach(category => {
+        categories.forEach(category => {
           if (category.parent) {
             const parent = categoryMap.get(category.parent);
             if (parent) {
@@ -111,19 +72,40 @@ export const useSharedData = () => {
           }
         });
         
+        globalData.brands = brands;
         globalData.categories = rootCategories;
-        setData(prev => ({ ...prev, categories: rootCategories }));
-        setLoading(prev => ({ ...prev, categories: false }));
-        return rootCategories;
+        setData(prev => ({ ...prev, brands, categories: rootCategories }));
+        setLoading(prev => ({ ...prev, brands: false, categories: false }));
+        return { brands, categories: rootCategories };
       })
       .catch(err => {
-        console.error('Error fetching categories:', err);
-        setError(prev => ({ ...prev, categories: err.message }));
-        setLoading(prev => ({ ...prev, categories: false }));
+        console.error('Error fetching categories and brands:', err);
+        setError(prev => ({ ...prev, brands: err.message, categories: err.message }));
+        setLoading(prev => ({ ...prev, brands: false, categories: false }));
         throw err;
       });
 
-    return fetchPromises.categories;
+    return fetchPromises.categoriesAndBrands;
+  };
+
+  // Fetch brands (sử dụng dữ liệu từ API mới)
+  const fetchBrands = async () => {
+    if (globalData.brands !== null) {
+      return globalData.brands;
+    }
+    
+    const { brands } = await fetchCategoriesAndBrands();
+    return brands;
+  };
+
+  // Fetch categories (sử dụng dữ liệu từ API mới)
+  const fetchCategories = async () => {
+    if (globalData.categories !== null) {
+      return globalData.categories;
+    }
+    
+    const { categories } = await fetchCategoriesAndBrands();
+    return categories;
   };
 
   // Fetch footer links
@@ -237,6 +219,7 @@ export const useSharedData = () => {
     error,
     fetchBrands,
     fetchCategories,
+    fetchCategoriesAndBrands,
     fetchFooterLinks,
     fetchFooterCategories,
     fetchBanners

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Input, Button, Space, Tag, message, Modal, Form, Select, DatePicker, Card, Row, Col, InputNumber, Spin, Popconfirm } from 'antd';
-import { SearchOutlined, ReloadOutlined, PlusOutlined, EditOutlined, DeleteOutlined, ExclamationCircleOutlined, EyeOutlined, ShoppingCartOutlined } from '@ant-design/icons';
+import { Table, Input, Button, Space, Tag, message, Modal, Form, Select, DatePicker, Card, Row, Col, InputNumber, Popconfirm } from 'antd';
+import { SearchOutlined, ReloadOutlined, PlusOutlined, EditOutlined, DeleteOutlined, ExclamationCircleOutlined, ShoppingCartOutlined } from '@ant-design/icons';
 import { PURCHASE_ENDPOINTS, SUPPLIER_ENDPOINTS, STORE_ENDPOINTS, EMPLOYEE_ENDPOINTS, PRODUCT_ENDPOINTS } from '@/config/api';
 import '@/admin/static/AdminCommon.css';
 import dayjs from 'dayjs';
@@ -31,7 +31,7 @@ const PurchaseOrdersPage = () => {
   const [paymentStatusFilter, setPaymentStatusFilter] = useState(null);
   const [dateRange, setDateRange] = useState(null);
   const [totalAmountRange, setTotalAmountRange] = useState([null, null]);
-  const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0 });
+  const [pagination, setPagination] = useState({ current: 1, pageSize: 20, total: 0 });
 
   // State cho chi tiết đơn đặt hàng
   const [orderDetails, setOrderDetails] = useState([]);
@@ -49,7 +49,7 @@ const PurchaseOrdersPage = () => {
   const [variantsLoading, setVariantsLoading] = useState(false);
 
   // Lấy thông tin user từ localStorage
-  const { currentUser, isSuperUser, currentEmployeeId, currentStoreId } = getUserInfo();
+  const { isSuperUser, currentEmployeeId, currentStoreId } = getUserInfo();
   
   // Debug log để kiểm tra thông tin user
   debugUserInfo();
@@ -148,7 +148,7 @@ const PurchaseOrdersPage = () => {
     setFilteredEmployees(filtered);
   };
 
-  const fetchData = async (page = 1, pageSize = 10) => {
+  const fetchData = async (page = 1, pageSize = 20) => {
     setLoading(true);
     try {
       const token = localStorage.getItem('accessToken');

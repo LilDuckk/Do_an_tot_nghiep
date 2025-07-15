@@ -222,8 +222,8 @@ class ProductViewSet(viewsets.ModelViewSet):
         # Sắp xếp: featured trước, sau đó theo thứ tự khác
         featured = request.query_params.get('featured')
         if featured and featured.lower() == 'true':
-            # Chỉ lấy sản phẩm featured
-            queryset = queryset.filter(is_featured=True)
+            # Chỉ lấy sản phẩm featured và sắp xếp theo thứ tự
+            queryset = queryset.filter(is_featured=True).order_by('-created_at')
         else:
             # Sắp xếp: featured trước, sau đó theo thứ tự khác
             queryset = queryset.order_by('-is_featured', '-created_at')

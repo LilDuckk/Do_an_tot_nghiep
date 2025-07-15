@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Table, Input, Button, Space, Tag, message, Modal, Form, Select, DatePicker, Card, Row, Col, Popconfirm, InputNumber } from 'antd';
-import { SearchOutlined, ReloadOutlined, PlusOutlined, EditOutlined, DeleteOutlined, ExclamationCircleOutlined, EyeOutlined, ShoppingCartOutlined } from '@ant-design/icons';
-import { PURCHASE_ENDPOINTS, SUPPLIER_ENDPOINTS, STORE_ENDPOINTS, EMPLOYEE_ENDPOINTS, PRODUCT_ENDPOINTS } from '@/config/api';
+import { SearchOutlined, ReloadOutlined, PlusOutlined, EditOutlined, DeleteOutlined, ExclamationCircleOutlined, ShoppingCartOutlined } from '@ant-design/icons';
+import { PURCHASE_ENDPOINTS, SUPPLIER_ENDPOINTS, STORE_ENDPOINTS, EMPLOYEE_ENDPOINTS } from '@/config/api';
 import '@/admin/static/AdminCommon.css';
 import dayjs from 'dayjs';
 import { getUserInfo, debugUserInfo } from '@/services/userInfo';
@@ -48,8 +48,8 @@ const GoodsReceiptsPage = () => {
   const [statusFilter, setStatusFilter] = useState(null);
   const [dateRange, setDateRange] = useState(null);
   const [totalAmountRange, setTotalAmountRange] = useState([null, null]);
-  const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0 });
-  const { currentUser, isSuperUser, currentEmployeeId, currentStoreId } = getUserInfo();
+  const [pagination, setPagination] = useState({ current: 1, pageSize: 20, total: 0 });
+  const { isSuperUser, currentEmployeeId, currentStoreId } = getUserInfo();
   const [filteredEmployees, setFilteredEmployees] = useState([]);
   
   // Debug log để kiểm tra thông tin user
@@ -63,10 +63,9 @@ const GoodsReceiptsPage = () => {
   const [receiptDetailModalVisible, setReceiptDetailModalVisible] = useState(false);
   const [selectedReceiptId, setSelectedReceiptId] = useState(null);
   const [receiptDetailForm] = Form.useForm();
-  const [purchaseOrderDetails, setPurchaseOrderDetails] = useState([]);
+  const [setPurchaseOrderDetails] = useState([]);
   const [receiptDetailLoading, setReceiptDetailLoading] = useState(false);
   const [editingReceiptDetail, setEditingReceiptDetail] = useState(null);
-  const [showAddProductForm, setShowAddProductForm] = useState(false);
   const [selectedPurchaseOrder, setSelectedPurchaseOrder] = useState(null);
 
   // State for the new editable workflow
@@ -74,8 +73,7 @@ const GoodsReceiptsPage = () => {
   const [itemDetailModalVisible, setItemDetailModalVisible] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [itemDetailForm] = Form.useForm();
-  const [currentPurchaseOrderId, setCurrentPurchaseOrderId] = useState(null);
-  const modalInitializedRef = useRef(false);
+  const [setCurrentPurchaseOrderId] = useState(null);
   const previousReceiptDetailsRef = useRef([]);
   const [quickCreateModalVisible, setQuickCreateModalVisible] = useState(false);
   const [selectedQuickCreatePO, setSelectedQuickCreatePO] = useState(null);
@@ -83,7 +81,7 @@ const GoodsReceiptsPage = () => {
   // State cho đơn đặt hàng chưa có phiếu nhập kho
   const [ordersWithoutReceipt, setOrdersWithoutReceipt] = useState([]);
   const [ordersWithoutReceiptLoading, setOrdersWithoutReceiptLoading] = useState(false);
-  const [ordersWithoutReceiptPagination, setOrdersWithoutReceiptPagination] = useState({ current: 1, pageSize: 10, total: 0 });
+  const [ordersWithoutReceiptPagination, setOrdersWithoutReceiptPagination] = useState({ current: 1, pageSize: 20, total: 0 });
 
   useEffect(() => {
     fetchSuppliers();
@@ -130,7 +128,7 @@ const GoodsReceiptsPage = () => {
     } catch {}
   };
 
-  const fetchOrdersWithoutReceipt = async (page = 1, pageSize = 10) => {
+  const fetchOrdersWithoutReceipt = async (page = 1, pageSize = 20) => {
     try {
       setOrdersWithoutReceiptLoading(true);
       const token = localStorage.getItem('accessToken');
@@ -265,7 +263,7 @@ const GoodsReceiptsPage = () => {
     setFilteredEmployees(filtered);
   };
 
-  const fetchData = async (page = 1, pageSize = 10) => {
+  const fetchData = async (page = 1, pageSize = 20) => {
     setLoading(true);
     try {
       const token = localStorage.getItem('accessToken');

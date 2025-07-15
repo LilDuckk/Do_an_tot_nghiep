@@ -81,6 +81,7 @@ export default function Dashboard() {
     setStoreId,
     dateRange,
     setDateRange,
+    resetFilters,
     
     // Loading states
     loading,
@@ -162,6 +163,10 @@ export default function Dashboard() {
         dateRange={dateRange}
         setDateRange={setDateRange}
         periodOptions={periodOptions}
+        storeId={storeId}
+        setStoreId={setStoreId}
+        resetFilters={resetFilters}
+        loading={loading}
       />
 
       {/* Alerts Button */}

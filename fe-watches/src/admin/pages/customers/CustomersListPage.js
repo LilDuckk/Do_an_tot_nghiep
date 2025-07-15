@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Table,
   Button,
@@ -16,6 +16,8 @@ import dayjs from 'dayjs';
 import { CUSTOMER_ENDPOINTS } from '@/config/api';
 import '@/admin/static/AdminCommon.css';
 import { useDebounceSearch } from '@/admin/hooks/useDebounce';
+import { usePagination } from '@/admin/hooks/usePagination';
+import CustomPagination from '@/admin/components/common/CustomPagination';
 
 const { Option } = Select;
 
@@ -26,18 +28,45 @@ const CustomersListPage = () => {
   const [form] = Form.useForm();
   const [editingId, setEditingId] = useState(null);
   const [searchText, setSearchText] = useState('');
+  const [isSearchChange, setIsSearchChange] = useState(false);
+  const prevSearchTextRef = useRef('');
 
   // Sử dụng useDebounceSearch hook
   const { debouncedSearchText } = useDebounceSearch(searchText, 500);
+  
+  // Khởi tạo giá trị ban đầu cho prevSearchTextRef
+  useEffect(() => {
+    if (prevSearchTextRef.current === '') {
+      prevSearchTextRef.current = debouncedSearchText;
+    }
+  }, [debouncedSearchText]);
+
+  // Sử dụng usePagination hook
+  const {
+    currentPage,
+    pageSize,
+    total,
+    totalPages,
+    hasNext,
+    hasPrevious,
+    parseApiResponse,
+    handlePageChange,
+    resetToFirstPage
+  } = usePagination(20, 1);
 
   const fetchCustomers = useCallback(async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('accessToken');
       const queryParams = new URLSearchParams();
+      
       if (debouncedSearchText) {
         queryParams.append('search', debouncedSearchText);
       }
+      
+      // Thêm pagination parameters
+      queryParams.append('page', currentPage);
+      queryParams.append('page_size', pageSize);
       
       const response = await fetch(`${CUSTOMER_ENDPOINTS.CUSTOMERS}?${queryParams}`, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -46,22 +75,41 @@ const CustomersListPage = () => {
       if (response.status === 403) {
         message.error('Bạn không có quyền xem danh sách này.');
         setCustomers([]);
+        parseApiResponse(null);
         return;
       }
 
       const data = await response.json();
       setCustomers(Array.isArray(data.results) ? data.results : []);
+      parseApiResponse(data);
     } catch (error) {
       message.error('Lỗi khi tải danh sách khách hàng');
       setCustomers([]);
+      parseApiResponse(null);
     } finally {
       setLoading(false);
     }
-  }, [debouncedSearchText]);
+  }, [debouncedSearchText, currentPage, pageSize, parseApiResponse]);
 
   useEffect(() => {
     fetchCustomers();
   }, [fetchCustomers]);
+
+  // Reset isSearchChange flag sau khi fetch thành công
+  useEffect(() => {
+    if (isSearchChange) {
+      setIsSearchChange(false);
+    }
+  }, [customers, isSearchChange]);
+
+  // Reset về trang 1 khi search thay đổi
+  useEffect(() => {
+    if (debouncedSearchText !== prevSearchTextRef.current && prevSearchTextRef.current !== '') {
+      setIsSearchChange(true);
+      resetToFirstPage();
+    }
+    prevSearchTextRef.current = debouncedSearchText;
+  }, [debouncedSearchText, resetToFirstPage]);
 
   const handleSubmit = async (values) => {
     try {
@@ -112,6 +160,7 @@ const CustomersListPage = () => {
       }
       setModalVisible(false);
       form.resetFields();
+      // Refresh lại dữ liệu với pagination hiện tại
       fetchCustomers();
     } catch (error) {
       message.error('Có lỗi xảy ra');
@@ -132,7 +181,14 @@ const CustomersListPage = () => {
       }
 
       message.success('Xóa khách hàng thành công');
-      fetchCustomers();
+      
+      // Kiểm tra nếu đang ở trang cuối và chỉ còn 1 item, chuyển về trang trước
+      if (customers.length === 1 && currentPage > 1) {
+        handlePageChange(currentPage - 1);
+      } else {
+        // Refresh lại dữ liệu với pagination hiện tại
+        fetchCustomers();
+      }
     } catch (error) {
       message.error('Có lỗi xảy ra khi xóa');
     }
@@ -245,7 +301,23 @@ const CustomersListPage = () => {
         loading={loading}
         rowKey="id"
         className="customers-table"
+        pagination={false} // Tắt pagination mặc định của Antd Table
       />
+
+      {/* Custom Pagination */}
+      <div style={{ marginTop: 16, textAlign: 'center' }}>
+        <CustomPagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          total={total}
+          hasNext={hasNext}
+          hasPrevious={hasPrevious}
+          onPageChange={handlePageChange}
+          hasAccess={true}
+          maxVisiblePages={5}
+          className="admin-pagination"
+        />
+      </div>
 
       <Modal
         title={editingId ? 'Chỉnh sửa khách hàng' : 'Thêm khách hàng mới'}

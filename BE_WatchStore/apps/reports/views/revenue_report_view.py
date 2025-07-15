@@ -289,8 +289,6 @@ class RevenueReportViewSet(viewsets.ViewSet):
             else:
                 store_filter = self.get_user_store_filter()
 
-            debug_cogs_details = []  # Danh sách debug từng dòng xuất
-
             with connection.cursor() as cursor:
                 # 1. Query doanh thu
                 revenue_query = f"""
@@ -310,56 +308,55 @@ class RevenueReportViewSet(viewsets.ViewSet):
                 cursor.execute(revenue_query, [start_date, end_date])
                 revenue_result = cursor.fetchone()
 
-                # 2. Lấy tất cả order detail trong kỳ
-                cursor.execute(f'''
-                    SELECT od.product_variant_id, od.quantity, o.order_date
-                    FROM orders o
-                    JOIN orderdetail od ON o.id = od.order_id AND od.is_deleted = FALSE
-                    WHERE o.order_date >= %s AND o.order_date <= %s
-                        AND o.status IN ('delivered', 'completed')
-                        AND o.is_deleted = FALSE
-                        {store_filter}
-                ''', [start_date, end_date])
-                order_details = cursor.fetchall()  # [(product_variant_id, quantity, order_date), ...]
-
-                # 3. Tính COGS theo bình quân tại thời điểm xuất, đồng thời debug từng dòng
-                total_cogs = 0
-                for product_variant_id, sold_qty, order_date in order_details:
-                    cursor.execute('''
+                # 2. Tính COGS theo phương pháp bình quân gia quyền tối ưu
+                cogs_query = f"""
+                    WITH sold_products AS (
                         SELECT 
+                            od.product_variant_id,
+                            SUM(od.quantity) as total_sold_qty
+                        FROM orders o
+                        JOIN orderdetail od ON o.id = od.order_id AND od.is_deleted = FALSE
+                        WHERE o.order_date >= %s 
+                            AND o.order_date <= %s 
+                            AND o.status IN ('delivered', 'completed')
+                            AND o.is_deleted = FALSE
+                            {store_filter}
+                        GROUP BY od.product_variant_id
+                    ),
+                    product_costs AS (
+                        SELECT 
+                            grd.product_variant_id,
                             SUM(grd.unit_price * grd.accepted_quantity) as total_cost,
                             SUM(grd.accepted_quantity) as total_qty
                         FROM goods_receipt_details grd
                         JOIN goods_receipts gr ON grd.goods_receipt_id = gr.id
-                        WHERE grd.product_variant_id = %s
-                            AND gr.status IN ('confirmed', 'completed')
+                        WHERE gr.status IN ('confirmed', 'completed')
                             AND gr.is_deleted = FALSE
                             AND grd.is_deleted = FALSE
                             AND grd.accepted_quantity > 0
-                            AND gr.receipt_date <= %s
-                    ''', [product_variant_id, order_date])
-                    gr_result = cursor.fetchone()
-                    total_cost = gr_result[0] or 0
-                    total_qty = gr_result[1] or 0
-                    avg_cost = (total_cost / total_qty) if total_qty else 0
-                    cogs_line = sold_qty * avg_cost
-                    total_cogs += cogs_line
-                    debug_cogs_details.append({
-                        'product_variant_id': product_variant_id,
-                        'sold_qty': float(sold_qty),
-                        'order_date': str(order_date),
-                        'total_cost_upto_order': float(total_cost),
-                        'total_qty_upto_order': float(total_qty),
-                        'avg_cost_upto_order': float(avg_cost),
-                        'cogs_line': float(cogs_line)
-                    })
-                cogs = Decimal(str(total_cogs))
+                        GROUP BY grd.product_variant_id
+                    )
+                    SELECT 
+                        COALESCE(SUM(
+                            CASE 
+                                WHEN pc.total_qty > 0 THEN 
+                                    (sp.total_sold_qty * pc.total_cost / pc.total_qty)
+                                ELSE 0 
+                            END
+                        ), 0) as total_cogs
+                    FROM sold_products sp
+                    LEFT JOIN product_costs pc ON sp.product_variant_id = pc.product_variant_id
+                """
+                cursor.execute(cogs_query, [start_date, end_date])
+                cogs_result = cursor.fetchone()
+                total_cogs = cogs_result[0] or 0
 
             # --- Xử lý kết quả ngoài khối with ---
             total_orders, gross_revenue, total_items, total_discounts = revenue_result
             gross_revenue = gross_revenue or Decimal('0')
             total_discounts = total_discounts or Decimal('0')
             net_revenue = gross_revenue - total_discounts
+            cogs = Decimal(str(total_cogs))
             gross_profit = net_revenue - cogs
 
             profit_analysis = {
@@ -391,8 +388,7 @@ class RevenueReportViewSet(viewsets.ViewSet):
                     'total_orders': total_orders,
                     'total_items': total_items or 0,
                     'average_order_value': float(gross_revenue / total_orders) if total_orders else 0
-                },
-                'debug_cogs_details': debug_cogs_details
+                }
             }
 
             return Response(profit_analysis, status=status.HTTP_200_OK)

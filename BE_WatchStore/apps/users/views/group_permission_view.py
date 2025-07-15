@@ -26,8 +26,10 @@ class PermissionSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'codename', 'content_type']
 
 class GroupViewSet(viewsets.ModelViewSet):
-    queryset = Group.objects.all()
+    queryset = Group.objects.all().order_by('name')
     serializer_class = GroupSerializer
+    ordering_fields = ['name', 'id']
+    ordering = ['name']
 
     def get_permissions(self):
         """

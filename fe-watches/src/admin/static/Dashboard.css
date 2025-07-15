@@ -141,6 +141,11 @@
   min-width: 240px;
 }
 
+.filter-reset-btn {
+  margin-top: 24px;
+  height: 32px;
+}
+
 @keyframes dashboardFadeIn {
   from {
     opacity: 0;

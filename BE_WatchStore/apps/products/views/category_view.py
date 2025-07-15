@@ -31,3 +31,16 @@ class CategoryViewSet(viewsets.ModelViewSet):
         queryset = self.filter_queryset(self.get_queryset())
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
+
+    @action(detail=False, methods=['get'], url_path='active', url_name='active')
+    def list_active(self, request):
+        """
+        Lấy danh sách danh mục đang active, sắp xếp theo display_order
+        """
+        queryset = Category.objects.filter(
+            is_active=True
+        ).select_related('parent').order_by('display_order', 'name').values(
+            'id', 'name', 'slug', 'parent'
+        )
+        
+        return Response(queryset)

@@ -106,29 +106,6 @@ class ProductBasicSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'name', 'slug', 'primary_image', 'price_range', 'is_featured'
         ]
-
-class ProductSimpleSerializer(serializers.ModelSerializer):
-    """
-    Serializer cho thông tin đơn giản nhất của sản phẩm
-    """
-    primary_image = serializers.SerializerMethodField()
-    
-    class Meta:
-        model = Product
-        fields = [
-            'id', 'name', 'primary_image'
-        ]
-    
-    def get_primary_image(self, obj):
-        """Lấy ảnh chính của sản phẩm"""
-        primary_image = obj.images.filter(is_primary=True).first()
-        if primary_image:
-            return {
-                'id': primary_image.id,
-                'image_url': primary_image.image.url if primary_image.image else None,
-                'alt_text': primary_image.alt_text
-            }
-        return None
     
     def get_primary_image(self, obj):
         """Lấy ảnh chính của sản phẩm"""
@@ -169,6 +146,29 @@ class ProductSimpleSerializer(serializers.ModelSerializer):
             'max': 0,
             'display': "Liên hệ"
         }
+
+class ProductSimpleSerializer(serializers.ModelSerializer):
+    """
+    Serializer cho thông tin đơn giản nhất của sản phẩm
+    """
+    primary_image = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Product
+        fields = [
+            'id', 'name', 'primary_image'
+        ]
+    
+    def get_primary_image(self, obj):
+        """Lấy ảnh chính của sản phẩm"""
+        primary_image = obj.images.filter(is_primary=True).first()
+        if primary_image:
+            return {
+                'id': primary_image.id,
+                'image_url': primary_image.image.url if primary_image.image else None,
+                'alt_text': primary_image.alt_text
+            }
+        return None
 
 class ProductDetailSerializer(serializers.ModelSerializer):
     variants = ProductVariantSerializer(many=True, read_only=True)

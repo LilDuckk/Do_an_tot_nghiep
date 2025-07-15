@@ -47,6 +47,13 @@ export const useDashboardData = () => {
   const [topCustomers, setTopCustomers] = useState(null);
   const [bestSelling, setBestSelling] = useState(null);
 
+  // Reset filters function
+  const resetFilters = useCallback(() => {
+    setPeriod('today');
+    setStoreId('');
+    setDateRange(null);
+  }, []);
+
   // Fetch dashboard overview
   const fetchOverview = useCallback(async () => {
     try {
@@ -133,6 +140,9 @@ export const useDashboardData = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('accessToken');
+      
+      // Debug: Log current filters
+      console.log('Current filters:', { period, storeId, dateRange });
       
       // Fetch all APIs in parallel for better performance
       const promises = [];
@@ -306,6 +316,7 @@ export const useDashboardData = () => {
     setLoading(false);
   }, [storeId, dateRange]);
 
+  // Initial load - chỉ chạy 1 lần khi component mount
   useEffect(() => { 
     const initializeData = async () => {
       setInitialLoading(true);
@@ -330,7 +341,32 @@ export const useDashboardData = () => {
     };
     
     initializeData();
-  }, [fetchOverview, fetchRecentActivity, fetchAlerts, fetchComprehensiveAnalysis, fetchAll]);
+  }, []); // Empty dependency array - chỉ chạy 1 lần
+
+  // Reload data khi filters thay đổi
+  useEffect(() => {
+    if (dataReady) { // Chỉ reload khi đã load lần đầu
+      const reloadData = async () => {
+        setLoading(true);
+        try {
+          // Reload all data with new filters
+          await Promise.all([
+            fetchOverview(), 
+            fetchRecentActivity(), 
+            fetchAlerts(),
+            fetchComprehensiveAnalysis(),
+            fetchAll()
+          ]);
+        } catch (error) {
+          console.error('Error reloading dashboard data:', error);
+        } finally {
+          setLoading(false);
+        }
+      };
+      
+      reloadData();
+    }
+  }, [period, storeId, dateRange, dataReady]); // Reload khi filters thay đổi
 
   return {
     // Filters
@@ -376,6 +412,7 @@ export const useDashboardData = () => {
     fetchRecentActivity,
     fetchAlerts,
     fetchComprehensiveAnalysis,
-    fetchAll
+    fetchAll,
+    resetFilters
   };
 }; 

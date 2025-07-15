@@ -63,6 +63,7 @@ export const PRODUCT_ENDPOINTS = {
   BRANDS: `${API_BASE_URL}/products/brands/`,
   BRANDS_LIST_ALL: `${API_BASE_URL}/products/brands/list_all/`,
   BRAND_DETAIL: (id) => `${API_BASE_URL}/products/brands/${id}/`,
+  CATEGORIES_AND_BRANDS: `${API_BASE_URL}/products/brands/categories-and-brands/`,
 
   // Attribute Types
   ATTRIBUTE_TYPES: `${API_BASE_URL}/products/attribute-types/`,

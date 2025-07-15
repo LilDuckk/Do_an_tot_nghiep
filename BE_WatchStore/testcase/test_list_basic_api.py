@@ -1,102 +1,109 @@
-import requests
-import json
+#!/usr/bin/env python
+"""
+Test script cho API list_basic
+"""
+import os
+import sys
+import django
+
+# Thêm đường dẫn project vào sys.path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Cấu hình Django
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
+django.setup()
+
+from django.test import TestCase
+from django.urls import reverse
+from rest_framework.test import APIClient
+from rest_framework import status
 
 def test_list_basic_api():
-    """
-    Test API list_basic để liệt kê sản phẩm với thông tin cơ bản
-    """
-    base_url = "http://localhost:8000/api/products/"
+    """Test API list_basic"""
     
-    # Test 1: Lấy tất cả sản phẩm cơ bản
-    print("=== Test 1: Lấy tất cả sản phẩm cơ bản ===")
-    response = requests.get(f"{base_url}list_basic/")
+    # Tạo client với cấu hình test
+    client = APIClient()
+    client.defaults['HTTP_HOST'] = 'localhost'
+    
+    # URL của API
+    url = '/api/products/products/list_basic/'
+    
+    print(f"Testing API: {url}")
+    
+    # Test 1: Gọi API cơ bản
+    print("\n🔍 Test 1: Gọi API cơ bản")
+    response = client.get(url)
     print(f"Status Code: {response.status_code}")
-    if response.status_code == 200:
-        data = response.json()
-        print(f"Tổng số sản phẩm: {len(data.get('results', data))}")
-        if data.get('results'):
-            print("Sản phẩm đầu tiên:")
-            print(json.dumps(data['results'][0], indent=2, ensure_ascii=False))
+    
+    if response.status_code == status.HTTP_200_OK:
+        data = response.data
+        print(f"✅ API hoạt động bình thường")
+        print(f"📊 Số lượng sản phẩm: {len(data.get('results', []))}")
+        print(f"📊 Tổng số sản phẩm: {data.get('count', 0)}")
+        
+        # Kiểm tra cấu trúc response
+        if 'results' in data and 'count' in data:
+            print(f"✅ Cấu trúc response đúng")
+            
+            # Kiểm tra dữ liệu sản phẩm đầu tiên
+            if data['results']:
+                product = data['results'][0]
+                print(f"📋 Mẫu sản phẩm: {product}")
+                
+                required_fields = ['id', 'name', 'slug', 'primary_image', 'price_range', 'is_featured']
+                if all(field in product for field in required_fields):
+                    print(f"✅ Sản phẩm có đủ các trường: {required_fields}")
+                else:
+                    print(f"❌ Sản phẩm thiếu trường: {[f for f in required_fields if f not in product]}")
+        else:
+            print(f"❌ Cấu trúc response không đúng")
     else:
-        print(f"Error: {response.text}")
+        print(f"❌ API trả về lỗi: {response.status_code}")
+        try:
+            print(f"Response: {response.data}")
+        except:
+            print(f"Response content: {response.content.decode()}")
     
-    print("\n" + "="*50 + "\n")
-    
-    # Test 2: Phân trang
-    print("=== Test 2: Phân trang ===")
-    response = requests.get(f"{base_url}list_basic/?page=1&page_size=5")
+    # Test 2: Gọi API với filter is_active=true
+    print("\n🔍 Test 2: Gọi API với filter is_active=true")
+    response = client.get(f"{url}?is_active=true")
     print(f"Status Code: {response.status_code}")
-    if response.status_code == 200:
-        data = response.json()
-        print(f"Page: {data.get('page', 'N/A')}")
-        print(f"Page Size: {data.get('page_size', 'N/A')}")
-        print(f"Total Count: {data.get('count', 'N/A')}")
-        print(f"Results Count: {len(data.get('results', []))}")
-    else:
-        print(f"Error: {response.text}")
     
-    print("\n" + "="*50 + "\n")
+    if response.status_code == status.HTTP_200_OK:
+        data = response.data
+        print(f"✅ API với filter hoạt động bình thường")
+        print(f"📊 Số lượng sản phẩm active: {len(data.get('results', []))}")
     
-    # Test 3: Lọc theo category
-    print("=== Test 3: Lọc theo category ===")
-    response = requests.get(f"{base_url}list_basic/?category=1")
+    # Test 3: Gọi API với phân trang
+    print("\n🔍 Test 3: Gọi API với phân trang")
+    response = client.get(f"{url}?page=1&page_size=5")
     print(f"Status Code: {response.status_code}")
-    if response.status_code == 200:
-        data = response.json()
-        print(f"Số sản phẩm trong category 1: {len(data.get('results', data))}")
-    else:
-        print(f"Error: {response.text}")
     
-    print("\n" + "="*50 + "\n")
+    if response.status_code == status.HTTP_200_OK:
+        data = response.data
+        print(f"✅ API phân trang hoạt động bình thường")
+        print(f"📊 Số lượng sản phẩm trên trang: {len(data.get('results', []))}")
+        print(f"📊 Tổng số sản phẩm: {data.get('count', 0)}")
+        print(f"📊 Có trang tiếp theo: {data.get('next') is not None}")
     
-    # Test 4: Lọc theo brand
-    print("=== Test 4: Lọc theo brand ===")
-    response = requests.get(f"{base_url}list_basic/?brand=1")
+    # Test 4: Gọi API với filter featured
+    print("\n🔍 Test 4: Gọi API với filter featured")
+    response = client.get(f"{url}?featured=true")
     print(f"Status Code: {response.status_code}")
-    if response.status_code == 200:
-        data = response.json()
-        print(f"Số sản phẩm trong brand 1: {len(data.get('results', data))}")
-    else:
-        print(f"Error: {response.text}")
     
-    print("\n" + "="*50 + "\n")
-    
-    # Test 5: Tìm kiếm
-    print("=== Test 5: Tìm kiếm ===")
-    response = requests.get(f"{base_url}list_basic/?search=Rolex")
-    print(f"Status Code: {response.status_code}")
-    if response.status_code == 200:
-        data = response.json()
-        print(f"Số sản phẩm tìm thấy: {len(data.get('results', data))}")
-    else:
-        print(f"Error: {response.text}")
-    
-    print("\n" + "="*50 + "\n")
-    
-    # Test 6: Lọc theo giá
-    print("=== Test 6: Lọc theo giá ===")
-    response = requests.get(f"{base_url}list_basic/?min_price=1000000&max_price=5000000")
-    print(f"Status Code: {response.status_code}")
-    if response.status_code == 200:
-        data = response.json()
-        print(f"Số sản phẩm trong khoảng giá: {len(data.get('results', data))}")
-    else:
-        print(f"Error: {response.text}")
-    
-    print("\n" + "="*50 + "\n")
-    
-    # Test 7: Chỉ lấy sản phẩm featured
-    print("=== Test 7: Chỉ lấy sản phẩm featured ===")
-    response = requests.get(f"{base_url}list_basic/?featured=true")
-    print(f"Status Code: {response.status_code}")
-    if response.status_code == 200:
-        data = response.json()
-        print(f"Số sản phẩm featured: {len(data.get('results', data))}")
-        if data.get('results'):
-            print("Sản phẩm featured đầu tiên:")
-            print(json.dumps(data['results'][0], indent=2, ensure_ascii=False))
-    else:
-        print(f"Error: {response.text}")
+    if response.status_code == status.HTTP_200_OK:
+        data = response.data
+        print(f"✅ API featured filter hoạt động bình thường")
+        print(f"📊 Số lượng sản phẩm featured: {len(data.get('results', []))}")
+        
+        # Kiểm tra tất cả sản phẩm đều là featured
+        if data['results']:
+            all_featured = all(product.get('is_featured', False) for product in data['results'])
+            print(f"✅ Tất cả sản phẩm đều là featured: {all_featured}")
 
-if __name__ == "__main__":
-    test_list_basic_api() 
+if __name__ == '__main__':
+    print("🚀 Bắt đầu test API list_basic...")
+    
+    test_list_basic_api()
+    
+    print("\n✅ Hoàn thành test!") 

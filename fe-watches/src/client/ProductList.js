@@ -64,15 +64,15 @@ export default function ProductList() {
   useEffect(() => {
     const fetchBrandsAndCategories = async () => {
       try {
-        const [brandsRes, categoriesRes] = await Promise.all([
-          fetch(PRODUCT_ENDPOINTS.BRANDS_LIST_ALL),
-          fetch(PRODUCT_ENDPOINTS.CATEGORIES_LIST_ALL)
-        ]);
-        const brandsData = await brandsRes.json();
-        const categoriesData = await categoriesRes.json();
-        setBrands(Array.isArray(brandsData) ? brandsData : []);
-        setCategories(Array.isArray(categoriesData) ? categoriesData : []);
-        setCategoryTree(buildCategoryTree(categoriesData));
+        const response = await fetch(PRODUCT_ENDPOINTS.CATEGORIES_AND_BRANDS);
+        const data = await response.json();
+        
+        const brands = Array.isArray(data.brands) ? data.brands : [];
+        const categories = Array.isArray(data.categories) ? data.categories : [];
+        
+        setBrands(brands);
+        setCategories(categories);
+        setCategoryTree(buildCategoryTree(categories));
       } catch (error) {
         console.error('Lỗi khi tải dữ liệu:', error);
         setBrands([]);
