@@ -1,0 +1,243 @@
+# 📊 BÁO CÁO CHI TIẾT CÁC API THỐNG KÊ - WATCH STORE
+
+## 🏠 DASHBOARD VIEWSET (apps/reports/views/dashboard_view.py)
+
+### 1. API: /api/reports/dashboard/overview/
+**Mô tả**: Tổng quan dashboard với các chỉ số cơ bản
+**Tham số**: 
+- period: today/week/month/year
+- store_id: ID cửa hàng
+
+**Công thức tính**:
+- **Tổng đơn hàng**: COUNT(DISTINCT o.id) WHERE status IN ('delivered', 'completed')
+- **Doanh thu gộp**: SUM(o.total_amount)
+- **Doanh thu ròng**: Doanh thu gộp - Tổng giảm giá
+- **Tổng giảm giá**: SUM(od.unit_price * od.quantity - od.final_price)
+- **Tỷ lệ giảm giá**: (Tổng giảm giá / Doanh thu gộp) * 100
+- **Số lượng sản phẩm**: SUM(od.quantity)
+- **Số khách hàng**: COUNT(DISTINCT o.customer_id)
+- **Giá trị đơn hàng trung bình**: AVG(o.total_amount)
+- **Tăng trưởng doanh thu**: ((Doanh thu hiện tại - Doanh thu kỳ trước) / Doanh thu kỳ trước) * 100
+- **Tăng trưởng đơn hàng**: ((Đơn hàng hiện tại - Đơn hàng kỳ trước) / Đơn hàng kỳ trước) * 100
+
+### 2. API: /api/reports/dashboard/comprehensive_analysis/
+**Mô tả**: Phân tích tổng hợp bao gồm return orders, warranty và chỉ số tài chính
+**Tham số**: start_date, end_date, store_id
+
+**Công thức tính**:
+
+#### Return Orders:
+- **Tổng đơn trả**: COUNT(DISTINCT ro.id)
+- **Tổng sản phẩm trả**: COUNT(rod.id)
+- **Tổng số lượng trả**: SUM(rod.quantity)
+- **Tổng tiền hoàn**: SUM(ro.refund_amount)
+- **Tiền hoàn trung bình**: AVG(ro.refund_amount)
+- **Tỷ lệ trả hàng**: (Tổng số lượng trả / Tổng số lượng bán) * 100
+
+#### Warranty:
+- **Tổng bảo hành**: COUNT(DISTINCT w.id)
+- **Tổng yêu cầu bảo hành**: COUNT(DISTINCT wc.id)
+- **Bảo hành đang hoạt động**: COUNT(CASE WHEN w.status = 'ACTIVE' THEN 1 END)
+- **Bảo hành hết hạn**: COUNT(CASE WHEN w.status = 'EXPIRED' THEN 1 END)
+- **Bảo hành đã sử dụng**: COUNT(CASE WHEN w.status = 'CLAIMED' THEN 1 END)
+- **Tổng chi phí sửa chữa**: SUM(wc.repair_cost)
+- **Chi phí sửa chữa trung bình**: AVG(wc.repair_cost)
+
+#### Chỉ số tài chính:
+- **Lợi nhuận gộp**: Doanh thu - Chi phí nhập hàng
+- **Lợi nhuận ròng**: Lợi nhuận gộp - Chi phí hoàn tiền - Chi phí sửa chữa
+- **Tỷ suất lợi nhuận**: (Lợi nhuận ròng / Doanh thu) * 100
+
+## 💰 REVENUE REPORT VIEWSET (apps/reports/views/revenue_report_view.py)
+
+### 3. API: /api/reports/revenue/daily_revenue/
+**Mô tả**: Báo cáo doanh thu theo ngày
+**Tham số**: start_date, end_date, store_id
+
+**Công thức tính**:
+- **Doanh thu gộp**: SUM(o.total_amount)
+- **Doanh thu ròng**: Doanh thu gộp - Tổng giảm giá
+- **Tổng giảm giá**: SUM(od.unit_price * od.quantity - od.final_price)
+- **Giảm giá coupon**: SUM(CASE WHEN od.coupon_id IS NOT NULL THEN od.unit_price * od.quantity - od.final_price ELSE 0 END)
+- **Tỷ lệ giảm giá**: (Tổng giảm giá / Doanh thu gộp) * 100
+- **Giá trị đơn hàng trung bình**: AVG(o.total_amount)
+
+### 4. API: /api/reports/revenue/monthly_revenue/
+**Mô tả**: Báo cáo doanh thu theo tháng
+**Tham số**: year, store_id
+
+**Công thức tính**: Tương tự daily_revenue nhưng GROUP BY EXTRACT(MONTH FROM o.order_date)
+
+### 5. API: /api/reports/revenue/profit_analysis/
+**Mô tả**: Phân tích lợi nhuận chi tiết
+**Tham số**: start_date, end_date, store_id
+
+**Công thức tính**:
+- **Chi phí hàng bán (COGS)**: SUM(grd.accepted_quantity * grd.unit_price)
+- **Lợi nhuận gộp**: Doanh thu - COGS
+- **Tỷ suất lợi nhuận gộp**: (Lợi nhuận gộp / Doanh thu) * 100
+- **Chi phí hoàn tiền**: SUM(ro.refund_amount)
+- **Chi phí sửa chữa**: SUM(wc.repair_cost)
+- **Lợi nhuận ròng**: Lợi nhuận gộp - Chi phí hoàn tiền - Chi phí sửa chữa
+
+### 6. API: /api/reports/revenue/inventory_analysis/
+**Mô tả**: Phân tích tồn kho
+**Tham số**: store_id
+
+**Công thức tính**:
+- **Tổng sản phẩm**: COUNT(DISTINCT inv.product_variant_id)
+- **Tổng tồn kho**: SUM(inv.quantity)
+- **Hết hàng**: COUNT(CASE WHEN inv.quantity = 0 THEN 1 END)
+- **Tồn kho thấp**: COUNT(CASE WHEN inv.quantity <= 5 THEN 1 END)
+- **Giá trị tồn kho**: SUM(inv.quantity * pv.price)
+- **Tỷ lệ hết hàng**: (Số sản phẩm hết hàng / Tổng sản phẩm) * 100
+
+## 📈 SALES ANALYSIS VIEWSET (apps/reports/views/sales_analysis_view.py)
+
+### 7. API: /api/reports/sales/best_sellers/
+**Mô tả**: Sản phẩm bán chạy nhất
+**Tham số**: start_date, end_date, store_id, limit
+
+**Công thức tính**:
+- **Tổng số lượng bán**: SUM(od.quantity)
+- **Tổng doanh thu**: SUM(od.final_price)
+- **Số đơn hàng**: COUNT(DISTINCT o.id)
+- **Giá trung bình**: AVG(od.unit_price)
+- **Tổng giảm giá**: SUM(od.unit_price * od.quantity - od.final_price)
+- **Doanh thu ròng**: Tổng doanh thu - Tổng giảm giá
+- **Doanh thu/đơn hàng**: Tổng doanh thu / Số đơn hàng
+
+### 8. API: /api/reports/sales/sales_performance_by_time/
+**Mô tả**: Hiệu suất bán hàng theo thời gian
+**Tham số**: start_date, end_date, store_id, product_variant_id, period_type
+
+**Công thức tính**:
+- **Doanh thu theo kỳ**: SUM(od.final_price) GROUP BY period_type
+- **Số lượng bán theo kỳ**: SUM(od.quantity) GROUP BY period_type
+- **Số đơn hàng theo kỳ**: COUNT(DISTINCT o.id) GROUP BY period_type
+- **Tăng trưởng**: ((Giá trị hiện tại - Giá trị kỳ trước) / Giá trị kỳ trước) * 100
+
+### 9. API: /api/reports/sales/inventory_turnover/
+**Mô tả**: Tỷ lệ luân chuyển tồn kho
+**Tham số**: start_date, end_date, store_id
+
+**Công thức tính**:
+- **Tỷ lệ luân chuyển**: (Số lượng bán trong kỳ / Tồn kho trung bình) * 100
+- **Tồn kho trung bình**: (Tồn kho đầu kỳ + Tồn kho cuối kỳ) / 2
+- **Số ngày luân chuyển**: 365 / Tỷ lệ luân chuyển
+
+## 🔄 RETURN WARRANTY REPORT VIEWSET (apps/reports/views/return_warranty_report_view.py)
+
+### 10. API: /api/reports/return-warranty/return_summary/
+**Mô tả**: Tổng hợp thống kê return orders
+**Tham số**: start_date, end_date, store_id
+
+**Công thức tính**:
+- **Tổng đơn trả**: COUNT(DISTINCT ro.id)
+- **Tổng sản phẩm trả**: COUNT(rod.id)
+- **Tổng số lượng trả**: SUM(rod.quantity)
+- **Tổng tiền hoàn**: SUM(ro.refund_amount)
+- **Tiền hoàn trung bình**: AVG(ro.refund_amount)
+- **Tỷ lệ trả hàng**: (Tổng số lượng trả / Tổng số lượng bán) * 100
+- **Trả hàng liên cửa hàng**: COUNT(CASE WHEN ro.return_store_id != o.store_id THEN 1 END)
+
+### 11. API: /api/reports/return-warranty/warranty_summary/
+**Mô tả**: Tổng hợp thống kê bảo hành
+**Tham số**: start_date, end_date, store_id
+
+**Công thức tính**:
+- **Tổng bảo hành**: COUNT(DISTINCT w.id)
+- **Tổng yêu cầu bảo hành**: COUNT(DISTINCT wc.id)
+- **Bảo hành đang hoạt động**: COUNT(CASE WHEN w.status = 'ACTIVE' THEN 1 END)
+- **Bảo hành hết hạn**: COUNT(CASE WHEN w.status = 'EXPIRED' THEN 1 END)
+- **Bảo hành đã sử dụng**: COUNT(CASE WHEN w.status = 'CLAIMED' THEN 1 END)
+- **Tổng chi phí sửa chữa**: SUM(wc.repair_cost)
+- **Chi phí sửa chữa trung bình**: AVG(wc.repair_cost)
+- **Tỷ lệ sử dụng bảo hành**: (Số bảo hành đã sử dụng / Tổng bảo hành) * 100
+
+### 12. API: /api/reports/return-warranty/financial_impact/
+**Mô tả**: Tác động tài chính của return và warranty
+**Tham số**: start_date, end_date, store_id
+
+**Công thức tính**:
+- **Tổng thiệt hại do trả hàng**: SUM(ro.refund_amount)
+- **Tổng chi phí sửa chữa**: SUM(wc.repair_cost)
+- **Tổng thiệt hại**: Thiệt hại do trả hàng + Chi phí sửa chữa
+- **Tỷ lệ thiệt hại**: (Tổng thiệt hại / Doanh thu) * 100
+- **Lợi nhuận sau thiệt hại**: Lợi nhuận gộp - Tổng thiệt hại
+
+## 🏆 TOP PRODUCTS VIEW (apps/reports/views/top_products_view.py)
+
+### 13. API: /api/reports/top-products/
+**Mô tả**: Danh sách sản phẩm bán chạy nhất
+**Tham số**: days, limit, store_id
+
+**Công thức tính**:
+- **Tổng số lượng bán**: COALESCE(SUM(od.quantity), 0)
+- **Tổng doanh thu**: COALESCE(SUM(od.final_price), 0)
+- **Giá trung bình**: COALESCE(AVG(od.final_price), 0)
+- **Số đơn hàng**: COUNT(DISTINCT o.id)
+- **Số lượng trung bình/đơn**: SUM(od.quantity) / COUNT(DISTINCT o.id)
+- **Doanh thu/đơn vị**: SUM(od.final_price) / SUM(od.quantity)
+- **Điểm hiệu suất**: Tổng số lượng bán * Tổng doanh thu
+
+## 🥇 BEST SELLING VIEW (apps/reports/views/best_selling_view.py)
+
+### 14. API: /api/reports/best-selling/
+**Mô tả**: Sản phẩm bán chạy nhất (đơn giản)
+**Tham số**: limit
+
+**Công thức tính**:
+- **Tổng đơn hàng**: COUNT(od.id)
+- **Tổng số lượng**: COALESCE(SUM(od.quantity), 0)
+- **Tổng doanh thu**: COALESCE(SUM(od.quantity * od.unit_price), 0)
+
+## 👥 TOP CUSTOMERS VIEW (apps/reports/views/top_customers_view.py)
+
+### 15. API: /api/reports/top-customers/
+**Mô tả**: Danh sách khách hàng hàng đầu
+**Tham số**: Không có
+
+**Công thức tính**:
+- **Tổng đơn hàng**: COUNT(DISTINCT o.id)
+- **Tổng chi tiêu**: SUM(o.total_amount)
+- **Đơn hàng cuối**: MAX(o.order_date)
+- **Giá trị đơn hàng trung bình**: SUM(o.total_amount) / COUNT(DISTINCT o.id)
+
+## 📊 CÁC CHỈ SỐ TỔNG HỢP
+
+### Chỉ số hiệu suất (KPI):
+1. **Tỷ lệ chuyển đổi**: (Số đơn hàng / Số khách hàng) * 100
+2. **Giá trị khách hàng trung bình**: Tổng doanh thu / Số khách hàng
+3. **Tỷ lệ giữ chân khách hàng**: (Khách hàng quay lại / Tổng khách hàng) * 100
+4. **Tỷ lệ luân chuyển tồn kho**: (Số lượng bán / Tồn kho trung bình) * 100
+5. **Tỷ lệ lợi nhuận gộp**: (Lợi nhuận gộp / Doanh thu) * 100
+6. **Tỷ lệ lợi nhuận ròng**: (Lợi nhuận ròng / Doanh thu) * 100
+
+### Công thức tính lợi nhuận:
+- **Lợi nhuận gộp**: Doanh thu - Chi phí hàng bán (COGS)
+- **Lợi nhuận ròng**: Lợi nhuận gộp - Chi phí hoạt động - Chi phí hoàn tiền - Chi phí sửa chữa
+- **Tỷ suất lợi nhuận**: (Lợi nhuận / Doanh thu) * 100
+
+### Công thức tính tăng trưởng:
+- **Tăng trưởng doanh thu**: ((Doanh thu hiện tại - Doanh thu kỳ trước) / Doanh thu kỳ trước) * 100
+- **Tăng trưởng đơn hàng**: ((Đơn hàng hiện tại - Đơn hàng kỳ trước) / Đơn hàng kỳ trước) * 100
+- **Tăng trưởng khách hàng**: ((Khách hàng hiện tại - Khách hàng kỳ trước) / Khách hàng kỳ trước) * 100
+
+## 🔧 LƯU Ý KỸ THUẬT
+
+### Điều kiện lọc chung:
+- Chỉ tính đơn hàng có status IN ('delivered', 'completed')
+- Loại trừ các record có is_deleted = TRUE
+- Lọc theo store_id nếu user không phải superuser
+
+### Xử lý dữ liệu:
+- Sử dụng COALESCE để xử lý NULL values
+- Chuyển đổi Decimal sang float cho JSON response
+- Tính toán tỷ lệ phần trăm với kiểm tra division by zero
+
+### Tối ưu hiệu suất:
+- Sử dụng SQL queries thay vì ORM cho các báo cáo phức tạp
+- Sử dụng indexes trên các cột thường xuyên query
+- Giới hạn kết quả trả về với LIMIT
+- Sử dụng JOIN thay vì subqueries khi có thể 

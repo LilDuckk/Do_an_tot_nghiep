@@ -131,8 +131,8 @@ const StockTransfersPage = () => {
       }
       
       // Thêm phân trang
-      params.append('page', currentPage);
-      params.append('page_size', pageSize);
+      params.append('page', currentPage || 1);
+      params.append('page_size', pageSize || 10);
       
       if (params.toString()) {
         url += `?${params.toString()}`;
@@ -501,8 +501,8 @@ const StockTransfersPage = () => {
 
   // Xử lý thay đổi trang
   const handleTableChange = (paginationInfo) => {
-    setCurrentPage(paginationInfo.current);
-    setPageSize(paginationInfo.pageSize);
+    setCurrentPage(paginationInfo.current || 1);
+    setPageSize(paginationInfo.pageSize || 10);
   };
 
   // Xử lý reset filter
@@ -965,11 +965,12 @@ const StockTransfersPage = () => {
           rowKey="id"
           loading={loading}
           pagination={{
-            current: currentPage,
-            pageSize: pageSize,
+            current: currentPage || 1,
+            pageSize: pageSize || 10,
             total: 0, // Total will be updated by the backend
             showSizeChanger: true,
             showQuickJumper: true,
+            pageSizeOptions: ['10', '20', '50', '100'],
             showTotal: (total, range) => `${range[0]}-${range[1]} của ${total} chuyển kho`,
             onChange: handleTableChange,
           }}
