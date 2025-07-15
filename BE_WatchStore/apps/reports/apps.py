@@ -7,4 +7,12 @@ class ReportsConfig(AppConfig):
     verbose_name = 'Báo cáo thống kê'
 
     def ready(self):
-        import apps.reports.models 
+        import apps.reports.models
+
+    def get_permissions(self):
+        """
+        Định nghĩa permissions cho reports app
+        """
+        return [
+            ("view_reports", "Có thể xem thống kê báo cáo"),
+        ] 

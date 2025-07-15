@@ -5,11 +5,10 @@ import './static/Header.css';
 import DropdownMenu from './DropdownMenu';
 import DropdownCart from './DropdownCart';
 import { getCartCount } from './cartUtils';
+import { useSharedData } from './hooks/useSharedData';
 
 export default function Header() {
   const navigate = useNavigate();
-  const [brands, setBrands] = useState([]);
-  const [categories, setCategories] = useState([]);
   const [showDropdown, setShowDropdown] = useState(null); // 'brand' | 'category' | null
   const [showCartDropdown, setShowCartDropdown] = useState(false);
   const [cartCount, setCartCount] = useState(0);
@@ -19,54 +18,18 @@ export default function Header() {
   const dropdownRef = useRef();
   const cartIconRef = useRef();
   const searchInputRef = useRef();
+  
+  // Sử dụng shared data hook
+  const { data, loading, fetchBrands, fetchCategories } = useSharedData();
 
+  // Fetch data khi component mount
   useEffect(() => {
-    // Fetch brands
-    fetch(PRODUCT_ENDPOINTS.BRANDS_LIST_ALL)
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data)) {
-          setBrands(data);
-        } else if (data && data.data && Array.isArray(data.data)) {
-          setBrands(data.data);
-        } else {
-          console.error('Invalid brands data format:', data);
-          setBrands([]);
-        }
-      })
-      .catch(err => {
-        console.error('Error fetching brands:', err);
-        setBrands([]);
-      });
+    fetchBrands();
+    fetchCategories();
+  }, [fetchBrands, fetchCategories]);
 
-    // Fetch categories
-    fetch(PRODUCT_ENDPOINTS.CATEGORIES_LIST_ALL)
-      .then(res => res.json())
-      .then(data => {
-        const categoriesData = Array.isArray(data) ? data : (data && data.data && Array.isArray(data.data) ? data.data : []);
-        const categoryMap = new Map();
-        const rootCategories = [];
-        categoriesData.forEach(category => {
-          categoryMap.set(category.id, { ...category, children: [] });
-        });
-        categoriesData.forEach(category => {
-          if (category.parent) {
-            const parent = categoryMap.get(category.parent);
-            if (parent) {
-              parent.children.push(categoryMap.get(category.id));
-            }
-          } else {
-            rootCategories.push(categoryMap.get(category.id));
-          }
-        });
-        setCategories(rootCategories);
-      })
-      .catch(err => {
-        console.error('Error fetching categories:', err);
-        setCategories([]);
-      });
-
-    // Update cart count
+  // Update cart count
+  useEffect(() => {
     const updateCartCount = () => {
       setCartCount(getCartCount());
     };
@@ -249,20 +212,20 @@ export default function Header() {
           </div>
         </div>
       </header>
-      {showDropdown === 'brand' && brands.length > 0 && (
+      {showDropdown === 'brand' && data.brands && data.brands.length > 0 && (
         <div ref={dropdownRef}>
           <DropdownMenu
-            items={brands}
+            items={data.brands}
             onClose={() => setShowDropdown(null)}
             type="brand"
             anchorRef={headerRef}
           />
         </div>
       )}
-      {showDropdown === 'category' && categories.length > 0 && (
+      {showDropdown === 'category' && data.categories && data.categories.length > 0 && (
         <div ref={dropdownRef}>
           <DropdownMenu
-            items={categories}
+            items={data.categories}
             onClose={() => setShowDropdown(null)}
             type="category"
             anchorRef={headerRef}

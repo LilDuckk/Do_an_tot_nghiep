@@ -14,6 +14,8 @@ from apps.products.utils import convert_to_png
 import json
 import ast
 from rest_framework.reverse import reverse
+from django.db.models import Min, Max
+from decimal import Decimal
 
 class VariantImageSerializer(BaseSerializer):
     class Meta(BaseSerializer.Meta):
@@ -91,6 +93,82 @@ class ProductVariantSerializer(BaseSerializer):
         
         instance.save()
         return instance
+
+class ProductBasicSerializer(serializers.ModelSerializer):
+    """
+    Serializer cho thông tin cơ bản của sản phẩm
+    """
+    primary_image = serializers.SerializerMethodField()
+    price_range = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Product
+        fields = [
+            'id', 'name', 'slug', 'primary_image', 'price_range', 'is_featured'
+        ]
+
+class ProductSimpleSerializer(serializers.ModelSerializer):
+    """
+    Serializer cho thông tin đơn giản nhất của sản phẩm
+    """
+    primary_image = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Product
+        fields = [
+            'id', 'name', 'primary_image'
+        ]
+    
+    def get_primary_image(self, obj):
+        """Lấy ảnh chính của sản phẩm"""
+        primary_image = obj.images.filter(is_primary=True).first()
+        if primary_image:
+            return {
+                'id': primary_image.id,
+                'image_url': primary_image.image.url if primary_image.image else None,
+                'alt_text': primary_image.alt_text
+            }
+        return None
+    
+    def get_primary_image(self, obj):
+        """Lấy ảnh chính của sản phẩm"""
+        primary_image = obj.images.filter(is_primary=True).first()
+        if primary_image:
+            return {
+                'id': primary_image.id,
+                'image_url': primary_image.image.url if primary_image.image else None,
+                'alt_text': primary_image.alt_text
+            }
+        return None
+    
+    def get_price_range(self, obj):
+        """Lấy khoảng giá của sản phẩm"""
+        variants = obj.variants.filter(is_active=True)
+        if variants.exists():
+            min_price = variants.aggregate(min_price=Min('price_adjustment'))['min_price'] or 0
+            max_price = variants.aggregate(max_price=Max('price_adjustment'))['max_price'] or 0
+            
+            base_price = obj.base_price or 0
+            min_final = base_price + min_price
+            max_final = base_price + max_price
+            
+            if min_final == max_final:
+                return {
+                    'min': min_final,
+                    'max': max_final,
+                    'display': f"{min_final:,.0f} VNĐ"
+                }
+            else:
+                return {
+                    'min': min_final,
+                    'max': max_final,
+                    'display': f"{min_final:,.0f} - {max_final:,.0f} VNĐ"
+                }
+        return {
+            'min': 0,
+            'max': 0,
+            'display': "Liên hệ"
+        }
 
 class ProductDetailSerializer(serializers.ModelSerializer):
     variants = ProductVariantSerializer(many=True, read_only=True)

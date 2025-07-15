@@ -17,6 +17,8 @@ import {
 import { EditOutlined, DeleteOutlined, PlusOutlined, SearchOutlined, MinusCircleOutlined, PlusCircleOutlined } from '@ant-design/icons';
 import { INVENTORY_ENDPOINTS, STORE_ENDPOINTS, PRODUCT_ENDPOINTS } from '@/config/api';
 import { useDebounceSearch } from '@/admin/hooks/useDebounce';
+import { usePagination } from '@/admin/hooks/usePagination';
+import { CustomPagination } from '@/admin/components';
 import '@/admin/static/AdminCommon.css';
 
 const { Option } = Select;
@@ -37,12 +39,12 @@ const InventoriesPage = () => {
   const [productSearchValue, setProductSearchValue] = useState('');
   const [productOptions, setProductOptions] = useState([]);
   const [selectedStoreFilter, setSelectedStoreFilter] = useState(null);
-  const [pageSize, setPageSize] = useState(10);
-  const [total, setTotal] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
 
   // Sử dụng useDebounceSearch hook với pagination
-  const { debouncedSearchText, currentPage, setCurrentPage } = useDebounceSearch(searchText, 500);
+  const { debouncedSearchText } = useDebounceSearch(searchText, 500);
+
+  // Sử dụng usePagination
+  const pagination = usePagination(10, 1); // 10 item/trang mặc định
 
   const user = JSON.parse(localStorage.getItem('adminUser') || '{}');
   const userPermissions = JSON.parse(localStorage.getItem('user_permission_codenames') || '[]');
@@ -54,8 +56,8 @@ const InventoriesPage = () => {
       setLoading(true);
       const token = localStorage.getItem('accessToken');
       const queryParamsObj = {
-        page: currentPage,
-        page_size: pageSize,
+        page: pagination.currentPage,
+        page_size: pagination.pageSize,
       };
       if (debouncedSearchText) queryParamsObj.search = debouncedSearchText;
       if (selectedStoreFilter) queryParamsObj.store = selectedStoreFilter;
@@ -66,24 +68,22 @@ const InventoriesPage = () => {
       if (response.status === 403) {
         message.error('Bạn không có quyền xem danh sách này.');
         setInventories([]);
-        setTotal(0);
-        setTotalPages(1);
+        pagination.setTotal(0);
+        pagination.setTotalPages(1);
         return;
       }
       const data = await response.json();
       setInventories(Array.isArray(data.results) ? data.results : []);
-      setTotal(data.count || 0);
-      setTotalPages(Math.max(1, Math.ceil((data.count || 0) / pageSize)));
-      if ((data.count || 0) === 0 && currentPage !== 1) setCurrentPage(1);
+      pagination.parseApiResponse(data, pagination.pageSize);
     } catch (error) {
       message.error('Lỗi khi tải danh sách tồn kho');
       setInventories([]);
-      setTotal(0);
-      setTotalPages(1);
+      pagination.setTotal(0);
+      pagination.setTotalPages(1);
     } finally {
       setLoading(false);
     }
-  }, [debouncedSearchText, selectedStoreFilter, currentPage, pageSize, setCurrentPage]);
+  }, [debouncedSearchText, selectedStoreFilter, pagination.currentPage, pagination.pageSize]);
 
   const fetchStores = async () => {
     try {
@@ -242,88 +242,6 @@ const InventoriesPage = () => {
     setModalVisible(true);
   };
 
-  const renderPagination = () => {
-    const pages = [];
-    const maxVisiblePages = 5;
-    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
-    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-
-    if (endPage - startPage + 1 < maxVisiblePages) {
-      startPage = Math.max(1, endPage - maxVisiblePages + 1);
-    }
-
-    // Previous button
-    pages.push(
-      <button
-        key="prev"
-        onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-        disabled={currentPage === 1}
-        className="pagination-btn"
-      >
-        Trước
-      </button>
-    );
-
-    // First page
-    if (startPage > 1) {
-      pages.push(
-        <button
-          key="1"
-          onClick={() => setCurrentPage(1)}
-          className="pagination-btn"
-        >
-          1
-        </button>
-      );
-      if (startPage > 2) {
-        pages.push(<span key="ellipsis1" className="pagination-ellipsis">...</span>);
-      }
-    }
-
-    // Page numbers
-    for (let i = startPage; i <= endPage; i++) {
-      pages.push(
-        <button
-          key={i}
-          onClick={() => setCurrentPage(i)}
-          className={`pagination-btn ${currentPage === i ? 'active' : ''}`}
-        >
-          {i}
-        </button>
-      );
-    }
-
-    // Last page
-    if (endPage < totalPages) {
-      if (endPage < totalPages - 1) {
-        pages.push(<span key="ellipsis2" className="pagination-ellipsis">...</span>);
-      }
-      pages.push(
-        <button
-          key={totalPages}
-          onClick={() => setCurrentPage(totalPages)}
-          className="pagination-btn"
-        >
-          {totalPages}
-        </button>
-      );
-    }
-
-    // Next button
-    pages.push(
-      <button
-        key="next"
-        onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-        disabled={currentPage === totalPages}
-        className="pagination-btn"
-      >
-        Sau
-      </button>
-    );
-
-    return pages;
-  };
-
   return (
     <div className="admin-users-list">
       <div className="admin-list-header">
@@ -455,16 +373,16 @@ const InventoriesPage = () => {
         />
       </div>
 
-      {totalPages > 1 && (
-        <div className="pagination-container">
-          <div className="pagination-info">
-            Hiển thị {((currentPage - 1) * pageSize) + 1}-{Math.min(currentPage * pageSize, total)} của {total} tồn kho
-          </div>
-          <div className="pagination-controls">
-            {renderPagination()}
-          </div>
-        </div>
-      )}
+      {/* CustomPagination */}
+      <CustomPagination
+        currentPage={pagination.currentPage}
+        totalPages={pagination.totalPages}
+        total={pagination.total}
+        onPageChange={pagination.setCurrentPage}
+        hasAccess={true}
+        hasNext={pagination.hasNext}
+        hasPrevious={pagination.hasPrevious}
+      />
 
       <Modal
         title={editingId ? "Sửa tồn kho" : "Thêm tồn kho mới"}

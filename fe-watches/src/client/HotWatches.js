@@ -1,44 +1,30 @@
-import React, { useState, useEffect } from 'react';
-import { CONTENT_ENDPOINTS } from '@/config/api';
+import React from 'react';
+import { useBannerContext } from './contexts/BannerContext';
+import { API_BASE_URL } from '@/config/api';
 import './static/HotWatches.css';
 
 export default function HotWatches() {
-  const [banners, setBanners] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    const fetchBanners = async () => {
-      try {
-        const response = await fetch(CONTENT_ENDPOINTS.BANNERS_ALL);
-        if (!response.ok) {
-          throw new Error('Không thể tải dữ liệu banner');
-        }
-        const data = await response.json();
-        // Sắp xếp banner theo display_order
-        const sortedBanners = data.sort((a, b) => a.display_order - b.display_order);
-        setBanners(sortedBanners);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchBanners();
-  }, []);
+  const { banners, loading, error } = useBannerContext();
 
   if (loading) return <div>Đang tải...</div>;
   if (error) return <div>Lỗi: {error}</div>;
+
+  // Lọc banner cho hot section và sắp xếp theo display_order
+  const hotBanners = banners
+    .filter(b => b.banner_location === 'hot' && b.is_active)
+    .sort((a, b) => a.display_order - b.display_order);
+
+  // Tạo base URL từ API_BASE_URL
+  const baseUrl = API_BASE_URL.replace('/api', '');
 
   return (
     <section className="hot-watches">
       <h3 className="hot-watches__title">HÀNG HOT SIÊU ĐẸP</h3>
       <div className="hot-watches__list">
-        {banners.map((banner) => (
+        {hotBanners.map((banner) => (
           <div key={banner.id} className="hot-watches__item">
             <img 
-              src={banner.image} 
+              src={`${baseUrl}${banner.image_url}`}
               alt={banner.alt_text || banner.title} 
               title={banner.title}
             />

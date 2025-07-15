@@ -1,14 +1,43 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Input, Button, Empty, Table } from 'antd';
 import { SearchOutlined, PlusOutlined } from '@ant-design/icons';
 import { PRODUCT_ENDPOINTS } from '@/config/api';
-import { useListData, useCRUD, useAccessControl } from '@/admin/hooks';
-import { AccessDeniedAlert, CustomPagination, ActionButtons } from '@/admin/components';
+import { useListData, useCRUD, useAccessControl, useImages } from '@/admin/hooks';
+import { AccessDeniedAlert, CustomPagination, ActionButtons, ImageManager } from '@/admin/components';
 import '@/admin/static/AdminCommon.css';
+
+// Component riêng cho cột ảnh để có thể gọi hook
+const ProductImageColumn = ({ record, editingId, onRefresh }) => {
+  const imageHandlers = useImages(
+    record.id,
+    PRODUCT_ENDPOINTS.PRODUCT_UPLOAD_IMAGES ? PRODUCT_ENDPOINTS.PRODUCT_UPLOAD_IMAGES(record.id) : null,
+    PRODUCT_ENDPOINTS.PRODUCT_DELETE_IMAGE ? PRODUCT_ENDPOINTS.PRODUCT_DELETE_IMAGE(record.id) : null,
+    PRODUCT_ENDPOINTS.PRODUCT_IMAGE_DETAIL,
+    onRefresh
+  );
+
+  return (
+    <ImageManager
+      images={record.images || []}
+      entityId={record.id}
+      isEditing={editingId === record.id}
+      uploadingImages={imageHandlers.uploadingImages}
+      onImageUpload={imageHandlers.handleImageUpload}
+      onDeleteImage={imageHandlers.handleDeleteImage}
+      onUpdateAltText={imageHandlers.handleUpdateImageAltText}
+      title="Quản lý ảnh sản phẩm"
+      entityName="sản phẩm"
+      imageSize={{ width: 60, height: 60 }}
+      popupImageSize={{ width: 120, height: 120 }}
+      columnWidth={120}
+    />
+  );
+};
 
 export default function ProductsPage() {
   const navigate = useNavigate();
+  const [editingId, setEditingId] = useState(null);
 
   // Hook tích hợp cho danh sách products
   const {
@@ -141,6 +170,19 @@ export default function ProductsPage() {
       ),
     },
     {
+      title: 'Ảnh',
+      key: 'images',
+      width: 120,
+      align: 'center',
+      render: (_, record) => (
+        <ProductImageColumn 
+          record={record} 
+          editingId={editingId} 
+          onRefresh={fetchProducts}
+        />
+      ),
+    },
+    {
       title: 'Thao tác',
       key: 'action',
       width: 200,
@@ -201,7 +243,7 @@ export default function ProductsPage() {
         loading={isLoading}
         rowKey="id"
         className="products-table"
-        scroll={{ x: 1200 }}
+        scroll={{ x: 1400 }}
         pagination={false}
         locale={{
           emptyText: (

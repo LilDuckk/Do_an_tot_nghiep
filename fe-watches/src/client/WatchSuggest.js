@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { PRODUCT_ENDPOINTS } from '@/config/api';
 import './static/WatchSuggest.css';
 
+const BASE_URL = 'http://localhost:8000';
+
 export default function WatchSuggest() {
   const navigate = useNavigate();
   const [products, setProducts] = useState([]);
@@ -20,15 +22,10 @@ export default function WatchSuggest() {
   // Hàm thay đổi sản phẩm với hiệu ứng
   const changeProducts = () => {
     if (allProducts.length === 0) return;
-    
     setIsTransitioning(true);
-    
-    // Đợi hiệu ứng fade out hoàn thành
     setTimeout(() => {
       const newProducts = getRandomProducts(allProducts);
       setProducts(newProducts);
-      
-      // Đợi một chút rồi fade in
       setTimeout(() => {
         setIsTransitioning(false);
       }, 100);
@@ -43,16 +40,12 @@ export default function WatchSuggest() {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await fetch(PRODUCT_ENDPOINTS.PRODUCTS_LIST_ALL);
+        const response = await fetch(PRODUCT_ENDPOINTS.PRODUCTS_LIST_SIMPLE);
         if (!response.ok) {
           throw new Error('Không thể tải dữ liệu sản phẩm');
         }
         const data = await response.json();
-        
-        // Lưu tất cả sản phẩm
         setAllProducts(data);
-        
-        // Lấy 4 sản phẩm ngẫu nhiên ban đầu
         const initialProducts = getRandomProducts(data);
         setProducts(initialProducts);
       } catch (err) {
@@ -61,18 +54,15 @@ export default function WatchSuggest() {
         setLoading(false);
       }
     };
-
     fetchProducts();
   }, []);
 
   // Tự động thay đổi sản phẩm mỗi 5 giây
   useEffect(() => {
     if (allProducts.length === 0) return;
-
     const interval = setInterval(() => {
       changeProducts();
-    }, 10000);
-
+    }, 5000);
     return () => clearInterval(interval);
   }, [allProducts]);
 
@@ -83,7 +73,6 @@ export default function WatchSuggest() {
     <section className="watch-suggest">
       <h4 className="watch-suggest__title">CHỌN ĐỒNG HỒ PHÙ HỢP</h4>
       <div className="watch-suggest__desc">VIET&CO. giúp bạn chọn đồng hồ phù hợp với phong cách, cá tính và nhu cầu sử dụng.</div>
-      
       <div className="watch-suggest__controls">
         <button 
           className="watch-suggest__refresh-btn"
@@ -94,22 +83,18 @@ export default function WatchSuggest() {
           Đổi sản phẩm
         </button>
       </div>
-      
       <div className={`watch-suggest__list ${isTransitioning ? 'transitioning' : ''}`}>
         {products.map((product, index) => {
-          // Lấy ảnh chính từ primary_image_index hoặc ảnh đầu tiên
-          const primaryImageIndex = product.primary_image_index || 0;
-          const primaryImage = product.images?.[primaryImageIndex] || product.images?.[0];
-          
+          const primaryImage = product.primary_image;
           return (
             <div 
               className="watch-suggest__item" 
-              key={`${product.id}-${Date.now()}`}
+              key={`${product.id}-${index}`}
               style={{ animationDelay: `${index * 0.1}s` }}
               onClick={() => handleProductClick(product.id)}
             >
               <img 
-                src={primaryImage?.image || 'https://i.imgur.com/1Q9Z1Zm.png'} 
+                src={primaryImage?.image_url ? `${BASE_URL}${primaryImage.image_url}` : 'https://i.imgur.com/1Q9Z1Zm.png'} 
                 alt={primaryImage?.alt_text || product.name} 
               />
               <div className="watch-suggest__label">{product.name}</div>

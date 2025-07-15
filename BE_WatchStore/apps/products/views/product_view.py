@@ -7,7 +7,7 @@ from django.db.models import Q, Count, Q
 from apps.products.models.product import Product
 from apps.products.models.variant import ProductVariant, VariantImage
 from apps.products.serializers.product_serializer import (
-    ProductSerializer, ProductDetailSerializer,
+    ProductSerializer, ProductDetailSerializer, ProductBasicSerializer, ProductSimpleSerializer,
     ProductVariantSerializer, VariantImageSerializer
 )
 from apps.products.serializers.product_image_serializer import ProductImageSerializer
@@ -27,7 +27,7 @@ class ProductViewSet(viewsets.ModelViewSet):
         """
         Tùy chỉnh permission cho từng action
         """
-        if self.action in ['list', 'retrieve', 'list_all', 'featured', 'get_attributes', 'get_variants']:
+        if self.action in ['list', 'retrieve', 'list_all', 'featured', 'get_attributes', 'get_variants', 'list_basic', 'list_simple']:
             # Cho phép tất cả người dùng xem danh sách và chi tiết sản phẩm
             return [AllowAny()]
         elif self.action in ['create', 'update', 'partial_update', 'destroy', 'bulk_update_variants', 'set_primary_image']:
@@ -38,6 +38,10 @@ class ProductViewSet(viewsets.ModelViewSet):
     def get_serializer_class(self):
         if self.action == 'retrieve':
             return ProductDetailSerializer
+        elif self.action == 'list_basic':
+            return ProductBasicSerializer
+        elif self.action == 'list_simple':
+            return ProductSimpleSerializer
         return self.serializer_class
     
     def get_object(self):
@@ -162,6 +166,92 @@ class ProductViewSet(viewsets.ModelViewSet):
     def featured(self, request):
         featured_products = self.get_queryset().filter(is_featured=True)
         serializer = self.get_serializer(featured_products, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'])
+    def list_basic(self, request):
+        """
+        API liệt kê sản phẩm với thông tin cơ bản, có phân trang
+        - Chỉ lấy sản phẩm is_active=True
+        - Sản phẩm is_featured=True được ưu tiên hiển thị đầu
+        - Chỉ trả về thông tin cơ bản: tên, ảnh, giá, is_featured
+        """
+        # Lấy queryset cơ bản chỉ với sản phẩm active
+        queryset = Product.objects.filter(
+            is_deleted=False,
+            is_active=True
+        ).select_related('brand', 'category').prefetch_related(
+            'images',
+            'variants'
+        )
+        
+        # Áp dụng filters từ query params
+        category = request.query_params.get('category')
+        if category:
+            queryset = queryset.filter(category_id=category)
+        
+        brand = request.query_params.get('brand')
+        if brand:
+            queryset = queryset.filter(brand_id=brand)
+        
+        search = request.query_params.get('search')
+        if search:
+            queryset = queryset.filter(
+                Q(name__icontains=search) | 
+                Q(description__icontains=search) |
+                Q(brand__name__icontains=search) |
+                Q(category__name__icontains=search)
+            )
+        
+        min_price = request.query_params.get('min_price')
+        if min_price:
+            try:
+                min_price = float(min_price)
+                queryset = queryset.filter(base_price__gte=min_price)
+            except ValueError:
+                pass
+        
+        max_price = request.query_params.get('max_price')
+        if max_price:
+            try:
+                max_price = float(max_price)
+                queryset = queryset.filter(base_price__lte=max_price)
+            except ValueError:
+                pass
+        
+        # Sắp xếp: featured trước, sau đó theo thứ tự khác
+        featured = request.query_params.get('featured')
+        if featured and featured.lower() == 'true':
+            # Chỉ lấy sản phẩm featured
+            queryset = queryset.filter(is_featured=True)
+        else:
+            # Sắp xếp: featured trước, sau đó theo thứ tự khác
+            queryset = queryset.order_by('-is_featured', '-created_at')
+        
+        # Phân trang
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        
+        # Nếu không có phân trang, trả về tất cả
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'])
+    def list_simple(self, request):
+        """
+        API liệt kê random 30 sản phẩm với thông tin đơn giản nhất
+        - Chỉ lấy sản phẩm is_active=True
+        - Chỉ trả về: id, name, primary_image
+        - Không phân trang, random 30 sản phẩm
+        """
+        from django.db.models import Count
+        queryset = Product.objects.filter(
+            is_deleted=False,
+            is_active=True
+        ).prefetch_related('images').order_by('?')[:30]
+        serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
     @action(detail=True, methods=['post'])

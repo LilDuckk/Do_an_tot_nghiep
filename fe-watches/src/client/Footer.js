@@ -1,39 +1,28 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { CONTENT_ENDPOINTS } from '@/config/api';
 import './static/Footer.css';
+import { useSharedData } from './hooks/useSharedData';
 
 export default function Footer() {
-  const [categories, setCategories] = useState([]);
-  const [links, setLinks] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  // Sử dụng shared data hook
+  const { data, loading, error, fetchFooterLinks, fetchFooterCategories } = useSharedData();
 
+  // Fetch data khi component mount
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [linkRes, catRes] = await Promise.all([
-          fetch(CONTENT_ENDPOINTS.FOOTER_LINKS_ALL),
-          fetch(CONTENT_ENDPOINTS.FOOTER_CATEGORIES_ALL)
-        ]);
-        if (!linkRes.ok || !catRes.ok) throw new Error('API trả về lỗi');
-        const linkData = await linkRes.json();
-        const catData = await catRes.json();
-        console.log('catData:', catData);
-        console.log('linkData:', linkData);
-        setCategories(Array.isArray(catData) ? catData : (catData.results || []));
-        setLinks(Array.isArray(linkData) ? linkData : (linkData.results || []));
-      } catch (err) {
-        console.error('Footer fetch error:', err);
-        setError('Lỗi khi tải dữ liệu footer');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
+    fetchFooterLinks();
+    fetchFooterCategories();
+  }, [fetchFooterLinks, fetchFooterCategories]);
 
-  if (loading) return <div className="loading">Đang tải footer...</div>;
-  if (error) return <div className="admin-error">{error}</div>;
+  if (loading.footerLinks || loading.footerCategories) {
+    return <div className="loading">Đang tải footer...</div>;
+  }
+  
+  if (error.footerLinks || error.footerCategories) {
+    return <div className="admin-error">Lỗi khi tải dữ liệu footer</div>;
+  }
+
+  const categories = data.footerCategories || [];
+  const links = data.footerLinks || [];
 
   // Lọc và sắp xếp category
   const activeCategories = categories.filter(c => c.is_active).sort((a, b) => a.display_order - b.display_order);

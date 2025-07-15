@@ -501,7 +501,7 @@ const PurchaseOrdersPage = () => {
               console.log('Product ID:', productId);
               
               if (productId) {
-                setSelectedProductId(productId);
+              setSelectedProductId(productId);
                 
                 // Tìm sản phẩm trong danh sách products để set search text
                 const product = products.find(p => p.id === productId);
@@ -533,13 +533,13 @@ const PurchaseOrdersPage = () => {
                     notes: record.notes || ""
                   });
                   
-                  orderDetailForm.setFieldsValue({
-                    product: productId,
+                orderDetailForm.setFieldsValue({
+                  product: productId,
                     product_variant: record.product_variant,
-                    quantity: record.quantity,
-                    unit_price: record.unit_price,
-                    notes: record.notes || ""
-                  });
+                  quantity: record.quantity,
+                  unit_price: record.unit_price,
+                  notes: record.notes || ""
+                });
                 }, 100);
               } else {
                 message.error('Không thể lấy thông tin sản phẩm');

@@ -72,7 +72,8 @@ class Product(BaseModel):
     def delete(self, *args, **kwargs):
         # Xóa mềm tất cả các biến thể liên quan trước
         from apps.products.models.variant import ProductVariant
-        from apps.inventory.models import Inventory
+        from django.apps import apps
+        Inventory = apps.get_model('inventory', 'Inventory')
         ProductVariant.objects.filter(product=self).update(is_deleted=True)
         # Xóa mềm tất cả các ảnh liên quan
         self.images.update(is_deleted=True)

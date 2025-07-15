@@ -479,6 +479,20 @@ export default function ProductDetail() {
               )}
             </div>
           )}
+          
+          {/* Thông tin số lượng ảnh và vị trí hiện tại */}
+          {allImages.length > 0 && (
+            <div className="image-counter">
+              <span className="current-image-info">
+                Ảnh {currentImageIndex + 1} / {allImages.length}
+              </span>
+              {allImages.length > THUMBNAILS_PER_PAGE && (
+                <span className="thumbnail-range-info">
+                  (Hiển thị {thumbnailStartIndex + 1}-{Math.min(thumbnailStartIndex + THUMBNAILS_PER_PAGE, allImages.length)})
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="product-detail-info">

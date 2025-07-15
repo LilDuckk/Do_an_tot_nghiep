@@ -1,32 +1,56 @@
-import React, { useEffect, useState } from 'react';
-import { CONTENT_ENDPOINTS } from '@/config/api';
+import React from 'react';
+import { useBannerContext } from './contexts/BannerContext';
+import { API_BASE_URL } from '@/config/api';
 import './static/HomeHero.css';
 
 export default function HomeHero() {
-  const [banner, setBanner] = useState(null);
+  const { banners, loading, error } = useBannerContext();
 
-  useEffect(() => {
-    fetch(CONTENT_ENDPOINTS.BANNERS_ALL)
-      .then(res => res.json())
-      .then(data => {
-        const homeBanner = data.find(
-          b => b.display_order === 1 && b.banner_location === 'homepage'
-        );
-        setBanner(homeBanner);
-      });
-  }, []);
+  if (loading) {
+    return (
+      <section className="home-hero">
+        <div className="home-hero__main" style={{paddingTop: '90px'}}>
+          <div style={{height: 800, background: '#222', width: '100vw'}} />
+        </div>
+      </section>
+    );
+  }
+
+  if (error) {
+    return (
+      <section className="home-hero">
+        <div className="home-hero__main" style={{paddingTop: '90px'}}>
+          <div style={{height: 800, background: '#222', width: '100vw'}} />
+        </div>
+      </section>
+    );
+  }
+
+  // Lọc banner cho homepage và sắp xếp theo display_order
+  const homeBanners = banners
+    .filter(b => b.banner_location === 'homepage' && b.is_active)
+    .sort((a, b) => a.display_order - b.display_order);
+  
+  const homeBanner = homeBanners[0]; // Lấy banner đầu tiên
+
+  // Tạo base URL từ API_BASE_URL
+  const baseUrl = API_BASE_URL.replace('/api', '');
 
   return (
     <section className="home-hero">
       <div className="home-hero__main" style={{paddingTop: '90px'}}>
-        {banner && banner.image ? (
-          <img className="home-hero__img" src={banner.image} alt={banner.title || 'Banner'} />
+        {homeBanner && homeBanner.image_url ? (
+          <img 
+            className="home-hero__img" 
+            src={`${baseUrl}${homeBanner.image_url}`}
+            alt={homeBanner.alt_text || homeBanner.title || 'Banner'} 
+          />
         ) : (
           <div style={{height: 800, background: '#222', width: '100vw'}} />
         )}
         <div className="home-hero__info">
-          <h2 className="home-hero__brand">{banner?.title || ''}</h2>
-          <div className="home-hero__model">{banner?.alt_text || ''}</div>
+          <h2 className="home-hero__brand">{homeBanner?.title || ''}</h2>
+          <div className="home-hero__model">{homeBanner?.alt_text || ''}</div>
           <button className="home-hero__cta">XEM TẤT CẢ</button>
         </div>
       </div>

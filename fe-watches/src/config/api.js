@@ -45,6 +45,8 @@ export const PRODUCT_ENDPOINTS = {
   // Products
   PRODUCTS: `${API_BASE_URL}/products/products/`,
   PRODUCTS_LIST_ALL: `${API_BASE_URL}/products/products/list_all/`,
+  PRODUCTS_LIST_BASIC: `${API_BASE_URL}/products/products/list_basic/`,
+  PRODUCTS_LIST_SIMPLE: `${API_BASE_URL}/products/products/list_simple/`,
   PRODUCT_FEATURED: `${API_BASE_URL}/products/products/featured/`,
   PRODUCT_DETAIL: (id) => `${API_BASE_URL}/products/products/${id}/`,
   PRODUCT_BULK_UPDATE_VARIANTS: (id) => `${API_BASE_URL}/products/products/${id}/bulk_update_variants/`,

@@ -24,12 +24,14 @@ export default function ProductList() {
   });
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
-  const [isInitialized, setIsInitialized] = useState(false);
   const pageSize = 20;
-  const isInitialMount = useRef(true);
+  
+  // Refs để tránh re-render không cần thiết
+  const isInitialized = useRef(false);
+  const lastFetchParams = useRef({});
 
   // Xây dựng cây danh mục từ dữ liệu phẳng
-  const buildCategoryTree = (categories) => {
+  const buildCategoryTree = useCallback((categories) => {
     const categoryMap = {};
     const tree = [];
 
@@ -56,9 +58,9 @@ export default function ProductList() {
     });
 
     return tree;
-  };
+  }, []);
 
-  // Lấy danh sách brands và categories
+  // Lấy danh sách brands và categories (chỉ gọi 1 lần khi component mount)
   useEffect(() => {
     const fetchBrandsAndCategories = async () => {
       try {
@@ -79,39 +81,40 @@ export default function ProductList() {
       }
     };
     fetchBrandsAndCategories();
-  }, []);
+  }, [buildCategoryTree]);
 
-  const fetchProducts = useCallback(async () => {
+  // Function gọi API sản phẩm
+  const fetchProducts = useCallback(async (currentFilters, currentPage) => {
     try {
       setLoading(true);
       const queryParams = new URLSearchParams();
       
       // Chỉ thêm các tham số có giá trị
-      if (filters.search) queryParams.append('search', filters.search);
-      if (filters.brand) queryParams.append('brand', filters.brand);
-      if (filters.category) queryParams.append('category', filters.category);
-      if (filters.min_price) queryParams.append('min_price', filters.min_price);
-      if (filters.max_price) queryParams.append('max_price', filters.max_price);
+      if (currentFilters.search) queryParams.append('search', currentFilters.search);
+      if (currentFilters.brand) queryParams.append('brand', currentFilters.brand);
+      if (currentFilters.category) queryParams.append('category', currentFilters.category);
+      if (currentFilters.min_price) queryParams.append('min_price', currentFilters.min_price);
+      if (currentFilters.max_price) queryParams.append('max_price', currentFilters.max_price);
       
       // Thêm is_active=true để chỉ lấy sản phẩm đang hoạt động
       queryParams.append('is_active', 'true');
-      
-      queryParams.append('page', page);
+      queryParams.append('page', currentPage);
       queryParams.append('page_size', pageSize);
 
-      const response = await fetch(`${PRODUCT_ENDPOINTS.PRODUCTS}?${queryParams}`);
+      // Sử dụng API tối ưu hơn
+      const response = await fetch(`${PRODUCT_ENDPOINTS.PRODUCTS_LIST_BASIC}?${queryParams}`);
       if (!response.ok) {
         throw new Error('Lỗi khi tải dữ liệu sản phẩm');
       }
       const data = await response.json();
       
-      // Kiểm tra và xử lý dữ liệu trả về
-      if (Array.isArray(data)) {
-        setProducts(data);
-        setTotalCount(data.length);
-      } else if (data.results && Array.isArray(data.results)) {
+      // Xử lý dữ liệu response mới
+      if (data.results && Array.isArray(data.results)) {
         setProducts(data.results);
         setTotalCount(data.count || data.results.length);
+      } else if (Array.isArray(data)) {
+        setProducts(data);
+        setTotalCount(data.length);
       } else {
         setProducts([]);
         setTotalCount(0);
@@ -123,9 +126,9 @@ export default function ProductList() {
     } finally {
       setLoading(false);
     }
-  }, [filters, page, pageSize]);
+  }, []);
 
-  // Cập nhật filters từ URL parameters khi component mount hoặc URL thay đổi
+  // useEffect chính - xử lý URL và gọi API
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
     const brand = searchParams.get('brand');
@@ -147,43 +150,27 @@ export default function ProductList() {
       max_price: max_price || ''
     };
     
+    const newPage = pageParam ? parseInt(pageParam, 10) : 1;
+    
+    // Cập nhật state
     setFilters(newFilters);
+    setPage(newPage);
     
-    if (pageParam) {
-      const newPage = parseInt(pageParam, 10);
-      setPage(newPage);
-    } else {
-      setPage(1);
+    // Kiểm tra xem có cần gọi API không
+    const currentParams = JSON.stringify({ filters: newFilters, page: newPage });
+    if (!isInitialized.current || currentParams !== lastFetchParams.current) {
+      lastFetchParams.current = currentParams;
+      fetchProducts(newFilters, newPage);
     }
     
-    setIsInitialized(true);
-  }, [location.search]);
+    isInitialized.current = true;
+  }, [location.search, fetchProducts]);
 
-  // Gọi API lần đầu khi đã khởi tạo
+  // Cập nhật URL khi filters/page thay đổi (debounced)
   useEffect(() => {
-    if (isInitialized) {
-      fetchProducts();
-    }
-  }, [isInitialized, fetchProducts]);
-
-  // Gọi API khi filters hoặc page thay đổi (trừ lần đầu)
-  useEffect(() => {
-    if (isInitialized && !isInitialMount.current) {
-      fetchProducts();
-    }
-  }, [filters, page, fetchProducts]);
-
-  // Đánh dấu đã mount xong
-  useEffect(() => {
-    if (isInitialized) {
-      isInitialMount.current = false;
-    }
-  }, [isInitialized]);
-
-  // Cập nhật URL khi filters/page thay đổi (chỉ sau khi đã khởi tạo)
-  useEffect(() => {
-    if (!isInitialized) return;
+    if (!isInitialized.current) return;
     
+    const timeoutId = setTimeout(() => {
     const searchParams = new URLSearchParams();
     
     if (filters.search) searchParams.append('search', filters.search);
@@ -197,9 +184,12 @@ export default function ProductList() {
     if (location.pathname + location.search !== newUrl) {
       navigate(newUrl, { replace: true });
     }
-  }, [filters, page, navigate, location.pathname, location.search, isInitialized]);
+    }, 300); // Debounce 300ms
 
-  const handleFilterChange = (type, value) => {
+    return () => clearTimeout(timeoutId);
+  }, [filters, page, navigate, location.pathname, location.search]);
+
+  const handleFilterChange = useCallback((type, value) => {
     const newFilters = {
       ...filters,
       [type]: value
@@ -212,9 +202,9 @@ export default function ProductList() {
       top: 0,
       behavior: 'smooth'
     });
-  };
+  }, [filters]);
 
-  const handleCategoryChange = (categoryId, isParent = false) => {
+  const handleCategoryChange = useCallback((categoryId, isParent = false) => {
     const newSelectedCategories = new Set(selectedCategories);
     
     if (isParent) {
@@ -255,9 +245,9 @@ export default function ProductList() {
     // Cập nhật URL với danh sách category mới
     const categoryString = Array.from(newSelectedCategories).join(',');
     handleFilterChange('category', categoryString);
-  };
+  }, [selectedCategories, categories, handleFilterChange]);
 
-  const handlePriceFilter = (minPrice, maxPrice) => {
+  const handlePriceFilter = useCallback((minPrice, maxPrice) => {
     const newFilters = {
       ...filters,
       min_price: minPrice,
@@ -271,24 +261,24 @@ export default function ProductList() {
       top: 0,
       behavior: 'smooth'
     });
-  };
+  }, [filters]);
 
-  const handleProductClick = (productId) => {
+  const handleProductClick = useCallback((productId) => {
     navigate(`/products/${productId}`);
-  };
+  }, [navigate]);
 
-  const handlePageChange = (newPage) => {
+  const handlePageChange = useCallback((newPage) => {
     setPage(newPage);
     // Cuộn lên đầu trang
     window.scrollTo({
       top: 0,
       behavior: 'smooth'
     });
-  };
+  }, []);
 
   const totalPages = Math.ceil(totalCount / pageSize);
 
-  const toggleCategory = (categoryId) => {
+  const toggleCategory = useCallback((categoryId) => {
     const newCollapsedCategories = new Set(collapsedCategories);
     if (newCollapsedCategories.has(categoryId)) {
       newCollapsedCategories.delete(categoryId);
@@ -296,10 +286,10 @@ export default function ProductList() {
       newCollapsedCategories.add(categoryId);
     }
     setCollapsedCategories(newCollapsedCategories);
-  };
+  }, [collapsedCategories]);
 
   // Render danh mục theo cấu trúc cây
-  const renderCategoryTree = (categories) => {
+  const renderCategoryTree = useCallback((categories) => {
     return categories.map(category => (
       <div 
         key={category.id} 
@@ -334,7 +324,7 @@ export default function ProductList() {
         )}
       </div>
     ));
-  };
+  }, [collapsedCategories, selectedCategories, toggleCategory, handleCategoryChange]);
 
   return (
     <div>
@@ -416,26 +406,30 @@ export default function ProductList() {
             <>
               <div className="product-list-grid">
                 {Array.isArray(products) && products.map(product => {
-                  // Lấy ảnh chính từ primary_image_index hoặc ảnh đầu tiên
-                  const primaryImageIndex = product.primary_image_index || 0;
-                  const primaryImage = product.images?.[primaryImageIndex] || product.images?.[0];
+                  // Sử dụng cấu trúc dữ liệu mới
+                  const primaryImage = product.primary_image;
+                  const priceDisplay = product.price_range?.display || 'Liên hệ';
+                  
                   return (
                     <div 
-                      className="product-card" 
+                      className={`product-card ${product.is_featured ? 'product-card--featured' : ''}`}
                       key={product.id}
                       onClick={() => handleProductClick(product.id)}
                       style={{ cursor: 'pointer' }}
                     >
+                      {product.is_featured && (
+                        <div className="featured-badge">
+                          <span className="featured-icon">⭐</span>
+                          <span className="featured-text">Nổi bật</span>
+                        </div>
+                      )}
                       <img 
-                        src={primaryImage?.image ? `${primaryImage.image}` : 'https://i.imgur.com/1Q9Z1Zm.png'} 
+                        src={primaryImage?.image_url ? `http://localhost:8000${primaryImage.image_url}` : 'https://i.imgur.com/1Q9Z1Zm.png'} 
                         alt={primaryImage?.alt_text || product.name} 
                       />
                       <div className="product-card__name">{product.name}</div>
                       <div className="product-card__price">
-                        {new Intl.NumberFormat('vi-VN', {
-                          style: 'currency',
-                          currency: 'VND'
-                        }).format(product.base_price)}
+                        {priceDisplay}
                       </div>
                     </div>
                   );

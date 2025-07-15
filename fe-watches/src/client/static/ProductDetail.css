@@ -154,6 +154,34 @@
   color: #333;
 }
 
+/* Image counter styles */
+.image-counter {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin-top: 15px;
+  padding: 10px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #666;
+}
+
+.current-image-info {
+  font-weight: 600;
+  color: #333;
+  background: #e3f2fd;
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid #bbdefb;
+}
+
+.thumbnail-range-info {
+  color: #666;
+  font-style: italic;
+}
+
 .product-detail-info {
   flex: 1;
   padding: 20px;

@@ -24,7 +24,32 @@ const ImageManager = ({
     <div style={{ maxWidth: 300, maxHeight: 400, overflow: 'auto' }}>
       {images.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '20px', color: '#999' }}>
-          Không có ảnh
+          <div style={{ marginBottom: '10px' }}>
+            Không có ảnh
+          </div>
+          {isEditing && (
+            <Upload
+              beforeUpload={() => false}
+              onChange={({ fileList }) => {
+                if (fileList.length > 0) {
+                  onImageUpload(fileList.map(f => f.originFileObj));
+                }
+              }}
+              multiple
+              accept="image/*"
+              disabled={uploadingImages[entityId]}
+            >
+              <Button 
+                icon={<UploadOutlined />} 
+                disabled={uploadingImages[entityId]}
+                size="small"
+                type="primary"
+                style={{ width: '100%' }}
+              >
+                {uploadingImages[entityId] ? 'Đang tải...' : 'Tải ảnh đầu tiên'}
+              </Button>
+            </Upload>
+          )}
         </div>
       ) : (
         <div>
@@ -87,7 +112,7 @@ const ImageManager = ({
                   size="small"
                   style={{ width: '100%' }}
                 >
-                  {uploadingImages[entityId] ? 'Đang tải...' : 'Tải ảnh'}
+                  {uploadingImages[entityId] ? 'Đang tải...' : 'Tải thêm ảnh'}
                 </Button>
               </Upload>
             </div>
@@ -134,8 +159,27 @@ const ImageManager = ({
         </Popover>
       ) : (
         <div style={{ textAlign: 'center', color: '#999' }}>
-          <PictureOutlined style={{ fontSize: '24px', marginBottom: '4px' }} />
-          <div style={{ fontSize: '10px' }}>Không có ảnh</div>
+          {isEditing ? (
+            <Popover
+              content={popupContent}
+              title={title}
+              trigger="click"
+              placement="left"
+              overlayStyle={{ maxWidth: 350 }}
+            >
+              <div style={{ cursor: 'pointer', padding: '8px' }}>
+                <PictureOutlined style={{ fontSize: '24px', marginBottom: '4px', color: '#1890ff' }} />
+                <div style={{ fontSize: '10px', color: '#1890ff' }}>
+                  {uploadingImages[entityId] ? 'Đang tải...' : 'Tải ảnh'}
+                </div>
+              </div>
+            </Popover>
+          ) : (
+            <div style={{ padding: '8px' }}>
+              <PictureOutlined style={{ fontSize: '24px', marginBottom: '4px' }} />
+              <div style={{ fontSize: '10px' }}>Không có ảnh</div>
+            </div>
+          )}
         </div>
       )}
     </div>
