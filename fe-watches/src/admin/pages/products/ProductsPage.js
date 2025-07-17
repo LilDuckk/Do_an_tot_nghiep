@@ -243,8 +243,9 @@ export default function ProductsPage() {
         loading={isLoading}
         rowKey="id"
         className="products-table"
-        scroll={{ x: 1400 }}
+        scroll={{ x: '0' }}
         pagination={false}
+
         locale={{
           emptyText: (
             <Empty 

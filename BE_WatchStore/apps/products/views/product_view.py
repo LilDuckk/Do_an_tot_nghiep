@@ -136,10 +136,23 @@ class ProductViewSet(viewsets.ModelViewSet):
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop('partial', False)
         instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data, partial=partial)
-        serializer.is_valid(raise_exception=True)
-        self.perform_update(serializer)
-        return Response(serializer.data)
+        # Nếu có trường attribute_value_groups trong request thì xử lý cập nhật biến thể
+        attribute_value_groups = request.data.get('attribute_value_groups', None)
+        if attribute_value_groups is not None:
+            # Có attribute_value_groups, để serializer tự xử lý logic cập nhật biến thể
+            serializer = self.get_serializer(instance, data=request.data, partial=partial)
+            serializer.is_valid(raise_exception=True)
+            self.perform_update(serializer)
+            return Response(serializer.data)
+        else:
+            # Không có trường attribute_value_groups, chỉ cập nhật thông tin sản phẩm
+            # Loại bỏ attribute_value_groups khỏi data để tránh xử lý biến thể
+            product_data = request.data.copy()
+            product_data.pop('attribute_value_groups', None)
+            serializer = self.get_serializer(instance, data=product_data, partial=partial)
+            serializer.is_valid(raise_exception=True)
+            self.perform_update(serializer)
+            return Response(serializer.data)
 
     @action(detail=True, methods=['post'])
     def bulk_update_variants(self, request, pk=None):

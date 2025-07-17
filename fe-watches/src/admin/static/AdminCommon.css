@@ -42,6 +42,26 @@
   border-bottom: 1px solid var(--border);
 }
 
+/* Style chuẩn cho Ant Design Table */
+.ant-table {
+  min-width: 100% !important;
+  table-layout: auto !important;
+}
+
+.ant-table .ant-table-container {
+  min-width: 100% !important;
+}
+
+.ant-table .ant-table-content {
+  min-width: 100% !important;
+}
+
+.ant-table .ant-table-content table {
+  min-width: 100% !important;
+  table-layout: auto !important;
+  width: auto !important;
+}
+
 /* Đảm bảo skeleton loading hiển thị đúng */
 .ant-table-loading .ant-table-tbody > tr > td {
   background: var(--bg) !important;

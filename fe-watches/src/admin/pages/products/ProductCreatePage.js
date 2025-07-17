@@ -191,10 +191,14 @@ export default function ProductCreatePage() {
       formData.append('meta_description', form.meta_description);
       formData.append('is_featured', form.is_featured);
       formData.append('is_active', form.is_active);
-      imageFiles.forEach((file, idx) => {
-        formData.append(`images`, file);
-      });
-      formData.append('primary_image_index', primaryImageIndex);
+      
+      // Thêm ảnh nếu có
+      if (imageFiles.length > 0) {
+        imageFiles.forEach((file, idx) => {
+          formData.append(`images`, file);
+        });
+        formData.append('primary_image_index', primaryImageIndex);
+      }
 
       // Prepare payload with attribute_value_groups
       const attributeValueGroups = Object.entries(selectedAttributeValues).map(
@@ -204,17 +208,37 @@ export default function ProductCreatePage() {
       // Convert to a JSON string that can be parsed by Python
       formData.append('attribute_value_groups', JSON.stringify(attributeValueGroups));
 
-      const result = await post(
-        PRODUCT_ENDPOINTS.PRODUCTS,
-        formData,
-        'Lỗi khi tạo sản phẩm'
-      );
+      // Sử dụng fetch trực tiếp thay vì hook useApiCall
+      const token = localStorage.getItem('accessToken');
+      const response = await fetch(PRODUCT_ENDPOINTS.PRODUCTS, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+          // KHÔNG set Content-Type để trình duyệt tự set cho FormData
+        },
+        body: formData
+      });
 
-      if (result.success) {
+      const data = await response.json();
+      
+      if (response.ok) {
         message.success('Tạo sản phẩm thành công');
         navigate('/admin/products');
       } else {
-        setError('Tạo sản phẩm thất bại');
+        // Xử lý lỗi từ response
+        if (data && Array.isArray(data)) {
+          // Nếu lỗi là array (thường là validation errors)
+          setError(data.join(', '));
+        } else if (data && typeof data === 'object') {
+          // Nếu lỗi là object, lấy message đầu tiên
+          const errorMessages = Object.values(data).flat();
+          setError(errorMessages.join(', '));
+        } else if (data && typeof data === 'string') {
+          // Nếu lỗi là string
+          setError(data);
+        } else {
+          setError('Tạo sản phẩm thất bại');
+        }
       }
     } catch (err) {
       setError(err.message || 'Lỗi kết nối');

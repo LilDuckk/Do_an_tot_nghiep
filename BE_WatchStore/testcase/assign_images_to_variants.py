@@ -7,7 +7,7 @@ from django.core.files import File
 
 def assign_images_to_variants():
     """
-    Áp dụng ảnh ngẫu nhiên cho các biến thể có ID từ 285 đến 509
+    Áp dụng ảnh ngẫu nhiên cho tất cả các biến thể
     """
     # Đường dẫn đến thư mục ảnh đã đổi tên
     image_dir = Path("media/VIET&CO")
@@ -27,15 +27,15 @@ def assign_images_to_variants():
     
     print(f"Tìm thấy {len(image_files)} file ảnh")
     
-    # Lấy các biến thể có ID từ 285 đến 509
+    # Lấy tất cả các biến thể
     ProductVariant = apps.get_model('products', 'ProductVariant')
     VariantImage = apps.get_model('products', 'VariantImage')
     
-    variants = ProductVariant.objects.filter(id__range=(285, 509))
+    variants = ProductVariant.objects.all()
     variant_count = variants.count()
     
     if variant_count == 0:
-        print("Không tìm thấy biến thể nào trong khoảng ID 285-509!")
+        print("Không tìm thấy biến thể nào trong database!")
         return
     
     print(f"Tìm thấy {variant_count} biến thể cần gán ảnh")
@@ -86,7 +86,7 @@ def assign_images_to_variants():
     print(f"Lỗi: {error_count} biến thể")
     
     # Thống kê tổng số ảnh đã gán
-    total_images = VariantImage.objects.filter(variant__id__range=(285, 509)).count()
+    total_images = VariantImage.objects.count()
     print(f"Tổng số ảnh đã gán: {total_images}")
 
 if __name__ == "__main__":

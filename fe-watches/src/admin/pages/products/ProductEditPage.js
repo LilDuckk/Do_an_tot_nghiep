@@ -38,6 +38,7 @@ export default function ProductEditPage() {
   const [attributeTypes, setAttributeTypes] = useState([]);
   const [attributeValues, setAttributeValues] = useState([]);
   const [selectedAttributeValues, setSelectedAttributeValues] = useState({});
+  const [originalAttributeValues, setOriginalAttributeValues] = useState({}); // Thêm state lưu thuộc tính ban đầu
 
   // Chuẩn hóa kiểm tra quyền truy cập
   const { hasAccess, checkModulePermission } = useAccessControl('product', 'edit');
@@ -187,6 +188,7 @@ export default function ProductEditPage() {
           groupedValues[type.id] = type.values;
         });
         setSelectedAttributeValues(groupedValues);
+        setOriginalAttributeValues(groupedValues); // Lưu thuộc tính ban đầu
       }
     } catch (error) {
       console.error('Error fetching product attributes:', error);
@@ -292,6 +294,38 @@ export default function ProductEditPage() {
     }));
   };
 
+  // Hàm kiểm tra thuộc tính có thay đổi hay không
+  const hasAttributeChanges = () => {
+    const originalKeys = Object.keys(originalAttributeValues);
+    const currentKeys = Object.keys(selectedAttributeValues);
+    
+    // Kiểm tra số lượng loại thuộc tính có thay đổi
+    if (originalKeys.length !== currentKeys.length) {
+      return true;
+    }
+    
+    // Kiểm tra từng loại thuộc tính
+    for (const typeId of originalKeys) {
+      const originalValues = originalAttributeValues[typeId] || [];
+      const currentValues = selectedAttributeValues[typeId] || [];
+      
+      // Kiểm tra số lượng giá trị có thay đổi
+      if (originalValues.length !== currentValues.length) {
+        return true;
+      }
+      
+      // Kiểm tra từng giá trị
+      const originalIds = originalValues.map(v => v.id).sort();
+      const currentIds = currentValues.map(v => v.id).sort();
+      
+      if (JSON.stringify(originalIds) !== JSON.stringify(currentIds)) {
+        return true;
+      }
+    }
+    
+    return false;
+  };
+
   const handleSubmit = async e => {
     e.preventDefault();
     setError('');
@@ -333,11 +367,13 @@ export default function ProductEditPage() {
         });
         formData.append('primary_image_index', primaryImageIndex);
 
-        // Prepare payload with attribute_value_groups
-        const attributeValueGroups = Object.entries(selectedAttributeValues).map(
-          ([typeId, values]) => values.map(v => Number(v.id))
-        );
-        formData.append('attribute_value_groups', JSON.stringify(attributeValueGroups));
+        // Chỉ gửi attribute_value_groups nếu có thay đổi thuộc tính
+        if (hasAttributeChanges()) {
+          const attributeValueGroups = Object.entries(selectedAttributeValues).map(
+            ([typeId, values]) => values.map(v => Number(v.id))
+          );
+          formData.append('attribute_value_groups', JSON.stringify(attributeValueGroups));
+        }
 
         // Gửi request bằng fetch trực tiếp
         const token = localStorage.getItem('accessToken');
@@ -350,7 +386,12 @@ export default function ProductEditPage() {
           body: formData
         });
         
-        const data = await response.json();
+        let data;
+        try {
+          data = await response.json();
+        } catch (error) {
+          data = null;
+        }
         result = { success: response.ok, data, error: data };
       } else {
         // Không upload ảnh, gửi JSON
@@ -365,17 +406,34 @@ export default function ProductEditPage() {
           meta_description: form.meta_description,
           slug: form.slug,
           is_featured: form.is_featured,
-          is_active: form.is_active,
-          attribute_value_groups: Object.entries(selectedAttributeValues).map(
-            ([typeId, values]) => values.map(v => Number(v.id))
-          )
+          is_active: form.is_active
         };
 
-        result = await put(
-          `${PRODUCT_ENDPOINTS.PRODUCT_DETAIL(id)}`,
-          payload,
-          'Lỗi khi cập nhật sản phẩm'
-        );
+        // Chỉ thêm attribute_value_groups nếu có thay đổi thuộc tính
+        if (hasAttributeChanges()) {
+          payload.attribute_value_groups = Object.entries(selectedAttributeValues).map(
+            ([typeId, values]) => values.map(v => Number(v.id))
+          );
+        }
+
+        // Sử dụng fetch trực tiếp cho JSON cũng để xử lý lỗi tốt hơn
+        const token = localStorage.getItem('accessToken');
+        const response = await fetch(`${PRODUCT_ENDPOINTS.PRODUCT_DETAIL(id)}`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+        
+        let data;
+        try {
+          data = await response.json();
+        } catch (error) {
+          data = null;
+        }
+        result = { success: response.ok, data, error: data };
       }
 
       if (result.success) {

@@ -239,11 +239,11 @@ def main():
     
     # Hỏi người dùng
     try:
-        num_products = int(input("\nNhập số lượng sản phẩm muốn tạo (mặc định 20): ") or "20")
+        num_products = int(input("\nNhập số lượng sản phẩm muốn tạo (mặc định 100): ") or "100")
         variants_per_product = int(input("Nhập số biến thể mỗi sản phẩm (mặc định 3): ") or "3")
     except ValueError:
         print("❌ Số lượng không hợp lệ, sử dụng giá trị mặc định")
-        num_products = 20
+        num_products = 100
         variants_per_product = 3
     
     # Tạo sản phẩm
