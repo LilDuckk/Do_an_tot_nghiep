@@ -1,4 +1,5 @@
 import axiosInstance from './axiosConfig';
+import { AUTH_ENDPOINTS } from '../config/api';
 
 const TOKEN_KEY = 'accessToken';
 const REFRESH_TOKEN_KEY = 'refreshToken';
@@ -12,24 +13,22 @@ export const authService = {
 
   // Lấy access token
   getAccessToken() {
-    return localStorage.getItem(TOKEN_KEY);
+    const token = localStorage.getItem(TOKEN_KEY);
+    return token;
   },
 
   // Lấy refresh token
   getRefreshToken() {
-    return localStorage.getItem(REFRESH_TOKEN_KEY);
+    const token = localStorage.getItem(REFRESH_TOKEN_KEY);
+    return token;
   },
 
   // Kiểm tra token còn hiệu lực không
   async isTokenValid() {
+    const token = this.getAccessToken();
     try {
-      const token = this.getAccessToken();
       if (!token) return false;
-
-      // Gọi API để verify token
-      await axiosInstance.post('/account/auth/token/verify/', {
-        token: token
-      });
+      await axiosInstance.post(AUTH_ENDPOINTS.VERIFY_TOKEN, { token });
       return true;
     } catch (error) {
       return false;
@@ -66,7 +65,6 @@ export const authService = {
       }
       throw new Error('Không thể refresh token');
     } catch (error) {
-      console.error('Lỗi refresh token:', error);
       this.clearTokens();
       throw error;
     }

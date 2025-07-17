@@ -87,7 +87,6 @@ export default function useStoreVariants() {
         setError(result.message || 'Failed to fetch store variants');
       }
     } catch (error) {
-      console.error('Error fetching store variants:', error);
       setVariants([]);
       setError('Error fetching store variants');
     } finally {

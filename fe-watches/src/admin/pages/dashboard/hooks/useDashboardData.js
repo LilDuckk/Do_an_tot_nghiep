@@ -54,95 +54,19 @@ export const useDashboardData = () => {
     setDateRange(null);
   }, []);
 
-  // Fetch dashboard overview
-  const fetchOverview = useCallback(async () => {
-    try {
-      let url = `${REPORT_ENDPOINTS.DASHBOARD_OVERVIEW}?period=${period}`;
-      if (storeId) url += `&store_id=${storeId}`;
-      const token = localStorage.getItem('accessToken');
-      const res = await fetch(url, { 
-        headers: { Authorization: `Bearer ${token}` },
-        signal: AbortSignal.timeout(10000)
-      });
-      if (!res.ok) throw new Error('Network response was not ok');
-      setOverview(await res.json());
-    } catch (e) { 
-      if (e.name !== 'AbortError') {
-        message.error('Lỗi tải tổng quan dashboard'); 
-      }
-    }
-  }, [period, storeId]);
-
-  // Fetch recent activity
-  const fetchRecentActivity = useCallback(async () => {
-    try {
-      let url = `${REPORT_ENDPOINTS.DASHBOARD_RECENT_ACTIVITY}?limit=10`;
-      if (storeId) url += `&store_id=${storeId}`;
-      const token = localStorage.getItem('accessToken');
-      const res = await fetch(url, { 
-        headers: { Authorization: `Bearer ${token}` },
-        signal: AbortSignal.timeout(8000)
-      });
-      if (!res.ok) throw new Error('Network response was not ok');
-      setRecentActivity(await res.json());
-    } catch (e) { 
-      if (e.name !== 'AbortError') {
-        message.error('Lỗi tải hoạt động gần đây'); 
-      }
-    }
-  }, [storeId]);
-
-  // Fetch alerts
-  const fetchAlerts = useCallback(async () => {
-    try {
-      let url = `${REPORT_ENDPOINTS.DASHBOARD_ALERTS}`;
-      if (storeId) url += `?store_id=${storeId}`;
-      const token = localStorage.getItem('accessToken');
-      const res = await fetch(url, { 
-        headers: { Authorization: `Bearer ${token}` },
-        signal: AbortSignal.timeout(8000)
-      });
-      if (!res.ok) throw new Error('Network response was not ok');
-      setAlerts(await res.json());
-    } catch (e) { 
-      if (e.name !== 'AbortError') {
-        message.error('Lỗi tải cảnh báo'); 
-      }
-    }
-  }, [storeId]);
-
-  // Fetch comprehensive analysis
-  const fetchComprehensiveAnalysis = useCallback(async () => {
-    try {
-      let url = `${REPORT_ENDPOINTS.DASHBOARD_COMPREHENSIVE_ANALYSIS}`;
-      if (dateRange && dateRange.length === 2) {
-        url += `?start_date=${dateRange[0].format('YYYY-MM-DD')}&end_date=${dateRange[1].format('YYYY-MM-DD')}`;
-        if (storeId) url += `&store_id=${storeId}`;
-      } else if (storeId) {
-        url += `?store_id=${storeId}`;
-      }
-      const token = localStorage.getItem('accessToken');
-      const res = await fetch(url, { 
-        headers: { Authorization: `Bearer ${token}` },
-        signal: AbortSignal.timeout(15000)
-      });
-      if (!res.ok) throw new Error('Network response was not ok');
-      setComprehensiveAnalysis(await res.json());
-    } catch (e) { 
-      if (e.name !== 'AbortError') {
-        message.error('Lỗi tải phân tích tổng hợp'); 
-      }
-    }
-  }, [storeId, dateRange]);
+  // Thêm log vào các setState
+  const setLoadingWithLog = (val) => { setLoading(val); };
+  const setInitialLoadingWithLog = (val) => { setInitialLoading(val); };
+  const setDataReadyWithLog = (val) => { setDataReady(val); };
+  const setPeriodWithLog = (val) => { setPeriod(val); };
+  const setStoreIdWithLog = (val) => { setStoreId(val); };
+  const setDateRangeWithLog = (val) => { setDateRange(val); };
 
   // Fetch all report data
   const fetchAll = useCallback(async () => {
-    setLoading(true);
+    setLoadingWithLog(true);
     try {
       const token = localStorage.getItem('accessToken');
-      
-      // Debug: Log current filters
-      console.log('Current filters:', { period, storeId, dateRange });
       
       // Fetch all APIs in parallel for better performance
       const promises = [];
@@ -313,69 +237,36 @@ export const useDashboardData = () => {
     } catch (e) { 
       message.error('Lỗi tải dữ liệu báo cáo'); 
     }
-    setLoading(false);
+    setLoadingWithLog(false);
   }, [storeId, dateRange]);
 
   // Initial load - chỉ chạy 1 lần khi component mount
-  useEffect(() => { 
-    const initializeData = async () => {
-      setInitialLoading(true);
-      setDataReady(false);
-      try {
-        // Load dashboard data in parallel
-        await Promise.all([
-          fetchOverview(), 
-          fetchRecentActivity(), 
-          fetchAlerts(),
-          fetchComprehensiveAnalysis()
-        ]);
-        // Then load other data
-        await fetchAll();
-        // Mark data as ready
-        setDataReady(true);
-      } catch (error) {
-        console.error('Error initializing dashboard:', error);
-      } finally {
-        setInitialLoading(false);
+  useEffect(() => {
+    let cancelled = false;
+    const doFetch = async () => {
+      setLoadingWithLog(true);
+      setInitialLoadingWithLog(true);
+      setDataReadyWithLog(false);
+      await fetchAll();
+      if (!cancelled) {
+        setDataReadyWithLog(true);
+        setInitialLoadingWithLog(false);
+        setLoadingWithLog(false);
       }
     };
-    
-    initializeData();
-  }, []); // Empty dependency array - chỉ chạy 1 lần
-
-  // Reload data khi filters thay đổi
-  useEffect(() => {
-    if (dataReady) { // Chỉ reload khi đã load lần đầu
-      const reloadData = async () => {
-        setLoading(true);
-        try {
-          // Reload all data with new filters
-          await Promise.all([
-            fetchOverview(), 
-            fetchRecentActivity(), 
-            fetchAlerts(),
-            fetchComprehensiveAnalysis(),
-            fetchAll()
-          ]);
-        } catch (error) {
-          console.error('Error reloading dashboard data:', error);
-        } finally {
-          setLoading(false);
-        }
-      };
-      
-      reloadData();
-    }
-  }, [period, storeId, dateRange, dataReady]); // Reload khi filters thay đổi
+    doFetch();
+    return () => { cancelled = true; };
+    // Chỉ phụ thuộc vào filter
+  }, [period, storeId, dateRange]);
 
   return {
     // Filters
     period,
-    setPeriod,
+    setPeriod: setPeriodWithLog,
     storeId,
-    setStoreId,
+    setStoreId: setStoreIdWithLog,
     dateRange,
-    setDateRange,
+    setDateRange: setDateRangeWithLog,
     
     // Loading states
     loading,
@@ -408,10 +299,6 @@ export const useDashboardData = () => {
     bestSelling,
     
     // Functions
-    fetchOverview,
-    fetchRecentActivity,
-    fetchAlerts,
-    fetchComprehensiveAnalysis,
     fetchAll,
     resetFilters
   };

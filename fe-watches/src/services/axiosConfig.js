@@ -21,12 +21,11 @@ axiosInstance.interceptors.request.use(
     }
 
     // Kiểm tra nếu token sắp hết hạn
-    if (authService.isTokenExpiringSoon()) {
+    if (authService.isTokenExpiringSoon && authService.isTokenExpiringSoon()) {
       try {
         const newToken = await authService.refreshToken();
         config.headers.Authorization = `Bearer ${newToken}`;
       } catch (error) {
-        // Nếu refresh token thất bại, chuyển hướng về trang login
         window.location.href = '/admin/login';
         return Promise.reject(error);
       }
@@ -46,20 +45,20 @@ axiosInstance.interceptors.request.use(
 
 // Response interceptor
 axiosInstance.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    return response;
+  },
   async (error) => {
     const originalRequest = error.config;
 
     // Nếu lỗi 401 và chưa thử refresh token
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
-
       try {
         const newToken = await authService.refreshToken();
         originalRequest.headers.Authorization = `Bearer ${newToken}`;
         return axiosInstance(originalRequest);
       } catch (refreshError) {
-        // Nếu refresh token thất bại, xóa token và chuyển hướng về trang login
         authService.clearTokens();
         window.location.href = '/admin/login';
         return Promise.reject(refreshError);

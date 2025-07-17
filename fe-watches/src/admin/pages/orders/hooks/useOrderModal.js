@@ -44,12 +44,10 @@ export default function useOrderModal(refreshOrders, userInfo) {
   // Fetch stores
   const fetchStores = useCallback(async () => {
     try {
-      console.log('Fetching stores...');
       const result = await apiCall(STORE_ENDPOINTS.STORES_LIST_ALL);
       
       if (result.success && result.data) {
         const storesData = Array.isArray(result.data) ? result.data : [];
-        console.log('Stores loaded:', storesData.length);
         setStores(storesData);
       }
     } catch (error) {
@@ -76,22 +74,18 @@ export default function useOrderModal(refreshOrders, userInfo) {
   // Filter employees by store using API
   const filterEmployeesByStore = useCallback(async (storeId) => {
     if (!storeId) {
-      console.log('No storeId provided, clearing filtered employees');
       setFilteredEmployees([]);
       return;
     }
     try {
-      console.log('Filtering employees for store:', storeId);
       const apiUrl = `${STORE_ENDPOINTS.EMPLOYEES_LIST_ALL}?store=${storeId}`;
       
       const result = await apiCall(apiUrl);
       
       if (result.success && result.data) {
         const filteredEmployeesData = Array.isArray(result.data) ? result.data : [];
-        console.log('Filtered employees loaded:', filteredEmployeesData.length);
         setFilteredEmployees(filteredEmployeesData);
       } else {
-        console.log('No employees found for store');
         setFilteredEmployees([]);
       }
     } catch (error) {
@@ -249,20 +243,17 @@ export default function useOrderModal(refreshOrders, userInfo) {
   // Search customers
   const searchCustomers = useCallback(async (searchText) => {
     if (!searchText) {
-      console.log('Search text is empty, keeping current customers list');
       // Không reset customers khi search text rỗng
       return;
     }
     
     try {
-      console.log('Searching customers with:', searchText);
       setCustomerSearchLoading(true);
       const queryParams = new URLSearchParams({ search: searchText });
       const result = await apiCall(`${CUSTOMER_ENDPOINTS.CUSTOMERS}?${queryParams}`);
       
       if (result.success && result.data) {
         const customersData = Array.isArray(result.data.results) ? result.data.results : [];
-        console.log('Customers found:', customersData.length);
         setCustomers(customersData);
       }
     } catch (error) {
@@ -278,13 +269,11 @@ export default function useOrderModal(refreshOrders, userInfo) {
       // Load all customers initially only if customers list is empty
       const loadInitialCustomers = async () => {
         try {
-          console.log('Loading initial customers...');
           setCustomerSearchLoading(true);
           const result = await apiCall(CUSTOMER_ENDPOINTS.CUSTOMERS);
           
           if (result.success && result.data) {
             const customersData = Array.isArray(result.data.results) ? result.data.results : [];
-            console.log('Initial customers loaded:', customersData.length);
             setCustomers(customersData);
           }
         } catch (error) {

@@ -9,13 +9,18 @@ export const PERMISSION_KEYS = {
 };
 
 export function isSuperUser() {
-  return localStorage.getItem('is_superuser') === 'true';
+  const val = localStorage.getItem('is_superuser') === 'true';
+  return val;
 }
 
 export function getUserPermissionCodenames() {
-  if (isSuperUser()) return [];
+  const superUser = isSuperUser();
+  if (superUser) {
+    return [];
+  }
   try {
-    return JSON.parse(localStorage.getItem('user_permission_codenames')) || [];
+    const codenames = JSON.parse(localStorage.getItem('user_permission_codenames')) || [];
+    return codenames;
   } catch {
     return [];
   }
@@ -27,28 +32,37 @@ export function getUserPermissionCodenames() {
  * @returns {object} - { view: true/false, create: true/false, edit: true/false, delete: true/false }
  */
 export function getModulePermissions(module) {
-  if (isSuperUser()) {
+  const superUser = isSuperUser();
+  if (superUser) {
     return { view: true, create: true, edit: true, delete: true };
   }
   const codenames = getUserPermissionCodenames();
-  return {
+  const perms = {
     view: codenames.includes(`view_${module}`),
     create: codenames.includes(`add_${module}`),
     edit: codenames.includes(`change_${module}`),
     delete: codenames.includes(`delete_${module}`),
   };
+  return perms;
 }
 
 // Hàm kiểm tra nhanh một quyền cho module
 export function hasModulePermission(module, action) {
-  if (isSuperUser()) return true;
+  const superUser = isSuperUser();
+  if (superUser) {
+    return true;
+  }
   const perms = getModulePermissions(module);
-  return !!perms[action];
+  const result = !!perms[action];
+  return result;
 }
 
 // Lấy quyền người dùng hiện tại từ localStorage
 export function getUserPermissions() {
-  if (isSuperUser()) return {};
+  const superUser = isSuperUser();
+  if (superUser) {
+    return {};
+  }
   try {
     const perms = JSON.parse(localStorage.getItem('user_permissions'));
     return perms || {};
@@ -59,9 +73,13 @@ export function getUserPermissions() {
 
 // Hàm kiểm tra quyền nhanh
 export function hasPermission(key) {
-  if (isSuperUser()) return true;
+  const superUser = isSuperUser();
+  if (superUser) {
+    return true;
+  }
   const perms = getUserPermissions();
-  return !!perms[key];
+  const result = !!perms[key];
+  return result;
 }
 
 // Hàm xử lý và lưu quyền FE vào localStorage sau khi đăng nhập

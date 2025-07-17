@@ -11,6 +11,7 @@ export const AUTH_ENDPOINTS = {
   ME: `${API_BASE_URL}/account/auth/me/`,
   CHANGE_PASSWORD: `${API_BASE_URL}/account/auth/change_password/`,
   RESET_PASSWORD: `${API_BASE_URL}/account/auth/reset-password/`,
+  VERIFY_TOKEN: `${API_BASE_URL}/account/auth/token/verify/`,
 };
 
 // User endpoints

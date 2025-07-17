@@ -54,12 +54,15 @@ import {
   InventoryTransactionsPage
 } from '@/admin/pages';
 
+import { useEffect } from 'react';
 
 function PrivateRoute({ children }) {
   return authService.isTokenValid() ? children : <Navigate to="/admin/login" />;
 }
 
 function App() {
+  useEffect(() => {
+  }, []);
   return (
     <Router>
       <Routes>

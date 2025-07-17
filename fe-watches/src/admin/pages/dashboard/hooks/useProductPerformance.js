@@ -136,12 +136,13 @@ export const useProductPerformance = (storeId, dateRange) => {
     setSelectedProduct(productId);
     setSelectedVariant(null);
     setProductPerformance(null);
-    if (productId) {
-      fetchVariants(productId);
-    } else {
-      setVariants([]);
-    }
-  }, [fetchVariants]);
+    // Không gọi fetchVariants ở đây nữa, đã có useEffect quản lý
+    // if (productId) {
+    //   fetchVariants(productId);
+    // } else {
+    //   setVariants([]);
+    // }
+  }, []);
 
   // Handle variant selection
   const handleVariantChange = useCallback((variantId) => {
@@ -149,13 +150,30 @@ export const useProductPerformance = (storeId, dateRange) => {
     setProductPerformance(null);
   }, []);
 
+  // Chỉ gọi fetchProducts 1 lần khi mount
   useEffect(() => {
     fetchProducts();
-  }, [fetchProducts]);
+    // eslint-disable-next-line
+  }, []);
 
+  // Chỉ gọi fetchVariants khi selectedProduct đổi
   useEffect(() => {
-    fetchProductPerformance();
-  }, [fetchProductPerformance]);
+    if (selectedProduct) {
+      fetchVariants(selectedProduct);
+    } else {
+      setVariants([]);
+      setSelectedVariant(null);
+    }
+    // eslint-disable-next-line
+  }, [selectedProduct]);
+
+  // Chỉ gọi fetchProductPerformance khi selectedVariant, dateRange, storeId đổi
+  useEffect(() => {
+    if (selectedVariant) {
+      fetchProductPerformance();
+    }
+    // eslint-disable-next-line
+  }, [selectedVariant, dateRange, storeId]);
 
   return {
     selectedProduct,

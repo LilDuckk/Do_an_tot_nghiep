@@ -13,7 +13,7 @@
  * - Tích hợp với useOrderData để refresh list
  */
 
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useMemo } from 'react';
 import { 
   Modal, 
   Form, 
@@ -64,105 +64,6 @@ const OrderModal = React.memo(({
   onStoreChange,
   onEmployeeChange
 }) => {
-  // Set initial values khi modal mở
-  useEffect(() => {
-    if (visible && form) {
-      console.log('Modal opened - isEdit:', isEdit, 'initialValues:', initialValues);
-      if (isEdit && initialValues) {
-        // Format date cho DatePicker
-        const formattedValues = {
-          ...initialValues,
-          order_date: initialValues.order_date ? dayjs(initialValues.order_date) : null
-        };
-        console.log('Setting form values for edit:', formattedValues);
-        form.setFieldsValue(formattedValues);
-      } else {
-        console.log('Resetting form fields for create');
-        form.resetFields();
-      }
-    }
-  }, [visible, form, isEdit, initialValues]);
-
-  // Auto calculate total amount when form values change
-  useEffect(() => {
-    if (form && visible) {
-      const values = form.getFieldsValue();
-      const { subtotal, tax, shipping_fee, discount } = values;
-      
-      if (subtotal !== undefined || tax !== undefined || shipping_fee !== undefined || discount !== undefined) {
-        const total = calculateOrderTotal(subtotal, tax, shipping_fee, discount);
-        form.setFieldsValue({ total_amount: total.toFixed(2) });
-      }
-    }
-  }, [form, visible]);
-
-  // Debug form values
-  useEffect(() => {
-    if (form && visible) {
-      const values = form.getFieldsValue();
-      console.log('Form values in OrderModal:', values);
-    }
-  }, [form, visible]);
-
-  // Debug when filteredEmployees change
-  useEffect(() => {
-    if (visible) {
-      console.log('FilteredEmployees changed:', filteredEmployees.length);
-      const values = form?.getFieldsValue();
-      console.log('Form values after filteredEmployees change:', values);
-    }
-  }, [filteredEmployees, visible, form]);
-
-  // Debug when customers or stores change
-  useEffect(() => {
-    if (visible) {
-      console.log('Customers changed:', customers.length);
-      console.log('Stores changed:', stores.length);
-      const values = form?.getFieldsValue();
-      console.log('Form values after customers/stores change:', values);
-    }
-  }, [customers, stores, visible, form]);
-
-  // Preserve form values when customers/stores change
-  useEffect(() => {
-    if (visible && form) {
-      const currentValues = form.getFieldsValue();
-      const hasValues = Object.values(currentValues).some(value => value !== undefined && value !== null && value !== '');
-      
-      if (hasValues) {
-        console.log('Preserving form values:', currentValues);
-        // Force form to keep current values
-        setTimeout(() => {
-          form.setFieldsValue(currentValues);
-        }, 0);
-      }
-    }
-  }, [customers, stores, visible, form]);
-
-  // Alternative approach: Use ref to track form values
-  const formValuesRef = useRef({});
-  
-  useEffect(() => {
-    if (visible && form) {
-      const values = form.getFieldsValue();
-      formValuesRef.current = values;
-      console.log('Form values stored in ref:', values);
-    }
-  }, [visible, form]);
-
-  // Restore form values when customers/stores change
-  useEffect(() => {
-    if (visible && form && Object.keys(formValuesRef.current).length > 0) {
-      const storedValues = formValuesRef.current;
-      const hasStoredValues = Object.values(storedValues).some(value => value !== undefined && value !== null && value !== '');
-      
-      if (hasStoredValues) {
-        console.log('Restoring form values from ref:', storedValues);
-        form.setFieldsValue(storedValues);
-      }
-    }
-  }, [customers, stores, visible, form]);
-
   // Memoize options để tối ưu performance
   const memoizedOptions = useMemo(() => ({
     orderStatus: ORDER_STATUS_OPTIONS,
@@ -215,24 +116,19 @@ const OrderModal = React.memo(({
   };
 
   const handleCustomerChange = (customerId) => {
-    // Chỉ log để debug, không validate ngay
-    console.log('Customer changed:', customerId);
     // Không gọi validation ngay khi chọn
   };
 
   const handlePaymentMethodChange = (method) => {
-    // Chỉ log để debug, không validate ngay
-    console.log('Payment method changed:', method);
+    // Không gọi validation ngay
   };
 
   const handleShippingMethodChange = (method) => {
-    // Chỉ log để debug, không validate ngay
-    console.log('Shipping method changed:', method);
+    // Không gọi validation ngay
   };
 
   const handleOrderDateChange = (date) => {
-    // Chỉ log để debug, không validate ngay
-    console.log('Order date changed:', date);
+    // Không gọi validation ngay
   };
 
   return (
@@ -250,6 +146,7 @@ const OrderModal = React.memo(({
         layout="vertical"
         disabled={loading}
       >
+        {/* --- Trường Khách hàng --- */}
         <Form.Item
           name="customer"
           label="Khách hàng"
@@ -261,23 +158,8 @@ const OrderModal = React.memo(({
             loading={customerSearchLoading}
             placeholder="Nhập tên khách hàng để tìm kiếm"
             filterOption={false}
-            onSearch={(searchText) => {
-              console.log('Customer search:', searchText);
-              // Lưu giá trị hiện tại của form trước khi search
-              const currentValues = form.getFieldsValue();
-              console.log('Current form values before customer search:', currentValues);
-              
-              // Gọi onCustomerSearch
-              onCustomerSearch(searchText);
-              
-              // Restore form values sau khi search
-              setTimeout(() => {
-                console.log('Restoring form values after customer search:', currentValues);
-                form.setFieldsValue(currentValues);
-              }, 100);
-            }}
+            onSearch={onCustomerSearch}
             notFoundContent={customerSearchLoading ? <Spin size="small" /> : null}
-            onChange={handleCustomerChange}
           >
             {customers.map(customer => (
               <Option key={customer.id} value={customer.id}>
@@ -287,6 +169,7 @@ const OrderModal = React.memo(({
           </Select>
         </Form.Item>
 
+        {/* --- Trường Cửa hàng --- */}
         <Form.Item
           name="store"
           label="Cửa hàng"
@@ -294,20 +177,9 @@ const OrderModal = React.memo(({
         >
           <Select
             allowClear
-            onChange={(storeId) => {
-              console.log('Store changed to:', storeId);
-              // Lưu giá trị hiện tại của form trước khi thay đổi
-              const currentValues = form.getFieldsValue();
-              console.log('Current form values before store change:', currentValues);
-              
-              // Gọi onStoreChange
+            onChange={storeId => {
+              form.setFieldsValue({ employee: undefined });
               onStoreChange(storeId);
-              
-              // Restore form values sau khi thay đổi
-              setTimeout(() => {
-                console.log('Restoring form values after store change:', currentValues);
-                form.setFieldsValue(currentValues);
-              }, 100);
             }}
           >
             {stores.map(store => (
@@ -318,6 +190,7 @@ const OrderModal = React.memo(({
           </Select>
         </Form.Item>
 
+        {/* --- Trường Nhân viên --- */}
         <Form.Item
           name="employee"
           label="Nhân viên"
@@ -327,24 +200,20 @@ const OrderModal = React.memo(({
             showSearch
             allowClear
             placeholder={
-              form?.getFieldValue('store')
+              form.getFieldValue('store')
                 ? (filteredEmployees.length === 0
                     ? "Không có nhân viên nào cho cửa hàng này"
                     : `Có ${filteredEmployees.length} nhân viên - Tìm kiếm nhân viên`)
                 : "Chọn cửa hàng trước"
             }
-            filterOption={(input, option) =>
-              (option.children || '').toLowerCase().indexOf(input.toLowerCase()) >= 0
-            }
-            disabled={!isSuperUser || !form?.getFieldValue('store')}
+            disabled={!form.getFieldValue('store')}
             notFoundContent={
-              form?.getFieldValue('store')
+              form.getFieldValue('store')
                 ? (filteredEmployees.length === 0
                     ? "Không có nhân viên nào cho cửa hàng này"
                     : "Không tìm thấy nhân viên")
                 : "Chọn cửa hàng trước"
             }
-            onChange={onEmployeeChange}
           >
             {filteredEmployees.map(employee => (
               <Option key={employee.id} value={employee.id}>

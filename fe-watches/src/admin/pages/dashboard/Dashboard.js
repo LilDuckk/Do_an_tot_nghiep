@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import '@/admin/static/AdminLayout.css';
 import '@/admin/static/Admin.css';
 import { Bar, Line, Doughnut } from 'react-chartjs-2';
@@ -68,7 +68,7 @@ ChartJS.register(
   Filler
 );
 
-export default function Dashboard() {
+export default function Dashboard(props) {
   // Period options
   const periodOptions = ['today', 'week', 'month', 'year'];
 
@@ -114,6 +114,9 @@ export default function Dashboard() {
     bestSelling
   } = useDashboardData();
 
+  useEffect(() => {
+  }, []);
+
   const {
     selectedProduct,
     setSelectedProduct,
@@ -152,96 +155,99 @@ export default function Dashboard() {
     <div className="admin-dashboard-container">
       {/* Loading overlay */}
       <LoadingOverlay loading={loading} initialLoading={initialLoading} />
-      
-      {/* Header */}
-      <DashboardHeader />
+      {dataReady && (
+        <>
+          {/* Header */}
+          <DashboardHeader />
 
-      {/* Filters */}
-      <DashboardFilters 
-        period={period}
-        setPeriod={setPeriod}
-        dateRange={dateRange}
-        setDateRange={setDateRange}
-        periodOptions={periodOptions}
-        storeId={storeId}
-        setStoreId={setStoreId}
-        resetFilters={resetFilters}
-        loading={loading}
-      />
+          {/* Filters */}
+          <DashboardFilters 
+            period={period}
+            setPeriod={setPeriod}
+            dateRange={dateRange}
+            setDateRange={setDateRange}
+            periodOptions={periodOptions}
+            storeId={storeId}
+            setStoreId={setStoreId}
+            resetFilters={resetFilters}
+            loading={loading}
+          />
 
-      {/* Alerts Button */}
-      <AlertsButton 
-        alerts={alerts}
-        alertsVisible={alertsVisible}
-        setAlertsVisible={setAlertsVisible}
-      />
+          {/* Alerts Button */}
+          <AlertsButton 
+            alerts={alerts}
+            alertsVisible={alertsVisible}
+            setAlertsVisible={setAlertsVisible}
+          />
 
-      {/* KPI Cards */}
-      <KPICards 
-        overview={overview}
-        dataReady={dataReady}
-      />
+          {/* KPI Cards */}
+          <KPICards 
+            overview={overview}
+            dataReady={dataReady}
+          />
 
-      {/* Statistics Cards */}
-      <StatisticsCards 
-        overview={overview}
-        dailyRevenue={dailyRevenue}
-        returnSummary={returnSummary}
-        warrantySummary={warrantySummary}
-        profitAnalysis={profitAnalysis}
-        dataReady={dataReady}
-      />
+          {/* Statistics Cards */}
+          <StatisticsCards 
+            overview={overview}
+            dailyRevenue={dailyRevenue}
+            returnSummary={returnSummary}
+            warrantySummary={warrantySummary}
+            profitAnalysis={profitAnalysis}
+            dataReady={dataReady}
+          />
 
-      {/* Dashboard Tabs */}
-      <DashboardTabs 
-        dataReady={dataReady}
-        // Chart data
-        revenueChartData={revenueChartData}
-        monthlyChartData={monthlyChartData}
-        bestSellersChartData={bestSellersChartData}
-        turnoverChartData={turnoverChartData}
-        profitDistributionData={profitDistributionData}
-        returnProductChartData={returnProductChartData}
-        warrantyProductChartData={warrantyProductChartData}
-        financialChartData={financialChartData}
-        profitChartData={profitChartData}
-        topProductsChartData={topProductsChartData}
-        topCustomersChartData={topCustomersChartData}
-        bestSellingChartData={bestSellingChartData}
-        productPerformanceChartData={productPerformanceChartData}
-        // Table data
-        bestSellers={bestSellers}
-        inventoryTurnover={inventoryTurnover}
-        returnSummary={returnSummary}
-        warrantySummary={warrantySummary}
-        profitAnalysis={profitAnalysis}
-        financialImpact={financialImpact}
-        returnProductAnalysis={returnProductAnalysis}
-        warrantyProductAnalysis={warrantyProductAnalysis}
-        productProfitability={productProfitability}
-        dailySummary={dailySummary}
-        dailyBreakdown={dailyBreakdown}
-        inventoryAnalysis={inventoryAnalysis}
-        comprehensiveAnalysis={comprehensiveAnalysis}
-        topProducts={topProducts}
-        topCustomers={topCustomers}
-        bestSelling={bestSelling}
-        // Revenue data
-        dailyRevenue={dailyRevenue}
-        monthlyRevenue={monthlyRevenue}
-        // Product performance
-        selectedProduct={selectedProduct}
-        setSelectedProduct={setSelectedProduct}
-        selectedVariant={selectedVariant}
-        setSelectedVariant={setSelectedVariant}
-        products={products}
-        variants={variants}
-        productsLoading={productsLoading}
-        variantsLoading={variantsLoading}
-        performancePeriod={performancePeriod}
-        setPerformancePeriod={setPerformancePeriod}
-        productPerformance={productPerformance}
-      />
+          {/* Dashboard Tabs */}
+          <DashboardTabs 
+            dataReady={dataReady}
+            // Chart data
+            revenueChartData={revenueChartData}
+            monthlyChartData={monthlyChartData}
+            bestSellersChartData={bestSellersChartData}
+            turnoverChartData={turnoverChartData}
+            profitDistributionData={profitDistributionData}
+            returnProductChartData={returnProductChartData}
+            warrantyProductChartData={warrantyProductChartData}
+            financialChartData={financialChartData}
+            profitChartData={profitChartData}
+            topProductsChartData={topProductsChartData}
+            topCustomersChartData={topCustomersChartData}
+            bestSellingChartData={bestSellingChartData}
+            productPerformanceChartData={productPerformanceChartData}
+            // Table data
+            bestSellers={bestSellers}
+            inventoryTurnover={inventoryTurnover}
+            returnSummary={returnSummary}
+            warrantySummary={warrantySummary}
+            profitAnalysis={profitAnalysis}
+            financialImpact={financialImpact}
+            returnProductAnalysis={returnProductAnalysis}
+            warrantyProductAnalysis={warrantyProductAnalysis}
+            productProfitability={productProfitability}
+            dailySummary={dailySummary}
+            dailyBreakdown={dailyBreakdown}
+            inventoryAnalysis={inventoryAnalysis}
+            comprehensiveAnalysis={comprehensiveAnalysis}
+            topProducts={topProducts}
+            topCustomers={topCustomers}
+            bestSelling={bestSelling}
+            // Revenue data
+            dailyRevenue={dailyRevenue}
+            monthlyRevenue={monthlyRevenue}
+            // Product performance
+            selectedProduct={selectedProduct}
+            setSelectedProduct={setSelectedProduct}
+            selectedVariant={selectedVariant}
+            setSelectedVariant={setSelectedVariant}
+            products={products}
+            variants={variants}
+            productsLoading={productsLoading}
+            variantsLoading={variantsLoading}
+            performancePeriod={performancePeriod}
+            setPerformancePeriod={setPerformancePeriod}
+            productPerformance={productPerformance}
+          />
+        </>
+      )}
     </div>
   );
 } 
